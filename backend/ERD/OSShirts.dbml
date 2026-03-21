@@ -1,0 +1,131 @@
+// -----------------------------------------------
+// OSShirt — Mapa de relaciones completo
+// -----------------------------------------------
+
+Table "users" {
+  user_id       int           [pk, not null, increment]
+  name          varchar(100)  [not null]
+  email         varchar(100)  [not null, unique]
+  password      varchar(255)  [not null]
+  role          enum(user, admin) [not null, default: "user"]
+  is_active     boolean       [not null, default: true]
+  created_at    timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at   timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "addresses" {
+  address_id    int           [pk, not null, increment]
+  user_id       int           [not null, ref: > users.user_id]
+  street        varchar(150)  [not null]
+  city          varchar(100)  [not null]
+  state         varchar(100)  [not null]
+  zip           varchar(10)   [not null]
+  country       varchar(50)   [not null, default: "México"]
+  is_default    boolean       [not null, default: false]
+  created_at    timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at   timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "categories" {
+  category_id   int           [pk, not null, increment]
+  name          varchar(100)  [not null]
+  type          enum(anime, occidental) [not null]
+  slug          varchar(100)  [not null, unique]
+  image_url     varchar(255)
+  created_at    timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at   timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "products" {
+  product_id    int           [pk, not null, increment]
+  category_id   int           [not null, ref: > categories.category_id]
+  name          varchar(150)  [not null]
+  slug          varchar(150)  [not null, unique]
+  description   text
+  price         double(8,2)   [not null]
+  stock         int           [not null, default: 0]
+  sizes         varchar(50)   [note: "XS,S,M,L,XL,XXL — stored as CSV"]
+  images        text          [note: "JSON array of image URLs"]
+  tags          text          [note: "JSON array of tag strings"]
+  is_active     boolean       [not null, default: true]
+  created_at    timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at   timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "carts" {
+  cart_id       int           [pk, not null, increment]
+  user_id       int           [not null, unique, ref: > users.user_id]
+  total         double(8,2)   [not null, default: 0]
+  created_at    timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at   timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+
+  note: "Un usuario solo puede tener un carrito activo (unique user_id)"
+}
+
+Table "cart_items" {
+  cart_item_id  int           [pk, not null, increment]
+  cart_id       int           [not null, ref: > carts.cart_id]
+  product_id    int           [not null, ref: > products.product_id]
+  quantity      int           [not null, default: 1]
+  size          varchar(5)    [not null]
+  price         double(8,2)   [not null, note: "Snapshot del precio al agregar"]
+}
+
+Table "wishlists" {
+  wishlist_id   int           [pk, not null, increment]
+  user_id       int           [not null, unique, ref: > users.user_id]
+  created_at    timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at   timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+
+  note: "Un usuario tiene una sola wishlist"
+}
+
+Table "wishlist_products" {
+  wishlist_product_id int      [pk, not null, increment]
+  wishlist_id   int           [not null, ref: > wishlists.wishlist_id]
+  product_id    int           [not null, ref: > products.product_id]
+  added_at      timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (wishlist_id, product_id) [unique, name: "uq_wishlist_product"]
+  }
+}
+
+Table "payment_methods" {
+  payment_method_id int        [pk, not null, increment]
+  user_id       int           [not null, ref: > users.user_id]
+  type          enum(card, paypal, oxxo) [not null]
+  last4         varchar(4)    [note: "Solo si type = card"]
+  brand         varchar(30)   [note: "Visa, Mastercard, etc."]
+  token         varchar(255)  [note: "Token de pasarela — nunca datos en crudo"]
+  is_default    boolean       [not null, default: false]
+  created_at    timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at   timestamp     [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "orders" {
+  order_id          int       [pk, not null, increment]
+  user_id           int       [not null, ref: > users.user_id]
+  address_id        int       [not null, ref: > addresses.address_id]
+  payment_method_id int       [not null, ref: > payment_methods.payment_method_id]
+  subtotal          double(8,2) [not null]
+  shipping_cost     double(8,2) [not null, default: 0]
+  total             double(8,2) [not null]
+  status            enum(pending, paid, processing, shipped, delivered, cancelled) [not null, default: "pending"]
+  payment_ref       varchar(255) [note: "Referencia de pasarela de pago"]
+  tracking_code     varchar(100) [note: "Número de guía de envío"]
+  notes             text
+  created_at        timestamp  [not null, default: `CURRENT_TIMESTAMP`]
+  modified_at       timestamp  [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table "order_items" {
+  order_item_id int           [pk, not null, increment]
+  order_id      int           [not null, ref: > orders.order_id]
+  product_id    int           [not null, ref: > products.product_id]
+  product_name  varchar(150)  [not null, note: "Snapshot del nombre"]
+  product_image varchar(255)  [note: "Snapshot de imagen principal"]
+  quantity      int           [not null]
+  size          varchar(5)    [not null]
+  price         double(8,2)   [not null, note: "Snapshot del precio al comprar"]
+}
