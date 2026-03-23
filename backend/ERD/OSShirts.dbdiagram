@@ -11,6 +11,12 @@
       "y": 441.4501781878697
     },
     {
+      "name": "auth_tokens",
+      "schemaName": "public",
+      "x": -217.51252796409517,
+      "y": 409.59798147957895
+    },
+    {
       "name": "addresses",
       "schemaName": "public",
       "x": 527.9453125,
@@ -25,14 +31,14 @@
     {
       "name": "products",
       "schemaName": "public",
-      "x": 527.9453125,
-      "y": 12
+      "x": 537.6547367606031,
+      "y": -111.44839417052552
     },
     {
       "name": "carts",
       "schemaName": "public",
-      "x": 527.9453125,
-      "y": 506
+      "x": 531.3687270862868,
+      "y": 516.2702437588604
     },
     {
       "name": "cart_items",
@@ -67,13 +73,100 @@
     {
       "name": "order_items",
       "schemaName": "public",
-      "x": 1913.49658203125,
-      "y": 12
+      "x": 1479.1018103500085,
+      "y": 28
+    },
+    {
+      "name": "coupons",
+      "schemaName": "public",
+      "x": 1758.5996796154404,
+      "y": 637.6552436891208
+    },
+    {
+      "name": "coupon_usages",
+      "schemaName": "public",
+      "x": 1829.6470428966907,
+      "y": 378.11392074194487
+    },
+    {
+      "name": "product_reviews",
+      "schemaName": "public",
+      "x": 1146.41064453125,
+      "y": 1042.9054157559176
+    },
+    {
+      "name": "product_views",
+      "schemaName": "public",
+      "x": 88.52783203125,
+      "y": -120.66488525722113
+    },
+    {
+      "name": "warehouses",
+      "schemaName": "public",
+      "x": 30.118148698993934,
+      "y": 1281.2399563620972
+    },
+    {
+      "name": "inventory",
+      "schemaName": "public",
+      "x": 1149.9208984375,
+      "y": 1374.0854405564585
+    },
+    {
+      "name": "shipments",
+      "schemaName": "public",
+      "x": 2206.994341569759,
+      "y": 534.2856295671494
+    },
+    {
+      "name": "payments",
+      "schemaName": "public",
+      "x": 2196.994341569759,
+      "y": 833.7856295671492
+    },
+    {
+      "name": "order_status_history",
+      "schemaName": "public",
+      "x": 2196.994341569759,
+      "y": 1167.7856295671495
+    },
+    {
+      "name": "tags",
+      "schemaName": "public",
+      "x": 594.0452602672161,
+      "y": 1707.4448465708638
+    },
+    {
+      "name": "product_tags",
+      "schemaName": "public",
+      "x": 1084.7291014784573,
+      "y": 1675.5737111616759
+    },
+    {
+      "name": "logs",
+      "schemaName": "public",
+      "x": 82.61778262669776,
+      "y": -308.92267481270625
     }
   ],
   "tableGroupCollapseStates": [],
   "stickyNoteLayouts": [],
   "referencePaths": [
+    {
+      "firstFieldNames": [
+        "user_id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "user_id"
+      ],
+      "secondTableName": "auth_tokens",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
     {
       "firstFieldNames": [
         "user_id"
@@ -117,7 +210,16 @@
       "secondTableName": "carts",
       "secondSchemaName": "public",
       "secondRelation": "*",
-      "checkPoints": []
+      "checkPoints": [
+        {
+          "x": 405.6570197931434,
+          "y": 489.4501781878697
+        },
+        {
+          "x": 405.6570197931434,
+          "y": 596.2702437588604
+        }
+      ]
     },
     {
       "firstFieldNames": [
@@ -135,7 +237,7 @@
       "checkPoints": [
         {
           "x": 861.3084960096576,
-          "y": 554
+          "y": 564.2702437588604
         },
         {
           "x": 861.3084960096576,
@@ -156,7 +258,16 @@
       "secondTableName": "cart_items",
       "secondSchemaName": "public",
       "secondRelation": "*",
-      "checkPoints": []
+      "checkPoints": [
+        {
+          "x": 990.1474367396766,
+          "y": -55.44839417052552
+        },
+        {
+          "x": 990.1474367396766,
+          "y": 165
+        }
+      ]
     },
     {
       "firstFieldNames": [
@@ -212,11 +323,7 @@
       "secondRelation": "*",
       "checkPoints": [
         {
-          "x": 811.4870627180358,
-          "y": 60
-        },
-        {
-          "x": 811.4870627180358,
+          "x": 809.9613773856031,
           "y": 435
         }
       ]
@@ -273,7 +380,16 @@
       "secondTableName": "orders",
       "secondSchemaName": "public",
       "secondRelation": "*",
-      "checkPoints": []
+      "checkPoints": [
+        {
+          "x": 1033.56825350593,
+          "y": 998
+        },
+        {
+          "x": 1033.56825350593,
+          "y": 641
+        }
+      ]
     },
     {
       "firstFieldNames": [
@@ -290,11 +406,11 @@
       "secondRelation": "*",
       "checkPoints": [
         {
-          "x": 1012.6015924069395,
+          "x": 1074.0811998207355,
           "y": 1397
         },
         {
-          "x": 1012.6015924069395,
+          "x": 1074.0811998207355,
           "y": 673
         }
       ]
@@ -325,6 +441,253 @@
         "product_id"
       ],
       "secondTableName": "order_items",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": [
+        {
+          "x": 1459.1018103500085,
+          "y": -63.44839417052552
+        }
+      ]
+    },
+    {
+      "firstFieldNames": [
+        "coupon_id"
+      ],
+      "firstTableName": "coupons",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "coupon_id"
+      ],
+      "secondTableName": "coupon_usages",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "user_id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "user_id"
+      ],
+      "secondTableName": "coupon_usages",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "order_id"
+      ],
+      "firstTableName": "orders",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "order_id"
+      ],
+      "secondTableName": "coupon_usages",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "product_id"
+      ],
+      "firstTableName": "products",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "product_id"
+      ],
+      "secondTableName": "product_reviews",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "user_id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "user_id"
+      ],
+      "secondTableName": "product_reviews",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": [
+        {
+          "x": 829.7292228362121,
+          "y": 489.4501781878697
+        },
+        {
+          "x": 829.7292228362121,
+          "y": 1127.113920741945
+        }
+      ]
+    },
+    {
+      "firstFieldNames": [
+        "product_id"
+      ],
+      "firstTableName": "products",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "product_id"
+      ],
+      "secondTableName": "inventory",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": [
+        {
+          "x": 885.1629361433154,
+          "y": 60
+        },
+        {
+          "x": 885.1629361433154,
+          "y": 1454.0854405564583
+        }
+      ]
+    },
+    {
+      "firstFieldNames": [
+        "warehouse_id"
+      ],
+      "firstTableName": "warehouses",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "warehouse_id"
+      ],
+      "secondTableName": "inventory",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": [
+        {
+          "x": 297.82568359375,
+          "y": 1327.1906361149709
+        },
+        {
+          "x": 852.3652744592382,
+          "y": 1327.1906361149709
+        },
+        {
+          "x": 852.3652744592382,
+          "y": 1486.0854405564585
+        }
+      ]
+    },
+    {
+      "firstFieldNames": [
+        "order_id"
+      ],
+      "firstTableName": "orders",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "order_id"
+      ],
+      "secondTableName": "shipments",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": [
+        {
+          "x": 1687.49658203125,
+          "y": 613.3213914451082
+        }
+      ]
+    },
+    {
+      "firstFieldNames": [
+        "order_id"
+      ],
+      "firstTableName": "orders",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "order_id"
+      ],
+      "secondTableName": "payments",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": [
+        {
+          "x": 1687.49658203125,
+          "y": 613.3698456087836
+        },
+        {
+          "x": 2121.14417278945,
+          "y": 613.3698456087836
+        },
+        {
+          "x": 2121.14417278945,
+          "y": 915.321391445108
+        }
+      ]
+    },
+    {
+      "firstFieldNames": [
+        "order_id"
+      ],
+      "firstTableName": "orders",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "order_id"
+      ],
+      "secondTableName": "order_status_history",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": [
+        {
+          "x": 1687.49658203125,
+          "y": 613.8698456087835
+        },
+        {
+          "x": 2121.14417278945,
+          "y": 613.8698456087835
+        },
+        {
+          "x": 2121.14417278945,
+          "y": 1249.3213914451085
+        }
+      ]
+    },
+    {
+      "firstFieldNames": [
+        "product_id"
+      ],
+      "firstTableName": "products",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "product_id"
+      ],
+      "secondTableName": "product_tags",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "tag_id"
+      ],
+      "firstTableName": "tags",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "tag_id"
+      ],
+      "secondTableName": "product_tags",
       "secondSchemaName": "public",
       "secondRelation": "*",
       "checkPoints": []
