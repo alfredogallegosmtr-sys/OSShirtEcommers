@@ -16,8 +16,9 @@ FASE 6, con spec aprobado y rama creada.
 ## Reglas
 - ESM con imports `.js`; controllers `async (req, res)` sin `try/catch` (Express 5 reenvía los
   rechazos de promesa al error handler global automáticamente).
-- Validación manual inline (`mongoose.isValidObjectId`, chequeo de campos requeridos) — este repo
-  **no** usa `express-validator`; ver [../../.claude/validators.md](../../.claude/validators.md).
+- Validación con `express-validator` en las rutas de products/categories/cart (`body`/`param` +
+  middleware `validate`); auth (register/login) sigue con chequeo manual inline. Ver
+  [../../.claude/validators.md](../../.claude/validators.md) para la lista completa por nombre.
   Respuestas `res.status().json()`, `204` en delete, `404` en no encontrado, `422` en validación.
 - Auth: rutas con sesión usan `requireAuth`; el id del usuario sale del token (`req.user.id`),
   nunca del body. Nada de secretos hardcodeados.

@@ -8,6 +8,8 @@ import productRoutes from './src/routes/product.routes.js';
 import categoryRoutes from './src/routes/category.routes.js';
 import authRoutes from './src/routes/auth.routes.js';
 import cartRoutes from './src/routes/cart.routes.js';
+import addressRoutes from './src/routes/address.routes.js';
+import paymentMethodRoutes from './src/routes/paymentMethod.routes.js';
 
 dotenv.config();
 
@@ -31,6 +33,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/payment-methods', paymentMethodRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

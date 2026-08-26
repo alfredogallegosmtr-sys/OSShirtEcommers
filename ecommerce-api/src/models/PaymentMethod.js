@@ -18,12 +18,20 @@ const paymentMethodSchema = new mongoose.Schema(
         "cash_on_delivery",
       ],
     },
-    // Para tarjetas de crédito/débito
-    // Primer dígito: Indica el esquema de la tarjeta (por ejemplo, 4 para Visa, 5 para Mastercard).
-    // Dígitos 2-6: Identifican al emisor de la tarjeta (por ejemplo, el banco o la entidad financiera).
-    // Dígitos 7-15: Representan el número de cuenta individual del titular de la tarjeta.
-    // Dígito 16: Es un dígito verificador calculado mediante un algoritmo para asegurar la validez de la tarjeta.
-    cardNumber: { type: String, max: 16 },
+    // Decisión S-03 (docs/backlog.md): nunca se guarda el número completo de tarjeta ni el cvv,
+    // ni siquiera cifrado — solo lo necesario para mostrarlo en UI ("terminada en 1111"). El
+    // cobro real de un checkout con tarjeta debe delegarse a un proveedor externo (Stripe,
+    // PayPal, etc.) que devuelva un token; ese token no existe todavía porque el checkout sigue
+    // simulado (ver docs/PROJECT_STATUS.md).
+    last4: {
+      type: String,
+      trim: true,
+      maxlength: 4,
+    },
+    brand: {
+      type: String,
+      trim: true,
+    },
     cardHolderName: {
       type: String,
       trim: true,
@@ -47,9 +55,6 @@ const paymentMethodSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
-    },
-    cvv: {
-      type: String,
     },
   },
   { timestamps: true },

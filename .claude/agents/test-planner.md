@@ -27,9 +27,10 @@ repo.
 
 ## Prioridades (obligatorias)
 
-- **ALTA** — validación inline de los controllers y autenticación (`requireAuth`, login/registro,
-  JWT). Ojo: este repo **no** usa `express-validator` ni tiene middleware de rol admin.
-- **MEDIA** — rutas/endpoints y su flujo (`ruta → [requireAuth] → controller`).
+- **ALTA** — validadores `express-validator` (products, categories, cart), validación inline de
+  auth (register/login), autenticación (`requireAuth`, JWT) y el middleware de rol
+  (`requireAdmin`, que protege la escritura de products/categories).
+- **MEDIA** — rutas/endpoints y su flujo (`ruta → [requireAuth] → [requireAdmin] → controller`).
 - **BAJA** — presentación: componentes de UI sin lógica (puramente visuales).
 
 ## Reglas

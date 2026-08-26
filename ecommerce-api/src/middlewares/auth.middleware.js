@@ -16,3 +16,11 @@ export const requireAuth = (req, res, next) => {
     return res.status(401).json({ message: "Token inválido o expirado" });
   }
 };
+
+// Debe montarse siempre después de requireAuth: depende de req.user.
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Requiere rol de administrador" });
+  }
+  next();
+};

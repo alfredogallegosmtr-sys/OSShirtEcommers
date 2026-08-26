@@ -182,13 +182,10 @@ export default function Orders() {
                 <h3>Dirección de envío</h3>
                 {selectedOrder.shippingAddress ? (
                   <address className="order-address">
-                    <strong>{selectedOrder.shippingAddress.name}</strong>
-                    <p>{selectedOrder.shippingAddress.address1}</p>
-                    {selectedOrder.shippingAddress.address2 && (
-                      <p>{selectedOrder.shippingAddress.address2}</p>
-                    )}
+                    <strong>{selectedOrder.shippingAddress.address}</strong>
                     <p>
                       {selectedOrder.shippingAddress.city},{" "}
+                      {selectedOrder.shippingAddress.state} —{" "}
                       {selectedOrder.shippingAddress.postalCode}
                     </p>
                     <p>{selectedOrder.shippingAddress.country}</p>
@@ -202,12 +199,17 @@ export default function Orders() {
                 <h3>Método de pago</h3>
                 {selectedOrder.paymentMethod ? (
                   <div>
-                    <p>{selectedOrder.paymentMethod.alias}</p>
-                    <p>
-                      ****{" "}
-                      {selectedOrder.paymentMethod.cardNumber?.slice(-4) ||
-                        "----"}
-                    </p>
+                    {selectedOrder.paymentMethod.type === "paypal" ? (
+                      <p>PayPal — {selectedOrder.paymentMethod.paypalEmail}</p>
+                    ) : (
+                      <>
+                        <p>{selectedOrder.paymentMethod.cardHolderName}</p>
+                        <p>
+                          **** **** ****{" "}
+                          {selectedOrder.paymentMethod.last4 || "----"}
+                        </p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <p className="muted">Sin método de pago registrado.</p>

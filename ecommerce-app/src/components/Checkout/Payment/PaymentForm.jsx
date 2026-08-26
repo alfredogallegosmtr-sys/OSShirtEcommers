@@ -3,33 +3,43 @@ import Button from "../../common/Button";
 import Input from "../../common/Input";
 import "./PaymentForm.css";
 
-const PaymentForm = ({
-  onSubmit,
-  onCancel,
-  initialValues = {},
-  isEdit = false,
-}) => {
+// Decisión S-03 (docs/backlog.md): el backend nunca acepta el número completo de tarjeta ni
+// el cvv, ni siquiera para descartarlos — por eso este formulario no pide cvv en absoluto, y
+// el número de tarjeta que el usuario escribe nunca sale de este componente: solo se usa para
+// derivar `last4`/`brand` antes de enviar el formulario.
+const deriveBrand = (cardNumber) => {
+  const digits = cardNumber.replace(/\D/g, "");
+  if (digits.startsWith("4")) return "visa";
+  if (digits.startsWith("5")) return "mastercard";
+  if (digits.startsWith("3")) return "amex";
+  return "other";
+};
+
+const EMPTY_FORM = {
+  cardNumber: "",
+  cardHolderName: "",
+  expiryDate: "",
+  isDefault: false,
+};
+
+const PaymentForm = ({ onSubmit, onCancel, initialValues = {}, isEdit = false }) => {
   const [formData, setFormData] = useState({
-    alias: "",
-    cardNumber: "",
-    placeHolder: "",
-    expiryDate: "",
-    cvv: "",
-    isDefault: false,
-    ...initialValues,
+    ...EMPTY_FORM,
+    // En edición no reconstruimos el número completo (nunca lo tuvimos) — solo mostramos
+    // los últimos 4 dígitos ya guardados para dar contexto visual.
+    cardNumber: initialValues.last4 ? `**** **** **** ${initialValues.last4}` : "",
+    cardHolderName: initialValues.cardHolderName || "",
+    expiryDate: initialValues.expiryDate || "",
+    isDefault: initialValues.isDefault || false,
   });
 
-  // Actualizar formulario cuando initialValues cambia (modo edición)
   useEffect(() => {
     if (initialValues && Object.keys(initialValues).length > 0) {
       setFormData({
-        alias: "",
-        cardNumber: "",
-        placeHolder: "",
-        expiryDate: "",
-        cvv: "",
-        isDefault: false,
-        ...initialValues,
+        cardNumber: initialValues.last4 ? `**** **** **** ${initialValues.last4}` : "",
+        cardHolderName: initialValues.cardHolderName || "",
+        expiryDate: initialValues.expiryDate || "",
+        isDefault: initialValues.isDefault || false,
       });
     }
   }, [initialValues]);
@@ -44,18 +54,26 @@ const PaymentForm = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
 
-    // Resetear formulario solo si es nuevo (no edición)
+    const digits = formData.cardNumber.replace(/\D/g, "");
+    const payload = {
+      type: "credit_card",
+      cardHolderName: formData.cardHolderName,
+      expiryDate: formData.expiryDate,
+      isDefault: formData.isDefault,
+    };
+    // Solo se derivan last4/brand si el usuario escribió un número nuevo (4+ dígitos reales).
+    // En edición, si no tocó el campo, se preserva last4/brand ya guardados (no se envían de
+    // nuevo, el backend simplemente no los toca si no vienen en el body).
+    if (digits.length >= 4) {
+      payload.last4 = digits.slice(-4);
+      payload.brand = deriveBrand(digits);
+    }
+
+    onSubmit(payload);
+
     if (!isEdit) {
-      setFormData({
-        alias: "",
-        cardNumber: "",
-        placeHolder: "",
-        expiryDate: "",
-        cvv: "",
-        isDefault: false,
-      });
+      setFormData(EMPTY_FORM);
     }
   };
 
@@ -64,53 +82,35 @@ const PaymentForm = ({
       <h3>{isEdit ? "Editar Método de Pago" : "Nuevo Método de Pago"}</h3>
 
       <Input
-        label="Alias de la tarjeta"
-        name="alias"
-        value={formData.alias}
-        onChange={handleChange}
-        required
-      />
-
-      <Input
         label="Número de tarjeta"
         name="cardNumber"
         value={formData.cardNumber}
         onChange={handleChange}
-        pattern="[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}"
-        placeHolder="1234-5678-9012-3456"
-        required
+        placeHolder="1234 5678 9012 3456"
+        required={!isEdit}
       />
+      <p className="payment-form-hint">
+        Solo se guardan los últimos 4 dígitos — el número completo nunca se envía ni se
+        almacena.
+      </p>
 
       <Input
         label="Nombre del titular"
-        name="placeHolder"
-        value={formData.placeHolder}
+        name="cardHolderName"
+        value={formData.cardHolderName}
         onChange={handleChange}
         required
       />
 
-      <div className="form-row">
-        <Input
-          label="Fecha de expiración"
-          name="expiryDate"
-          value={formData.expiryDate}
-          onChange={handleChange}
-          placeHolder="MM/YY"
-          pattern="[0-9]{2}/[0-9]{2}"
-          required
-        />
-
-        <Input
-          label="CVV"
-          name="cvv"
-          value={formData.cvv}
-          onChange={handleChange}
-          type="password"
-          maxLength="4"
-          pattern="[0-9]{3,4}"
-          required
-        />
-      </div>
+      <Input
+        label="Fecha de expiración"
+        name="expiryDate"
+        value={formData.expiryDate}
+        onChange={handleChange}
+        placeHolder="MM/YY"
+        pattern="[0-9]{2}/[0-9]{2}"
+        required
+      />
 
       <div className="form-checkbox">
         <input

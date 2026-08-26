@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 import connectDB from "../config/db.conf.js";
 
 import User from "../models/User.js";
@@ -18,27 +19,33 @@ const ASSET_BASE =
   process.env.ASSET_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
 const img = (file) => `${ASSET_BASE}/img/products/${file}`;
 
+// Por defecto el seed es NO destructivo: upsert por clave única (slug/email), nunca borra
+// documentos existentes. SEED_ALLOW_RESET=true habilita el reset explícito (limpia y siembra
+// desde cero) — ver docs/backlog.md para el detalle de esta regla.
+const ALLOW_RESET = process.env.SEED_ALLOW_RESET === "true";
+
 const seed = async () => {
   try {
     await connectDB();
 
-    // LIMPIAR DB
-    await User.deleteMany();
-    await Product.deleteMany();
-    await Category.deleteMany();
-    await Address.deleteMany();
-    await PaymentMethod.deleteMany();
-    await Cart.deleteMany();
-    await Order.deleteMany();
+    if (ALLOW_RESET) {
+      // RESET EXPLÍCITO — solo si SEED_ALLOW_RESET=true
+      await User.deleteMany();
+      await Product.deleteMany();
+      await Category.deleteMany();
+      await Address.deleteMany();
+      await PaymentMethod.deleteMany();
+      await Cart.deleteMany();
+      await Order.deleteMany();
+      console.log("DB reset (SEED_ALLOW_RESET=true)");
+    }
 
-    console.log("DB cleaned");
-
-    // CATEGORÍAS RAÍZ
+    // CATEGORÍAS RAÍZ (upsert por slug — no duplica en re-ejecuciones)
 // =========================================================
 // CATEGORÍAS RAÍZ
 // =========================================================
 
-const [anime, mangaNovelas, japon, kpopCulture, videojuegos, culturaPop, originales, colecciones] = await Category.insertMany([
+const rootCategoriesData = [
   {
     name: "Anime",
     description: "Camisetas de series, películas y personajes de anime.",
@@ -86,14 +93,24 @@ const [anime, mangaNovelas, japon, kpopCulture, videojuegos, culturaPop, origina
     description: "Las novedades, productos más vendidos, ediciones limitadas y colecciones de temporada.",
     type: "colecciones",
     slug: "colecciones",
-  },  
-]);
+  },
+];
+
+const upsertCategory = async (data) =>
+  Category.findOneAndUpdate(
+    { slug: data.slug },
+    { $setOnInsert: data },
+    { upsert: true, returnDocument: "after" }
+  );
+
+const [anime, mangaNovelas, japon, kpopCulture, videojuegos, culturaPop, originales, colecciones] =
+  await Promise.all(rootCategoriesData.map(upsertCategory));
 
 // =========================================================
-// SUBCATEGORÍAS
+// SUBCATEGORÍAS (upsert por slug — no duplica en re-ejecuciones)
 // =========================================================
 
-const subCategories = await Category.insertMany([
+const subCategoriesData = [
 
   // -------------------------
   // ANIME
@@ -405,9 +422,9 @@ const subCategories = await Category.insertMany([
     slug: "temporadas",
     parentCategory: colecciones._id,
   },
+];
 
-
-]);
+const subCategories = await Promise.all(subCategoriesData.map(upsertCategory));
 
 const cat = (slug) => {
   if (slug === "anime") return anime._id;
@@ -430,18 +447,31 @@ const cat = (slug) => {
 
 console.log("Categories created");
 
-    // USERS (password hasheado para que el login funcione)
+    // USERS (password hasheado para que el login funcione) — upsert por email.
+    // $setOnInsert: si el usuario ya existe (p. ej. cambió su password real desde la app),
+    // el seed no lo toca — solo crea lo que falta. user1 = admin, user2/user3 = los 2
+    // customers mínimos pedidos; user4..user10 quedan para completar el catálogo demo del curso.
     const passwordHash = await bcrypt.hash("123456", 10);
-    const users = await User.insertMany(
-      Array.from({ length: 10 }).map((_, i) => ({
-        name: `User ${i + 1}`,
-        email: `user${i + 1}@test.com`,
-        password: passwordHash, // demo: todos usan "123456"
-        role: i === 0 ? "admin" : "customer",
-      }))
+    const users = await Promise.all(
+      Array.from({ length: 10 }).map((_, i) =>
+        User.findOneAndUpdate(
+          { email: `user${i + 1}@test.com` },
+          {
+            $setOnInsert: {
+              name: `User ${i + 1}`,
+              email: `user${i + 1}@test.com`,
+              password: passwordHash, // demo: todos usan "123456"
+              role: i === 0 ? "admin" : "customer",
+            },
+          },
+          { upsert: true, returnDocument: "after" }
+        )
+      )
     );
 
-    console.log("Users created (login demo: user1@test.com / 123456, admin)");
+    console.log(
+      "Users ready (login demo: user1@test.com / 123456, admin) — existentes no se modifican"
+    );
 
     // PRODUCTS (slug explícito: insertMany no dispara el hook pre-save)
 // =========================================================
@@ -2599,59 +2629,95 @@ const slugify = (text) =>
     .replace(/\s+/g, "-")
     .replace(/[^\w-]+/g, "");
 
-await Product.insertMany(
-  productsData.map((p) => ({
-    name: p.name,
-    description: p.description,
-    price: p.price,
-    stock: p.stock,
-    imageURL: img(p.image),
-    images: [img(p.image)],
-    slug: slugify(p.name),
-    sizes: ["S", "M", "L", "XL"],
-    tags: p.tags,
-    category: cat(p.category),
-  }))
-);
+// Upsert por slug (único en el schema): re-ejecutar el seed no duplica productos ni pisa
+// cambios reales (stock vendido, is_active, etc.) de un producto que ya existe.
+const upsertProduct = async (p) => {
+  const slug = slugify(p.name);
+  return Product.findOneAndUpdate(
+    { slug },
+    {
+      $setOnInsert: {
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        stock: p.stock,
+        imageURL: img(p.image),
+        images: [img(p.image)],
+        slug,
+        sizes: ["S", "M", "L", "XL"],
+        tags: p.tags,
+        category: cat(p.category),
+      },
+    },
+    { upsert: true, returnDocument: "after" }
+  );
+};
 
-console.log(`${productsData.length} products created`);
+const createdProducts = await Promise.all(productsData.map(upsertProduct));
 
-    // ADDRESSES
-    await Address.insertMany(
-      users.map((user, i) => ({
-        user: user._id,
-        address: `Street ${i + 1} #123`,
-        city: "Aguascalientes",
-        state: "Aguascalientes",
-        postalCode: "20000",
-        country: "Mexico",
-        phone: `44912345${String(i).padStart(2, "0")}`,
-        isDefault: i === 0,
-        addressType: i % 2 === 0 ? "home" : "work",
-      }))
+console.log(`${createdProducts.length} products ready (creados o ya existentes, sin duplicar)`);
+
+    // ADDRESSES — Address no tiene índice único en el schema; la idempotencia se logra
+    // creando solo para los usuarios que todavía no tienen ninguna dirección.
+    const usersNeedingAddress = [];
+    for (let i = 0; i < users.length; i++) {
+      const hasAddress = await Address.exists({ user: users[i]._id });
+      if (!hasAddress) usersNeedingAddress.push(i);
+    }
+    if (usersNeedingAddress.length) {
+      await Address.insertMany(
+        usersNeedingAddress.map((i) => ({
+          user: users[i]._id,
+          address: `Street ${i + 1} #123`,
+          city: "Aguascalientes",
+          state: "Aguascalientes",
+          postalCode: "20000",
+          country: "Mexico",
+          phone: `44912345${String(i).padStart(2, "0")}`,
+          isDefault: i === 0,
+          addressType: i % 2 === 0 ? "home" : "work",
+        }))
+      );
+    }
+    console.log(
+      `Addresses ready (${usersNeedingAddress.length} creadas, ${
+        users.length - usersNeedingAddress.length
+      } ya existían)`
     );
 
-    console.log("Addresses created");
-
-    // PAYMENT METHODS
-    await PaymentMethod.insertMany(
-      users.map((user, i) => ({
-        user: user._id,
-        type: i % 2 === 0 ? "credit_card" : "paypal",
-        cardNumber: i % 2 === 0 ? "4111111111111111" : undefined,
-        cardHolderName: i % 2 === 0 ? `User ${i + 1}` : undefined,
-        expiryDate: i % 2 === 0 ? "12/30" : undefined,
-        paypalEmail: i % 2 !== 0 ? `user${i + 1}@paypal.com` : undefined,
-        isDefault: i === 0,
-        isActive: true,
-      }))
+    // PAYMENT METHODS — misma estrategia: solo se crea si el usuario aún no tiene ninguno.
+    const usersNeedingPayment = [];
+    for (let i = 0; i < users.length; i++) {
+      const hasPayment = await PaymentMethod.exists({ user: users[i]._id });
+      if (!hasPayment) usersNeedingPayment.push(i);
+    }
+    if (usersNeedingPayment.length) {
+      await PaymentMethod.insertMany(
+        usersNeedingPayment.map((i) => ({
+          user: users[i]._id,
+          type: i % 2 === 0 ? "credit_card" : "paypal",
+          last4: i % 2 === 0 ? "1111" : undefined,
+          brand: i % 2 === 0 ? "visa" : undefined,
+          cardHolderName: i % 2 === 0 ? `User ${i + 1}` : undefined,
+          expiryDate: i % 2 === 0 ? "12/30" : undefined,
+          paypalEmail: i % 2 !== 0 ? `user${i + 1}@paypal.com` : undefined,
+          isDefault: i === 0,
+          isActive: true,
+        }))
+      );
+    }
+    console.log(
+      `Payment methods ready (${usersNeedingPayment.length} creados, ${
+        users.length - usersNeedingPayment.length
+      } ya existían)`
     );
 
-    console.log("Payment methods created");
-
-    process.exit();
+    await mongoose.disconnect();
+    console.log("Seed finalizado. Conexión cerrada.");
+    process.exit(0);
   } catch (error) {
     console.error(error);
+    await mongoose.disconnect().catch(() => {});
     process.exit(1);
   }
 };

@@ -14,7 +14,13 @@ const Breadcrumb = ({ categories = [] }) => {
 
     while (current) {
       hierarchy.unshift(current);
-      current = current.parentCategory;
+      // Algunos endpoints (ej. getProductById) no populan parentCategory anidado:
+      // ahí queda como ObjectId crudo, no como documento. Detenemos la cadena en ese punto
+      // en vez de empujar una entrada sin `name`/`_id` al breadcrumb.
+      current =
+        current.parentCategory && typeof current.parentCategory === "object"
+          ? current.parentCategory
+          : null;
     }
 
     return hierarchy;

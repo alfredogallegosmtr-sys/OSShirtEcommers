@@ -11,13 +11,17 @@ import ErrorMessage from "../components/common/ErrorMessage/ErrorMessage";
 import Loading from "../components/common/Loading/Loading";
 import { useCart } from "../context/CartContext";
 import {
-  getDefaultPaymentMethod,
-  getPaymentMethods,
-} from "../services/paymentService";
+  getPaymentMethods as fetchPaymentMethods,
+  createPaymentMethod,
+  updatePaymentMethod,
+  deletePaymentMethod,
+} from "../services/paymentMethodService";
 import {
-  getDefaultShippingAddress,
-  getShippingAddresses,
-} from "../services/shippingService";
+  getAddresses as fetchAddresses,
+  createAddress,
+  updateAddress,
+  deleteAddress,
+} from "../services/addressService";
 import "./Checkout.css";
 
 export default function Checkout() {
@@ -96,18 +100,20 @@ export default function Checkout() {
       setLocalError(null);
       try {
         // Carga paralela de datos para mejorar performance
-        const [addrList, firstAddress, payList, firstPayment] =
-          await Promise.all([
-            getShippingAddresses(),
-            getDefaultShippingAddress(),
-            getPaymentMethods(),
-            getDefaultPaymentMethod(),
-          ]);
+        const [addrList, payList] = await Promise.all([
+          fetchAddresses(),
+          fetchPaymentMethods(),
+        ]);
 
         setAddresses(addrList || []);
         setPayments(payList || []);
 
-        // Pre-seleccionar valores por defecto
+        // Pre-seleccionar valores por defecto (ninguna de las dos APIs tiene un
+        // endpoint de "default" separado: se deriva de isDefault en la lista real).
+        const firstAddress =
+          addrList?.find((addr) => addr.isDefault) || addrList?.[0] || null;
+        const firstPayment =
+          payList?.find((pay) => pay.isDefault) || payList?.[0] || null;
         setSelectedAddress(firstAddress);
         setSelectedPayment(firstPayment);
 
@@ -169,51 +175,45 @@ export default function Checkout() {
   };
 
   /**
-   * Elimina una dirección de la lista local.
+   * Elimina una dirección vía API real y actualiza la lista local.
    * Si la dirección eliminada estaba seleccionada, intenta seleccionar otra.
    */
-  const handleAddressDelete = (address) => {
-    const updatedAddresses = addresses.filter((add) => add._id !== address._id);
-    // Si borramos la seleccionada, seleccionamos la primera disponible o null
-    if (selectedAddress?._id === address._id) {
-      setSelectedAddress(updatedAddresses[0] || null);
+  const handleAddressDelete = async (address) => {
+    try {
+      await deleteAddress(address._id);
+      const updatedAddresses = addresses.filter((add) => add._id !== address._id);
+      if (selectedAddress?._id === address._id) {
+        setSelectedAddress(updatedAddresses[0] || null);
+      }
+      setAddresses(updatedAddresses);
+    } catch (err) {
+      setLocalError("No se pudo eliminar la dirección.");
     }
-    setAddresses(updatedAddresses);
   };
 
   /**
-   * Maneja el guardado (Creación o Edición) de una dirección.
-   * Actualiza la lista local y la selección automáticamente para mejorar UX.
+   * Maneja el guardado (Creación o Edición) de una dirección vía API real.
+   * Re-consulta la lista completa después: el backend puede desmarcar `isDefault`
+   * en otras direcciones del usuario (regla de negocio server-side), y replicar esa
+   * lógica a mano en el cliente divergiría de la fuente de verdad real.
    */
-  const handleAddressSubmit = (formData) => {
-    let updatedAddresses;
-    let newSelectedAddress = selectedAddress;
+  const handleAddressSubmit = async (formData) => {
+    try {
+      const saved = editingAddress
+        ? await updateAddress(editingAddress._id, formData)
+        : await createAddress(formData);
 
-    if (editingAddress) {
-      // EDICIÓN: Actualizamos la lista
-      updatedAddresses = addresses.map((addr) =>
-        addr._id === editingAddress._id ? { ...addr, ...formData } : addr
+      const refreshed = await fetchAddresses();
+      setAddresses(refreshed || []);
+      setSelectedAddress(
+        refreshed?.find((addr) => addr._id === saved._id) || saved
       );
-
-      // Si la que editamos estaba seleccionada, actualizamos también el estado de selección
-      // para que refleje los cambios inmediatamente en el resumen.
-      if (selectedAddress?._id === editingAddress._id) {
-        newSelectedAddress = updatedAddresses.find(
-          (a) => a._id === editingAddress._id
-        );
-      }
-    } else {
-      // CREACIÓN: Agregamos y seleccionamos automáticamente (UX tipo Amazon)
-      const newAddress = { _id: Date.now().toString(), ...formData };
-      updatedAddresses = [...addresses, newAddress];
-      newSelectedAddress = newAddress;
+      setShowAddressForm(false);
+      setEditingAddress(null);
+      setAddressSectionOpen(false);
+    } catch (err) {
+      setLocalError("No se pudo guardar la dirección.");
     }
-
-    setAddresses(updatedAddresses);
-    setSelectedAddress(newSelectedAddress);
-    setShowAddressForm(false);
-    setEditingAddress(null);
-    setAddressSectionOpen(false);
   };
 
   /**
@@ -271,52 +271,46 @@ export default function Checkout() {
   };
 
   /**
-   * Elimina un método de pago de la lista local.
+   * Elimina un método de pago vía API real y actualiza la lista local.
    * Si el pago eliminado estaba seleccionado, intenta seleccionar otro.
    * @param {Object} payment - El método de pago a eliminar.
    */
-  const handlePaymentDelete = (payment) => {
-    const updatedPayments = payments.filter((pay) => pay._id !== payment._id);
-    // Si borramos el seleccionado, seleccionamos el primero disponible o null
-    if (selectedPayment?._id === payment._id) {
-      setSelectedPayment(updatedPayments[0] || null);
+  const handlePaymentDelete = async (payment) => {
+    try {
+      await deletePaymentMethod(payment._id);
+      const updatedPayments = payments.filter((pay) => pay._id !== payment._id);
+      if (selectedPayment?._id === payment._id) {
+        setSelectedPayment(updatedPayments[0] || null);
+      }
+      setPayments(updatedPayments);
+    } catch (err) {
+      setLocalError("No se pudo eliminar el método de pago.");
     }
-    setPayments(updatedPayments);
   };
 
   /**
-   * Maneja el guardado (Creación o Edición) de un método de pago.
-   * Actualiza la lista local y la selección automáticamente.
-   * @param {Object} formData - Datos del formulario de pago.
+   * Maneja el guardado (Creación o Edición) de un método de pago vía API real.
+   * Re-consulta la lista completa después: el backend puede desmarcar `isDefault`
+   * en los demás métodos del usuario (misma regla server-side que en direcciones).
+   * @param {Object} formData - Datos del formulario de pago (ya sin número completo ni cvv).
    */
-  const handlePaymentSubmit = (formData) => {
-    let updatedPayments;
-    let newSelectedPayment = selectedPayment;
+  const handlePaymentSubmit = async (formData) => {
+    try {
+      const saved = editingPayment
+        ? await updatePaymentMethod(editingPayment._id, formData)
+        : await createPaymentMethod(formData);
 
-    if (editingPayment) {
-      // EDICIÓN
-      updatedPayments = payments.map((pay) =>
-        pay._id === editingPayment._id ? { ...pay, ...formData } : pay
+      const refreshed = await fetchPaymentMethods();
+      setPayments(refreshed || []);
+      setSelectedPayment(
+        refreshed?.find((pay) => pay._id === saved._id) || saved
       );
-
-      // Sincronizar selección si se editó el actual
-      if (selectedPayment?._id === editingPayment._id) {
-        newSelectedPayment = updatedPayments.find(
-          (p) => p._id === editingPayment._id
-        );
-      }
-    } else {
-      // CREACIÓN: Auto-seleccionar
-      const newPayment = { _id: Date.now().toString(), ...formData };
-      updatedPayments = [...payments, newPayment];
-      newSelectedPayment = newPayment;
+      setShowPaymentForm(false);
+      setEditingPayment(null);
+      setPaymentSectionOpen(false);
+    } catch (err) {
+      setLocalError("No se pudo guardar el método de pago.");
     }
-
-    setPayments(updatedPayments);
-    setSelectedPayment(newSelectedPayment);
-    setShowPaymentForm(false);
-    setEditingPayment(null);
-    setPaymentSectionOpen(false);
   };
 
   /**
@@ -388,10 +382,10 @@ export default function Checkout() {
             selected={selectedAddress}
             summaryContent={
               <div className="selected-address">
-                <p>{selectedAddress?.name}</p>
-                <p>{selectedAddress?.address1}</p>
+                <p>{selectedAddress?.address}</p>
                 <p>
-                  {selectedAddress?.city}, {selectedAddress?.postalCode}
+                  {selectedAddress?.city}, {selectedAddress?.state} —{" "}
+                  {selectedAddress?.postalCode}
                 </p>
               </div>
             }
@@ -424,8 +418,14 @@ export default function Checkout() {
             selected={selectedPayment}
             summaryContent={
               <div className="selected-payment">
-                <p>{selectedPayment?.alias}</p>
-                <p>**** {selectedPayment?.cardNumber?.slice(-4) || "----"}</p>
+                {selectedPayment?.type === "paypal" ? (
+                  <p>PayPal — {selectedPayment?.paypalEmail}</p>
+                ) : (
+                  <>
+                    <p>{selectedPayment?.cardHolderName}</p>
+                    <p>**** **** **** {selectedPayment?.last4 || "----"}</p>
+                  </>
+                )}
               </div>
             }
             isExpanded={
@@ -466,10 +466,13 @@ export default function Checkout() {
             <h3>Resumen de la Orden</h3>
             <div className="summary-details">
               <p>
-                <strong>Dirección de envío:</strong> {selectedAddress?.name}
+                <strong>Dirección de envío:</strong> {selectedAddress?.address}
               </p>
               <p>
-                <strong>Método de pago:</strong> {selectedPayment?.alias}
+                <strong>Método de pago:</strong>{" "}
+                {selectedPayment?.type === "paypal"
+                  ? "PayPal"
+                  : `**** ${selectedPayment?.last4 || "----"}`}
               </p>
               <div className="order-costs">
                 <p>

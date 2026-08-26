@@ -19,7 +19,7 @@ const PaymentList = ({
       <div className="payment-list-content">
         {payments.map((payment) => (
           <PaymentItem
-            key={payment._id || payment.alias}
+            key={payment._id}
             payment={payment}
             isSelected={selectedPayment?._id === payment._id}
             onSelect={onSelect}

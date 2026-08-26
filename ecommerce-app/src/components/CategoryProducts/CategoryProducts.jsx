@@ -65,9 +65,7 @@ export default function CategoryProducts({ categoryId }) {
 
   return (
     <div className="category-products-root">
-      <Breadcrumb
-        items={[{ label: "Inicio", to: "/" }, { label: category.name }]}
-      />
+      <Breadcrumb categories={category} />
       <div className="category-products-container">
         <div className="category-products-header">
           <div className="category-products-title">

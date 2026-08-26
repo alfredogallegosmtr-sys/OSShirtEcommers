@@ -60,12 +60,13 @@
 
 /* Search */
 .search-container {
-  max-width: 600px;
+  max-width: 900px;
   width: 100%;
 }
 
 .search-form {
   display: flex;
+  width: 100%;
   background: var(--color-white);
   border: 2px solid transparent;
   border-radius: 4px;

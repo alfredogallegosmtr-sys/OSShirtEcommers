@@ -5,10 +5,19 @@
 - **ESM**: imports siempre con extensión `.js` (p. ej. `import X from "../models/X.js"`).
 - **Modelos**: archivo por modelo. `const xSchema = new mongoose.Schema({...}, { timestamps: true })`,
   `const X = mongoose.model("X", xSchema)`, `export default X`.
-- **Sin `express-validator`**: no está en uso pese a estar en `package.json`. La validación es manual
-  e inline en el controller (típicamente `mongoose.isValidObjectId(id)` → 404/422 si falla).
-- **Sin middleware de auth por rol**: `requireAuth` (`src/middlewares/auth.middleware.js`) es el único
-  middleware de auth; no hay `isAdmin`. Rutas de escritura de products/categories están **sin proteger**.
+- **Validación con `express-validator`**: arrays `body()`/`param()` declarados al inicio de cada
+  archivo de ruta (`product.routes.js`, `category.routes.js`, `cart.routes.js`), aplicados con el
+  middleware `validate` (`middlewares/validation.js`: `validationResult(req)` → 422
+  `{ errors: [...] }` si falla, si no `next()`). Orden en la ruta: `[requireAuth] →
+  <validaciónArray> → validate → controller`. Detalle completo en
+  [.claude/validators.md](.claude/validators.md). `auth.routes.js` es la excepción: register/login
+  siguen con chequeo manual inline dentro del controller (campos requeridos, email duplicado,
+  `mongoose.isValidObjectId` donde aplica) — no pasan por `express-validator`.
+- **Middleware de auth por rol**: `src/middlewares/auth.middleware.js` exporta `requireAuth` y
+  `requireAdmin` (exige `req.user.role === "admin"`, 403 si no; debe montarse siempre después de
+  `requireAuth`). Rutas de escritura de `products`/`categories` (`POST`/`PUT`/`DELETE`) están
+  protegidas con `requireAuth, requireAdmin, <validador>, validate, controller`. Es el único lugar
+  del código que usa `requireAdmin` hoy.
 - **Controllers**: funciones `async (req, res)` **sin `try/catch`** — Express 5 reenvía promesas
   rechazadas al error handler automáticamente, así que no hace falta envolver manualmente.
   Mongoose: `find`, `findOne`, `findById`, `create`, `findByIdAndUpdate(id, {...}, { new: true, runValidators: true })`,

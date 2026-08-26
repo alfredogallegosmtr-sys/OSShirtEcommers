@@ -30,22 +30,30 @@ y exportan `mongoose.model(...)` por defecto (`export default X`).
   `paymentStatus` (enum `["pending","paid","failed","refunded"]`, default `"pending"`).
   **Sin controller ni router todavía** — el frontend simula órdenes en `localStorage`.
 - **Address** (`Address.js`): `user` (ObjectId → `User`, required), `address`/`city`/`state`
-  (String, required, trim), `postalCode` (String, required, min 4, max 6, trim), `country`
-  (String, required, trim), `phone` (String, required, max 10, trim), `isDefault` (Boolean,
-  default false), `addressType` (enum `["home","work","other"]`, default `"home"`).
-  **Sin controller ni router.**
+  (String, required, trim), `postalCode` (String, required, min 4, max 6, trim — `min`/`max`
+  son no-ops en `String`, no rechazan longitud), `country` (String, required, trim), `phone`
+  (String, required, max 10, trim — mismo no-op), `isDefault` (Boolean, default false),
+  `addressType` (enum `["home","work","other"]`, default `"home"`). **Con controller y router
+  desde 2026-08-26** (`address.controller.js`/`address.routes.js`, backlog F-01) — scoped a
+  `req.user.id`, `isDefault:true` desmarca las demás direcciones del usuario.
 - **PaymentMethod** (`PaymentMethod.js`): `user` (ObjectId → `User`, required), `type` (String,
   required, enum `["credit_card","debit_card","paypal","bank_transfer","cash_on_delivery"]`),
-  `cardNumber` (String, max 16), `cardHolderName` (String, trim), `expiryDate`/`paypalEmail`/
-  `bankName`/`accountNumber` (String), `isDefault` (Boolean, default false), `isActive` (Boolean,
-  default true), `cvv` (String — **texto plano, sin hashear ni tokenizar**; ver `docs/threat-models/`
-  antes de exponer este modelo por API). **Sin controller ni router.**
+  `last4` (String, maxlength 4 — solo últimos 4 dígitos, para mostrar en UI), `brand` (String,
+  ej. "visa"), `cardHolderName` (String, trim), `expiryDate`/`paypalEmail`/`bankName`/
+  `accountNumber` (String), `isDefault` (Boolean, default false), `isActive` (Boolean, default
+  true). **Decisión S-03 (2026-08-26, `docs/backlog.md`): el modelo ya no tiene `cardNumber` ni
+  `cvv`** — el número completo de tarjeta y el cvv nunca se guardan, ni cifrados; un cobro real
+  requeriría delegar a un proveedor externo (Stripe/PayPal) que devuelva un token. **Con
+  controller y router desde 2026-08-26** (`paymentMethod.controller.js`/`paymentMethod.routes.js`,
+  backlog F-02) — scoped a `req.user.id`, rechaza explícitamente `cardNumber`/`cvv` en el body
+  (422, no los ignora en silencio), `isDefault:true` desmarca los demás métodos del usuario.
 - **WishList** (`WishList.js`): `user` (ObjectId → `User`, required), `products[]` (ObjectId →
   `Product`, required). **Sin controller ni router.**
 
 ## Antes de asumir que un endpoint existe
 
-Solo `Product`, `Category`, `User` (vía auth) y `Cart` tienen controller + router montados en
-`server.js`. `Order`, `Address`, `PaymentMethod` y `WishList` son modelos sin exponer — si una
-tarea los necesita, hay que crear el controller y el router (seguir el patrón de
-`cart.controller.js`/`cart.routes.js`), no asumir que ya están conectados.
+`Product`, `Category`, `User` (vía auth), `Cart`, `Address` y `PaymentMethod` tienen controller +
+router montados en `server.js`. `Order` y `WishList` siguen sin exponer — si una tarea los
+necesita, hay que crear el controller y el router (seguir el patrón de
+`cart.controller.js`/`cart.routes.js`, `address.controller.js`/`address.routes.js`, o
+`paymentMethod.controller.js`/`paymentMethod.routes.js`), no asumir que ya están conectados.

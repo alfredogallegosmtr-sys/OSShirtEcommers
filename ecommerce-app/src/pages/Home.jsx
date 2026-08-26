@@ -52,11 +52,37 @@ export default function Home() {
         <ErrorMessage>No hay productos en el catálogo.</ErrorMessage>
       )}
       {!loading && !error && products.length > 0 && (
-        <List
-          title="Productos recomendados"
-          products={products.slice(0, 5)}
-          layout="carousel"
-        />
+        <>
+          <List
+            title="Productos recomendados"
+            products={products.slice(0, 5)}
+            layout="carousel"
+          />
+          {/* TODO: reemplazar por productos filtrados por oferta real cuando exista esa lógica */}
+          <List
+            title="Ofertas del día"
+            products={products.slice(5, 15)}
+            layout="carousel"
+          />
+          {/* TODO: reemplazar por productos filtrados por "novedad" real cuando exista esa lógica */}
+          <List
+            title="Novedades"
+            products={products.slice(15, 25)}
+            layout="carousel"
+          />
+          {/* TODO: reemplazar por productos ordenados por ventas reales cuando exista esa lógica */}
+          <List
+            title="Más vendidos"
+            products={products.slice(25, 35)}
+            layout="carousel"
+          />
+          {/* TODO: reemplazar por productos filtrados por flash sale real cuando exista esa lógica */}
+          <List
+            title="Flash sale"
+            products={products.slice(35, 45)}
+            layout="carousel"
+          />
+        </>
       )}
     </div>
   );

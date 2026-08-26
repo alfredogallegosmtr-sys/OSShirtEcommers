@@ -79,15 +79,11 @@ export default function OrderConfirmation() {
                 <strong>Dirección de envío:</strong>
               </p>
               <address>
-                {address.name || "No disponible"}
+                {address.address || "No disponible"}
                 <br />
-                {address.address1 || ""}
-                {address.address1 && <br />}
-                {address.address2 || ""}
-                {address.address2 && <br />}
-                {address.city && address.postalCode
-                  ? `${address.city}, ${address.postalCode}`
-                  : "Ciudad y código postal no disponibles"}
+                {address.city && address.state && address.postalCode
+                  ? `${address.city}, ${address.state} — ${address.postalCode}`
+                  : "Ciudad, estado y código postal no disponibles"}
                 <br />
                 {address.country || "País no especificado"}
               </address>

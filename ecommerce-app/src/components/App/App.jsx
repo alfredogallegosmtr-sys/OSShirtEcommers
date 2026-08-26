@@ -36,7 +36,7 @@ function App() {
                 element={
                   <ProtectedRoute
                     redirectTo="/login"
-                    allowedRoles={["admin", "customer", "cliente"]}
+                    allowedRoles={["admin", "customer"]}
                   >
                     <Profile />
                   </ProtectedRoute>

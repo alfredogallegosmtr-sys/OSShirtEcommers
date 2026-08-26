@@ -103,15 +103,7 @@ export default function ProductDetails({ productId }) {
 
   return (
     <div className="product-details-container">
-      <Breadcrumb
-        items={[
-          { label: "Inicio", to: "/" },
-          category
-            ? { label: category.name, to: `/category/${category.id}` }
-            : { label: "Sin categoría" },
-          { label: name },
-        ]}
-      />
+      <Breadcrumb categories={category} />
       <div className="product-details-main">
         <div className="product-details-image">
           <img

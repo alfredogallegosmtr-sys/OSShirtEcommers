@@ -13,6 +13,230 @@
   padding: var(--gap-xs, 8px) 0;
 }
 
+/* Disparador del panel transitorio de categorías */
+.categories-drawer-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px 12px;
+  height: 36px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.categories-drawer-trigger:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Backdrop del panel transitorio */
+.categories-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.categories-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Panel transitorio: anclado al borde izquierdo de toda la pantalla,
+   cubriendo siempre de arriba a abajo (sin dejar hueco), con ancho
+   proporcional al contenido real de categorías. Se abre deslizando de
+   izquierda a derecha hasta encajar en el borde. */
+.categories-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2000;
+  width: fit-content;
+  min-width: 260px;
+  max-width: min(90vw, 420px);
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--elev-4);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.categories-drawer.open {
+  transform: translateX(0);
+}
+
+.categories-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.categories-drawer-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* El avatar (.user-avatar/.user-initials) reutiliza tal cual el estilo
+   global definido en Header.css (mismo fondo fijo claro + texto oscuro)
+   para que se vea y funcione igual que el del menú de usuario junto a
+   la búsqueda, en ambos temas. */
+.categories-drawer-user .user-avatar {
+  flex-shrink: 0;
+}
+
+.categories-drawer-greeting {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.categories-drawer-title {
+  margin: 4px 20px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.categories-drawer-body > .categories-drawer-title:not(:first-child) {
+  margin-top: 12px;
+}
+
+.categories-drawer-support {
+  padding-bottom: 8px;
+}
+
+.categories-drawer-support .category-link {
+  border-bottom: 1px solid var(--border);
+}
+
+.categories-drawer-support .category-link:last-child {
+  border-bottom: none;
+}
+
+.categories-drawer-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.categories-drawer-close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.categories-drawer-body {
+  padding: 8px 0 16px;
+  min-width: 260px;
+}
+
+.categories-drawer-body .category-group {
+  border-bottom: 1px solid var(--border);
+}
+
+.categories-drawer-body .category-group:last-child {
+  border-bottom: none;
+}
+
+.categories-drawer-body .category-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.categories-drawer-body .category-link:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.categories-drawer-body .main-category {
+  font-weight: 400;
+}
+
+/* Cuando la categoría tiene subcategorías se renderiza como <button> (no
+   <Link>) para poder abrir/cerrar el desplegable sin navegar. */
+.categories-drawer-body button.main-category {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.category-toggle-icon {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+
+.categories-drawer-body .main-category.expanded .category-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.categories-drawer-body .subcategories {
+  background: var(--bg);
+}
+
+.categories-drawer-body .sub-category {
+  padding-left: 36px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+@media (max-width: 480px) {
+  .categories-drawer {
+    min-width: 0;
+    width: 85vw;
+  }
+
+  .categories-drawer-body {
+    min-width: 0;
+  }
+}
+
 /* Categories Dropdown */
 .categories-dropdown {
   position: relative;

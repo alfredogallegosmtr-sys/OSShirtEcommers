@@ -19,7 +19,7 @@ const AddressList = ({
       <div className="address-list-content">
         {addresses.map((address) => (
           <AddressItem
-            key={address._id || address.name}
+            key={address._id}
             address={address}
             isSelected={selectedAddress?._id === address._id}
             onSelect={onSelect}
