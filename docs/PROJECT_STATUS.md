@@ -16,8 +16,11 @@ ya corren de punta a punta sobre el backend real, verificado con Playwright; `lo
 sigue usándose para `authToken`/`cart`/`app:theme`. Ya no quedan páginas enrutadas vacías.
 
 El núcleo (auth, catálogo, carrito, checkout, wishlist, perfil, settings) es sólido y fue
-verificado en vivo (curl + Playwright). La épica de limpieza de bugs y código muerto (E5) está
-completa: ya no quedan páginas huérfanas ni bugs de UI conocidos sin cerrar.
+verificado en vivo (curl + Playwright). Las épicas de limpieza de bugs (E5) y seguridad del
+catálogo/pagos (E4) están completas: ya no quedan páginas huérfanas, bugs de UI conocidos, ni
+riesgos de seguridad abiertos (catálogo protegido por rol, sin datos de tarjeta reales, CORS con
+allowlist). La restructuración `app.js`/`server.js` (`REF-01`) también está cerrada, desbloqueando
+`T-04`.
 
 ## Estado del backend [CÓDIGO]
 
@@ -38,7 +41,8 @@ verifica con `JWT_SECRET`, password con `bcrypt` (saltRounds 10). **`requireAdmi
 2026-08-26** (`src/middlewares/auth.middleware.js`, exige `req.user.role === "admin"`, 403 si no)
 y protege la escritura de `products`/`categories` — es su único uso hoy. Validación con `express-validator` +
 middleware `validate` en `products`/`categories`/`cart`; `auth` con chequeo manual inline.
-`cors()` abierto, sin allowlist de orígenes.
+**`cors()` con allowlist real desde 2026-08-26** (`S-04`) vía `CORS_ALLOWED_ORIGINS`
+(default `http://localhost:3001`, ver `docs/environment-variables.md`).
 
 ## Estado del frontend [CÓDIGO]
 
@@ -104,9 +108,10 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 
 - ~~Pérdida de datos: pedidos/direcciones/pagos solo en `localStorage`~~ — resuelto, los tres
   persisten en el backend real desde 2026-08-26 (F-01/F-02/F-03).
-- **Seguridad [CÓDIGO]:** `cors()` abierto sin allowlist es el único riesgo de seguridad vigente
-  (`S-04`, Medio). `PaymentMethod` ya no guarda `cardNumber`/`cvv` (S-03); un cobro real
-  requeriría tokenización con un proveedor externo.
+- ~~`cors()` abierto sin allowlist~~ — resuelto 2026-08-26 (`S-04`): `CORS_ALLOWED_ORIGINS` real,
+  default `http://localhost:3001`. No queda ningún riesgo de seguridad conocido sin cerrar en
+  `E4`. `PaymentMethod` ya no guarda `cardNumber`/`cvv` (S-03); un cobro real requeriría
+  tokenización con un proveedor externo.
 - ~~Integridad del total del pedido~~ — resuelto: `order.controller.js` calcula
   `subtotalPrice`/`shippingCost`/`totalPrice` desde el `Cart` real del usuario, nunca desde el
   body de la petición.
@@ -202,6 +207,18 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   que antes del refactor. `package.json` (`main`/`start`/`dev`) no cambió. Cierra `REF-01` de
   [docs/backlog.md](./backlog.md); `T-04` ya no está bloqueado por este motivo (sigue faltando
   instalar `mongodb-memory-server` y escribir los casos).
+- **2026-08-26 — S-04: `cors()` con allowlist real, épica E4 completa.** `src/app.js` configura
+  `cors({ origin: ... })` leyendo `CORS_ALLOWED_ORIGINS` (comma-separated, default
+  `http://localhost:3001`). Detalle no obvio: la lectura tiene que ser diferida (dentro del
+  callback de `cors()`, evaluada por request), no una constante a nivel de módulo — `app.js` se
+  importa antes de que `server.js` corra `dotenv.config()`, así que una lectura a nivel de módulo
+  nunca vería el `.env` real. Verificado en tres escenarios: default sin variable, variable como
+  env real del proceso, y variable en el `.env` real vía `npm start` (restaurado después) — los
+  tres confirman que un origen permitido recibe `Access-Control-Allow-Origin` y uno no listado no
+  lo recibe (mientras la petición sigue respondiendo 200, comportamiento estándar de CORS).
+  Verificado además con Playwright contra un navegador real: login y navegación normales, sin
+  errores de CORS en consola. Cierra `S-04` de [docs/backlog.md](./backlog.md) — `E4` (seguridad
+  del catálogo y de pagos) queda sin items pendientes.
 
 ## Supuestos pendientes de validar
 

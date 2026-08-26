@@ -16,7 +16,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
-app.use(cors());
+function getAllowedOrigins() {
+  return (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3001')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || getAllowedOrigins().includes(origin)) {
+      return callback(null, true);
+    }
+    callback(null, false);
+  },
+}));
 app.use(express.json());
 app.use('/img', express.static(path.join(__dirname, '..', 'public', 'img')));
 

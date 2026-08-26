@@ -21,7 +21,8 @@ contraseña, ambos contra el backend (`PUT /api/users/me`, `PUT /api/users/me/pa
   `server.js` (raíz) es solo el entrypoint (`dotenv.config()` → `connectDB()` → `app.listen()`);
   `src/app.js` construye la app y la exporta sin efectos secundarios (`REF-01`, desbloquea tests
   de integración con `supertest`). Middlewares globales en orden, dentro de `src/app.js`:
-  `cors()` (abierto) → `express.json()` → estático `/img` → routers montados directamente
+  `cors()` (con allowlist real vía `CORS_ALLOWED_ORIGINS`, `S-04`) → `express.json()` → estático
+  `/img` → routers montados directamente
   (`/api/products`, `/api/categories`, `/api/auth`, `/api/cart`, `/api/addresses`,
   `/api/payment-methods`, `/api/orders`, `/api/wishlist`, `/api/users`) → error handler global.
   Auth con JWT (`jsonwebtoken` + `bcrypt`). Validación con `express-validator` en

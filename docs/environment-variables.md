@@ -12,13 +12,20 @@
 | `JWT_REFRESH_EXPIRES_IN` | No | `7d` | Expiración del refresh token. |
 | `ASSET_BASE_URL` | No (default `http://localhost:$PORT`) | — | Base usada por `src/seed/seed.js` para construir las URLs de imágenes de producto. |
 | `SEED_ALLOW_RESET` | No (default `false`) | `true` | Solo la lee `src/seed/seed.js`. En `false`/sin definir, el seed es **no destructivo** (upsert por slug/email, nunca borra). En `true`, borra las 7 colecciones antes de sembrar. |
+| `CORS_ALLOWED_ORIGINS` | No (default `http://localhost:3001`) | `http://localhost:3001` | Lista de orígenes permitidos para CORS, separados por coma (se hace `trim()` a cada uno). Antes de desplegar a un dominio real (`DEP-01`), agregar aquí la URL real del frontend. |
 
 No hay módulo de validación de entorno (a diferencia de otros proyectos de referencia con un
 `config/env.js` que aborta el arranque si falta algo): las variables se leen donde se usan
 (`dotenv.config()` al inicio de `server.js`).
 
-CORS: `server.js` usa `app.use(cors())` **sin allowlist** — acepta cualquier origen. No hay
-variable `CORS_ALLOWED_ORIGINS` todavía; si se necesita restringir, hay que agregarla.
+CORS: `src/app.js` (desde 2026-08-26, `S-04`) usa `cors({ origin: ... })` con allowlist real vía
+`CORS_ALLOWED_ORIGINS` (ver tabla arriba). Se lee **dentro** del callback de `cors()`, evaluado
+por request, no a nivel de módulo — necesario porque `app.js` se importa (y su código de nivel de
+módulo se ejecuta) antes de que `server.js` corra `dotenv.config()`, así que una lectura a nivel
+de módulo nunca vería el valor real del `.env`. Un origen no listado no recibe el header
+`Access-Control-Allow-Origin` (el navegador bloquea que JS lea la respuesta), pero la petición en
+sí se sigue procesando normalmente — es el comportamiento estándar de CORS, no un control de
+acceso de servidor. Peticiones sin header `Origin` (curl, servidor-a-servidor) siempre pasan.
 
 ## Frontend (`ecommerce-app/.env`)
 

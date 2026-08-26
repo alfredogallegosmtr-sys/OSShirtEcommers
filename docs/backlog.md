@@ -25,7 +25,7 @@
 | E1 | Persistencia real de checkout (direcciones, pagos, pedidos) | **Cerrado (2026-08-26)** — F-01/F-02/F-03/A-01 | _(pendiente)_ |
 | E2 | Wishlist funcional | **Cerrado (2026-08-26)** — F-04 | _(pendiente)_ |
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
-| E4 | Seguridad del catálogo y de pagos | En progreso — S-01/S-02/S-03 cerrados, queda **S-04** | _(pendiente)_ |
+| E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
 | E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-09, sin items pendientes | _(pendiente)_ |
 | E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01 cerrados, T-01 en progreso, T-02/T-04 pendientes | _(pendiente)_ |
 | E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
@@ -51,7 +51,7 @@
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
 | REF-01 | Split `app.js`/`server.js` en `ecommerce-api` — `server.js` no exportaba `app` sin efectos secundarios (dotenv/connectDB/listen se disparaban solo con importarlo), bloqueando cualquier test de integración con supertest | E6 | Refactor | **Alto** | **Cerrado (2026-08-26)** |
 | T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) — el split `app.js`/`server.js` que lo bloqueaba ya está cerrado (2026-08-26); falta instalar `mongodb-memory-server` y escribir los casos. Detalle completo del alcance en [TEST_PLAN.md](../TEST_PLAN.md#fuera-de-este-alcance--integración-bloqueado) | E6 | Deuda técnica | **Alto** | Pendiente |
-| S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | Pendiente |
+| S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | **Cerrado (2026-08-26)** |
 | F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | B-02 | `pages/ProductDetails.jsx` — import roto a componente inexistente (huérfano, no enrutado) | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
@@ -291,6 +291,29 @@ re-descubrir el mismo terreno.
   ruta llega a estos componentes, así que ningún test protegería comportamiento real; escribir
   tests ahí solo habría fijado en el tiempo un estado roto/mock que ya no representa el producto.
   Sin archivos CSS asociados que limpiar (ninguno de los dos tenía un `.css` propio).
+- **S-04 (`cors()` allowlist) — CERRADO 2026-08-26, épica E4 completa:** `src/app.js` ahora
+  configura `cors({ origin: ... })` con una allowlist real leída de `CORS_ALLOWED_ORIGINS`
+  (comma-separated, default `http://localhost:3001` si no está definida — documentado en
+  `docs/environment-variables.md`). **Detalle no obvio, encontrado al implementar:** la lectura
+  del env var no puede hacerse a nivel de módulo — `src/app.js` se importa (y su código de nivel
+  de módulo se ejecuta) **antes** de que `server.js` corra `dotenv.config()` (los `import` de ES
+  Modules se resuelven antes que el código propio del archivo que importa, sin importar el orden
+  en que estén escritas las líneas), así que una constante calculada al cargar el módulo nunca
+  vería el valor real del `.env`. Se resolvió leyendo `process.env.CORS_ALLOWED_ORIGINS` **dentro**
+  del callback de `cors()`, que corre por request, mucho después de que `dotenv.config()` ya se
+  ejecutó. Un origen no permitido no recibe el header `Access-Control-Allow-Origin` (comportamiento
+  estándar de CORS — el navegador bloquea que JS lea la respuesta, pero el request se sigue
+  procesando); peticiones sin header `Origin` (curl, servidor-a-servidor) siempre pasan.
+  Verificado en tres escenarios reales: (1) origen permitido por default (`http://localhost:3001`)
+  recibe el header; origen no listado (`http://evil.com`) no lo recibe; sin `Origin` sigue
+  respondiendo 200. (2) Levantando el server con `CORS_ALLOWED_ORIGINS` como variable de entorno
+  real del proceso, un origen distinto queda permitido y el default deja de estarlo. (3) Agregando
+  temporalmente la misma variable al `.env` real (restaurado exactamente después) y levantando con
+  `npm start` (la ruta real de `dotenv`), confirmando que la lectura diferida sí resuelve el valor
+  — este último caso era el que habría fallado silenciosamente sin el fix de timing. Verificado
+  además de punta a punta con Playwright contra un navegador real (login + navegación real vía
+  `apiClient`/axios, sin errores de CORS en consola). Cierra `S-04` de este backlog — `E4` queda
+  sin items pendientes.
 - **REF-01 (split `app.js`/`server.js`) — CERRADO 2026-08-26, desbloquea `T-04`:** se creó
   `ecommerce-api/src/app.js` con toda la construcción de la app Express (middlewares, montaje de
   rutas, error handler global) y `export default app`, **sin** `dotenv.config()`, `connectDB()`
@@ -362,8 +385,8 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
 
 ## Orden de ejecución sugerido
 
-1. ~~**E4 (seguridad del catálogo)**~~ — S-01/S-02/S-03 cerrados 2026-08-26. Solo queda **S-04**
-   (`cors()` sin allowlist), prioridad Media, no bloquea nada más.
+1. ~~**E4 (seguridad del catálogo y de pagos)**~~ — S-01/S-02/S-03/S-04 cerrados 2026-08-26.
+   Épica completa: catálogo protegido por rol, sin datos de tarjeta reales, CORS con allowlist.
 2. ~~**E1 (persistencia de checkout)**~~ — F-01/F-02/F-03/A-01 cerrados 2026-08-26. Épica completa:
    dirección, pago y pedido corren de punta a punta sobre el backend real.
 3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26.
@@ -371,9 +394,12 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
    completamente cerrado (ambas páginas, `WishList.jsx` y `Setttings.jsx`, implementadas).
 5. ~~**E5 (bugs y limpieza restante)**~~ — `B-02`/`B-03`/`B-09` cerrados 2026-08-26. Épica
    completa: sin páginas huérfanas ni mensajes de error/carga silenciados.
-5. **E6 + E7** (tests, E2E) — una vez estabilizada la persistencia, para no testear contra un
-   contrato que va a cambiar.
-6. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada.
+6. **E6 (tests)** — `REF-01` (split `app.js`/`server.js`) ya cerrado, `T-04` (integración) queda
+   desbloqueado; siguiente paso natural dentro de esta épica. `T-02` (frontend) independiente.
+7. **E7 (E2E con Cypress)** — sin bloqueos técnicos (F-03 ya cerrado), mejor después de tener
+   integración real (`T-04`) para no descubrir los mismos huecos dos veces.
+8. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada
+   (CI-01 necesita ESLint/Prettier primero; DEP-01 depende de CI-01).
 
 ## Historial de auditoría documental
 

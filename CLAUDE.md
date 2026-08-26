@@ -58,8 +58,9 @@ ecommerce-app/src/    components/ (+ common/) context/ data/ layout/ pages/ serv
 `app.listen(process.env.PORT || 4001)`, importando `app` desde `src/app.js`. `src/app.js`
 construye la app Express y **exporta `app` sin efectos secundarios** (sin `dotenv`/`connectDB`/
 `listen`) — así se puede montar `supertest` sobre ella sin levantar un servidor real ni tocar
-Mongo. Middlewares globales en orden dentro de `src/app.js`: `cors()` (abierto, sin allowlist de
-orígenes) → `express.json()` → estático `/img` → `GET /` (texto plano) → routers montados
+Mongo. Middlewares globales en orden dentro de `src/app.js`: `cors()` (con allowlist real vía
+`CORS_ALLOWED_ORIGINS`, default `http://localhost:3001`) → `express.json()` → estático `/img` →
+`GET /` (texto plano) → routers montados
 directamente con su prefijo (`/api/products`, `/api/categories`, `/api/auth`, `/api/cart`, y
 desde 2026-08-26 también `/api/addresses`, `/api/payment-methods`, `/api/orders`,
 `/api/wishlist`, `/api/users` — no hay un `routes/index.js` agregador) → error handler global al
