@@ -80,11 +80,11 @@ const productSchema = new mongoose.Schema(
       default: true,
     },
 
-    // Modificar el producto UPDATE    
+    // Modificar el producto UPDATE
     is_deleted: {
       type: Boolean,
-      default: true,
-    },    
+      default: false,
+    },
 
 
 

@@ -4,7 +4,7 @@ import Badge from "../common/Badge";
 import Button from "../common/Button";
 import "./ProductCard.css";
 
-export default function ProductCard({ product, orientation = "vertical" }) {
+export default function ProductCard({ product, orientation = "vertical", className = "" }) {
   const { addItem } = useCart();
   const { name, price, stock, imageURL, images, description } = product || {};
   const productImage = imageURL || images?.[0] || "/img/products/placeholder.svg";
@@ -27,7 +27,7 @@ export default function ProductCard({ product, orientation = "vertical" }) {
   const hasDiscount = product.discount && product.discount > 0;
   const handleAddToCart = () => addItem(product, 1);
   const productLink = `/product/${product._id}`;
-  const cardClass = `product-card product-card--${orientation}`;
+  const cardClass = `product-card product-card--${orientation}${className ? ` ${className}` : ""}`;
 
   return (
     <div className={cardClass}>

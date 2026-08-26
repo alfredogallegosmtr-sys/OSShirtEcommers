@@ -1,0 +1,11 @@
+# Datasource autoprovisionado: Grafana arranca ya conectado a Prometheus,
+# sin configurar nada a mano en la UI.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # "prometheus" es el nombre del servicio en docker-compose (DNS interno).
+    url: http://prometheus:9090
+    isDefault: true

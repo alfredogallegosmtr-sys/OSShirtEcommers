@@ -54,8 +54,8 @@ export default function Home() {
       {!loading && !error && products.length > 0 && (
         <List
           title="Productos recomendados"
-          products={products}
-          layout="grid"
+          products={products.slice(0, 5)}
+          layout="carousel"
         />
       )}
     </div>

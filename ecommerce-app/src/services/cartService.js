@@ -1,23 +1,28 @@
 import apiClient from "./apiClient";
 
 const getCart = async () => {
-  return apiClient.get("/api/cart");
+  const response = await apiClient.get("/cart");
+  return response.data;
 };
 
 const addItem = async (productId, quantity = 1) => {
-  return apiClient.post("/api/cart", {productId, quantity});
+  const response = await apiClient.post("/cart", { productId, quantity });
+  return response.data;
 };
 
 const updateQuantity = async (itemId, quantity) => {
-  return apiClient.patch(`/api/cart/${itemId}`, {quantity});
+  const response = await apiClient.patch(`/cart/${itemId}`, { quantity });
+  return response.data;
 };
 
 const removeItem = async (itemId) => {
-  return apiClient.delete(`/api/cart/${itemId}`);
+  const response = await apiClient.delete(`/cart/${itemId}`);
+  return response.data;
 }
 
 const clearCart = async () => {
-  return apiClient.delete("/api/cart");
+  const response = await apiClient.delete("/cart");
+  return response.data;
 };
 
 export { getCart, addItem, updateQuantity, removeItem, clearCart };

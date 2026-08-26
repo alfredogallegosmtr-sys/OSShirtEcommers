@@ -17,7 +17,16 @@ const categorySchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["anime", "occidental"],
+      enum: [
+        "anime",
+        "manga-novelas",
+        "japon",
+        "kpop-culture",
+        "videojuegos",
+        "cultura-pop",
+        "originales",
+        "colecciones",
+      ],
     },
 
     // Slug único (para URLs amigables)

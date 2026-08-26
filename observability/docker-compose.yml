@@ -1,0 +1,64 @@
+# =============================================================================
+# Stack de observabilidad LOCAL para las pruebas de carga de Artillery del eshop
+# =============================================================================
+# Flujo de datos:
+#   Artillery (plugin publish-metrics) --push--> Pushgateway :9091
+#   Prometheus :9090 --scrape cada 5s--> Pushgateway
+#   Grafana :3050 --consulta--> Prometheus  (datasource autoprovisionado)
+#
+# Puertos elegidos para NO chocar con el proyecto:
+#   - Frontend CRA usa 3001 -> Grafana se expone en 3050 (interno sigue en 3000).
+#   - API Express usa 4001  -> no lo tocamos.
+#   - 9090 (Prometheus) y 9091 (Pushgateway) están libres.
+#
+# Uso:
+#   cp .env.example .env       # define el password de Grafana (no se commitea)
+#   docker compose up -d
+# =============================================================================
+
+services:
+  # Recibe las métricas que Artillery empuja al terminar cada intervalo de stats.
+  pushgateway:
+    image: prom/pushgateway
+    container_name: osshirts-pushgateway
+    # --web.enable-admin-api habilita el endpoint de limpieza usado entre corridas:
+    #   curl -X PUT http://localhost:9091/api/v1/admin/wipe
+    command:
+      - "--web.enable-admin-api"
+    ports:
+      - "9091:9091"
+    restart: unless-stopped
+
+  # Scrapea el pushgateway cada 5s (ver prometheus.yml) y guarda las series.
+  prometheus:
+    image: prom/prometheus
+    container_name: osshirts-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - pushgateway
+    restart: unless-stopped
+
+  # Dashboard. Arranca con el datasource de Prometheus ya provisionado.
+  grafana:
+    image: grafana/grafana
+    container_name: osshirts-grafana
+    # 3050 en el host para no chocar con el frontend (que usa 3001).
+    ports:
+      - "3050:3000"
+    environment:
+      # El password NO va en el repo: se lee de ./.env (ver .env.example).
+      # El default "admin" solo aplica a esta demo local si no se define .env.
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  grafana-storage:

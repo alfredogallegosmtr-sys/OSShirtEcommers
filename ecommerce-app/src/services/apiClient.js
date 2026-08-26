@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getToken } from "../utils/auth";
 
-// El frontend NO usa archivo .env: apunta por defecto al backend local (PORT=4000).
+// El frontend NO usa archivo .env: apunta por defecto al backend local (PORT=4001).
 // Opcionalmente se puede sobreescribir con REACT_APP_API_URL en el entorno.
 const baseURL = process.env.REACT_APP_API_URL || "http://localhost:4001/api";
 

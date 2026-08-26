@@ -1,42 +1,96 @@
-import { createContext, useContext, useEffect, useState, useMemo } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useMemo } from "react";
 import { useAuth } from "./AuthContext";
-import { 
-  getCart as serviceGetCart, 
-  addItem as serviceAddItem, 
-  updateQuantity as serviceUpdateQuantity, 
-  removeItem as serviceRemoveItem, 
-  clearCart as serviceClearCart 
+import {
+  getCart as serviceGetCart,
+  addItem as serviceAddItem,
+  updateQuantity as serviceUpdateQuantity,
+  removeItem as serviceRemoveItem,
+  clearCart as serviceClearCart
 } from "../services/cartService";
-// import { jsx } from "react/jsx-runtime";
 
 const CartContext = createContext();
+const CART_STORAGE_KEY = "cart";
+
+// El carrito vive primero en localStorage: así funciona para invitados sin
+// sesión. Cuando hay sesión, además se sincroniza contra el backend.
+// Es un dato externo (el usuario o una versión vieja de la app pudo haber
+// dejado algo mal formado ahí), así que se descarta cualquier item inválido
+// en vez de asumir su forma.
+const isValidCartItem = (item) =>
+  item &&
+  typeof item === "object" &&
+  item.product &&
+  typeof item.product.price === "number";
+
+const readLocalCart = () => {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(isValidCartItem) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalCart = (items) => {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch {}
+};
 
 export function CartProvider({ children }) {
 
   const { isAuthenticated } = useAuth();
-  const [items,setItems] = useState([]);
+  const [items, setItems] = useState(readLocalCart);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const syncedRef = useRef(false);
 
   useEffect(() => {
+    writeLocalCart(items);
+  }, [items]);
+
+  // Al iniciar sesión: se trae el carrito del servidor y se fusiona con lo que
+  // el invitado ya tenía guardado localmente (los productos que no existan en
+  // el servidor se agregan; el resto queda tal cual el servidor lo devuelve).
+  useEffect(() => {
     if (!isAuthenticated) {
-      setItems([]);
+      syncedRef.current = false;
       return;
     }
+    if (syncedRef.current) return;
+    syncedRef.current = true;
 
     let cancelled = false;
 
     (async () => {
-      setLoading(true)
+      setLoading(true);
       try {
+        const guestItems = readLocalCart();
         const data = await serviceGetCart();
-        if (!cancelled) setItems(data.items);
+        let serverItems = data.items;
+
+        const missing = guestItems.filter(
+          (guestItem) =>
+            !serverItems.some((it) => it.product._id === guestItem.product._id),
+        );
+
+        for (const guestItem of missing) {
+          const updated = await serviceAddItem(guestItem.product._id, guestItem.quantity);
+          serverItems = updated.items;
+        }
+
+        if (!cancelled) setItems(serverItems);
       } catch (error) {
-        if(!cancelled) setError(error.kind ?? "SERVER_ERROR");
+        if (!cancelled) setError(error.kind ?? "SERVER_ERROR");
       } finally {
-        if(!cancelled) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
   const count = useMemo(() => items.reduce((acc, it) => acc + it.quantity, 0), [items]);
@@ -46,18 +100,20 @@ export function CartProvider({ children }) {
   const addItem = async (product, quantity = 1) => {
     const previous = items;
 
-    //UPDATE
+    //UPDATE (funciona igual con o sin sesión)
     setItems((curr) => {
-      const existing = curr.find((it) => it.product.id === product.id);
+      const existing = curr.find((it) => it.product._id === product._id);
       if(existing) {
-        return curr.map((it) => it.product.id === product.id ? {...it, quantity: it.quantity + quantity} : it,);
+        return curr.map((it) => it.product._id === product._id ? {...it, quantity: it.quantity + quantity} : it,);
       }
-      return [...curr, { id: product.id, quantity, product }]
+      return [...curr, { id: product._id, quantity, product }]
     });
 
-    //CONFIRMAR o ROLLBACK
+    if (!isAuthenticated) return; // invitado: se queda solo en localStorage
+
+    //CONFIRMAR o ROLLBACK contra el backend
     try{
-      const data = await serviceAddItem(product.id, quantity);
+      const data = await serviceAddItem(product._id, quantity);
       setItems(data.items);
     } catch(error) {
       setItems(previous);
@@ -66,24 +122,30 @@ export function CartProvider({ children }) {
   };
 
   const updateItem = async (itemId, quantity) => {
+    if (quantity < 1) return removeItem(itemId);
+
     const previous = items;
 
-    setItems((curr) => 
+    setItems((curr) =>
       curr.map((it) => it.id === itemId ? { ...it, quantity } : it));
-    
+
+    if (!isAuthenticated) return;
+
     try {
       const data = await serviceUpdateQuantity(itemId, quantity);
       setItems(data.items);
     } catch (error) {
       setItems(previous);
-      setError(error.kind ?? "SERVER_ERROR");      
+      setError(error.kind ?? "SERVER_ERROR");
     }
   };
-  
+
   const removeItem = async (itemId) => {
     const previous = items;
 
-    setItems((curr) => curr.filter((it)=> it.id === itemId ));
+    setItems((curr) => curr.filter((it)=> it.id !== itemId ));
+
+    if (!isAuthenticated) return;
 
     try {
       const data = await serviceRemoveItem(itemId);
@@ -97,6 +159,9 @@ export function CartProvider({ children }) {
   const clearCart = async () => {
     const previous = items;
     setItems([]);
+
+    if (!isAuthenticated) return;
+
     try {
       await serviceClearCart();
     } catch (error) {

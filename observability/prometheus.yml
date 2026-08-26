@@ -1,0 +1,15 @@
+# Configuración de Prometheus para la demo de carga del eshop.
+global:
+  # scrape_interval bajo (5s) para que el dashboard de Grafana se vea "en vivo"
+  # mientras corre Artillery. Para producción se usarían 15-60s.
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: pushgateway
+    # honor_labels: true -> respeta las labels que vienen en las métricas empujadas
+    # (job, testId, ...) en vez de sobreescribirlas con las del scrape. Imprescindible
+    # con Pushgateway para no perder el tag `testId` que manda Artillery.
+    honor_labels: true
+    static_configs:
+      # "pushgateway" es el nombre del servicio en docker-compose (DNS interno).
+      - targets: ["pushgateway:9091"]
