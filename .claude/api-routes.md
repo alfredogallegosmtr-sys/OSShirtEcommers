@@ -110,8 +110,10 @@ por este contrato. Contrato completo en [docs/contracts/user.md](../docs/contrac
 
 ## Todos los modelos ya tienen rutas
 
-Los 8 modelos Mongoose tienen controller + router montados en `server.js` desde 2026-08-26
+Los 8 modelos Mongoose tienen controller + router montados en `src/app.js` desde 2026-08-26
 (`User`/F-05 fue el último en conectarse, vía self-service `/api/users/me`). `src/routes/`:
 `product.routes.js`, `category.routes.js`, `auth.routes.js`, `cart.routes.js`,
 `address.routes.js`, `paymentMethod.routes.js`, `order.routes.js`, `wishlist.routes.js`,
-`user.routes.js`.
+`user.routes.js`. Desde el split `app.js`/`server.js` (2026-08-26, backlog `REF-01`), todo el
+montaje de rutas vive en `src/app.js`; `server.js` (raíz) es solo el entrypoint
+(`dotenv`/`connectDB`/`listen`).

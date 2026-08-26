@@ -28,7 +28,8 @@
   refresh token con `JWT_REFRESH_SECRET`/`JWT_REFRESH_EXPIRES_IN`, hash con `bcrypt` (saltRounds 10).
   Login inválido → 401 `{ message: "Credenciales inválidas" }`. Registro con email duplicado →
   422 `{ message: "User already exist" }` (string exacto: el frontend compara contra él).
-- **Error handler global** (`server.js`, al final de los middlewares): `ValidationError` de Mongoose →
+- **Error handler global** (`src/app.js`, al final de los middlewares — `server.js` desde
+  2026-08-26 es solo el entrypoint, ver `REF-01`): `ValidationError` de Mongoose →
   422 `{ message, errors }`; cualquier otro error → 500 `{ message: "Error interno del servidor" }`.
   No escribe a archivo de log.
 - **Imágenes**: se sirven estáticas desde `express.static` montado en `/img` →

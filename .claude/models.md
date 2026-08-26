@@ -61,7 +61,8 @@ y exportan `mongoose.model(...)` por defecto (`export default X`).
 
 ## Antes de asumir que un endpoint existe
 
-Los 8 modelos tienen controller + router montados en `server.js` desde 2026-08-26. Si una tarea
+Los 8 modelos tienen controller + router montados en `src/app.js` desde 2026-08-26 (ver `REF-01`
+en `docs/backlog.md` para el split `app.js`/`server.js`). Si una tarea
 nueva necesita un recurso más, seguir el patrón ya establecido en `cart.controller.js`/
 `cart.routes.js` (o cualquiera de `address`/`paymentMethod`/`order`/`wishlist`/`user`), no asumir
 que algo distinto ya está conectado.

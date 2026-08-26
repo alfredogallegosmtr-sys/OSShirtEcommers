@@ -187,6 +187,21 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   completamente superado por `Checkout.jsx`. Se borraron en vez de reescribirse: sin ruta que
   llegue a ellas, no había comportamiento real que preservar ni proteger con tests. Cierra
   `B-02`/`B-03` de [docs/backlog.md](./backlog.md) — E5 queda sin items pendientes.
+- **2026-08-26 — REF-01: split `app.js`/`server.js`, desbloquea `T-04`.** `server.js` (raíz)
+  quedó como entrypoint delgado (`dotenv.config()` → `connectDB()` → `app.listen()`); toda la
+  construcción de la app (middlewares, montaje de rutas, error handler) se movió a
+  `ecommerce-api/src/app.js`, que exporta `app` **sin efectos secundarios** — se confirmó que se
+  puede `import()` en aislado sin conexión a Mongo ni servidor escuchando, el requisito real que
+  bloqueaba montar `supertest`. Se hizo antes que otros pendientes (`E2E-01`/`CI-01`) precisamente
+  para no tener que rehacerlos si en algún momento dependen de este bootstrap. Detalle no obvio
+  corregido de paso: el mount estático `/img` resolvía su ruta con `__dirname`, que al moverse a
+  `src/app.js` pasaba a apuntar un nivel más adentro — se ajustó a `path.join(__dirname, '..',
+  'public', 'img')`. Verificado: `npm test` sigue 60/60; `npm start` real con los mismos logs de
+  siempre; curl contra `GET /`, `GET /api/products`, `GET /api/users/me` sin token (401),
+  `POST /api/auth/login` (200) y una imagen real de producto (200, `image/jpeg`) responden igual
+  que antes del refactor. `package.json` (`main`/`start`/`dev`) no cambió. Cierra `REF-01` de
+  [docs/backlog.md](./backlog.md); `T-04` ya no está bloqueado por este motivo (sigue faltando
+  instalar `mongodb-memory-server` y escribir los casos).
 
 ## Supuestos pendientes de validar
 

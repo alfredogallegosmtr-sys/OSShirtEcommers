@@ -166,13 +166,17 @@ aserciones débiles → `kind` exacto). **Hallazgos Crítica/Alta (1–4):** no 
 requieren estructuralmente integración (HTTP+DB) — fabricar un test unitario ahí no cerraría el
 hueco real, solo simularía cobertura. Quedan trackeados en `docs/backlog.md` como `T-04`.
 
-## Fuera de este alcance — Integración (Bloqueado)
+## Fuera de este alcance — Integración (Pendiente, ya no bloqueada por el split)
 
-**Motivo del bloqueo, verificado leyendo el código real:** `ecommerce-api/server.js` no exporta
-`app` — todo (`dotenv.config()`, `connectDB()` que hace `process.exit(1)` si Mongo falla, y
-`app.listen()`) vive en un solo archivo ejecutado al importar. No se puede montar `supertest`
-contra la app sin antes hacer el split `app.js`/`server.js`. Además no hay `mongodb-memory-server`
-instalado — necesario para que estas pruebas no dependan de un Mongo local real ni lo contaminen.
+**Motivo original del bloqueo (RESUELTO 2026-08-26, ver `docs/backlog.md` REF-01):**
+`ecommerce-api/server.js` no exportaba `app` — todo (`dotenv.config()`, `connectDB()` que hace
+`process.exit(1)` si Mongo falla, y `app.listen()`) vivía en un solo archivo ejecutado al
+importar, así que no se podía montar `supertest` contra la app. Ahora `ecommerce-api/src/app.js`
+exporta `app` sin ningún efecto secundario (verificado: se puede `import()` en aislado sin tocar
+Mongo ni abrir un puerto) y `server.js` quedó como entrypoint delgado que solo agrega
+`dotenv`/`connectDB`/`listen` encima. **Sigue faltando** instalar `mongodb-memory-server` —
+necesario para que estas pruebas no dependan de un Mongo local real ni lo contaminen — y escribir
+los casos mismos.
 
 Ninguno de estos casos se ha escrito. Quedan pendientes hasta que se autorice ese trabajo:
 
@@ -195,8 +199,8 @@ Ninguno de estos casos se ha escrito. Quedan pendientes hasta que se autorice es
 ## Pendientes Abiertos y Gaps Detectados
 
 - **Trabajo fuera de alcance en esta iteración:** todas las pruebas de integración (ver sección
-  anterior) — requieren el refactor `app.js`/`server.js` y `mongodb-memory-server`, ninguno de los
-  dos autorizado todavía.
+  anterior) — el refactor `app.js`/`server.js` ya está cerrado (2026-08-26); falta instalar
+  `mongodb-memory-server` y escribir los casos.
 - **Decisión aplazada:** cobertura de `src/config/db.conf.js` (`connectDB`) — probarla
   requeriría interceptar `mongoose.connect`/`process.exit`, lo cual roza "mockear Mongoose", algo
   que la convención del proyecto evita; queda sin cubrir hasta decidir un enfoque.
@@ -206,5 +210,6 @@ Ninguno de estos casos se ha escrito. Quedan pendientes hasta que se autorice es
   prosa. El mismo hallazgo en `PaymentMethod.cardNumber` quedó resuelto de raíz al cerrar S-03: el
   campo ya no existe (se reemplazó por `last4` con `maxlength`, que sí funciona).
 - **Backlog relacionado:** `docs/backlog.md` items `T-01` (en progreso, esta es su evidencia),
-  `T-03` (falta script `npm test`), `T-04` (integración completa — auth/cart/category/product vía
-  supertest, bloqueada hasta el refactor `app.js`/`server.js` + `mongodb-memory-server`).
+  `T-03` (cerrado, script `npm test` agregado), `REF-01` (cerrado, split `app.js`/`server.js`),
+  `T-04` (integración completa — auth/cart/category/product vía supertest, ya no bloqueada por el
+  split; falta `mongodb-memory-server` y los casos mismos).

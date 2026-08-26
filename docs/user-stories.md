@@ -219,8 +219,9 @@ cerrado)
 - Middleware `requireAdmin` creado y aplicado en las rutas de escritura de ambos recursos. ✅
 - Verificado en vivo contra el backend real (curl): sin token → 401, token `customer` → 403,
   token `admin` → 201/204. ✅
-- Casos negativos automatizados por `backend-tester` — pendiente, bloqueado por T-04
-  (integración: requiere el split `app.js`/`server.js` + `mongodb-memory-server`).
+- Casos negativos automatizados por `backend-tester` — pendiente (T-04); el split `app.js`/
+  `server.js` que lo bloqueaba ya está cerrado, falta `mongodb-memory-server` y escribir los
+  casos.
 
 **Dependencias técnicas:**
 - Ninguna otra épica bloqueaba esta — era la de mayor prioridad del backlog (S-01, S-02).

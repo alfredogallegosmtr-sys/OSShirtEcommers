@@ -54,11 +54,16 @@ ecommerce-app/src/    components/ (+ common/) context/ data/ layout/ pages/ serv
 ## Arquitectura (big picture)
 
 ### Backend
-`server.js`: `port = process.env.PORT || 4001`. Middlewares globales en orden: `cors()` (abierto,
-sin allowlist de orígenes) → `express.json()` → estático `/img` → `connectDB()` → `GET /` (texto
-plano) → routers montados directamente con su prefijo (`/api/products`, `/api/categories`,
-`/api/auth`, `/api/cart` — no hay un `routes/index.js` agregador) → error handler global al final.
-`src/config/db.conf.js`: `connectDB` con `mongoose.connect(process.env.MONGO_URI)`;
+`server.js` (raíz, entrypoint delgado desde 2026-08-26): `dotenv.config()` → `connectDB()` →
+`app.listen(process.env.PORT || 4001)`, importando `app` desde `src/app.js`. `src/app.js`
+construye la app Express y **exporta `app` sin efectos secundarios** (sin `dotenv`/`connectDB`/
+`listen`) — así se puede montar `supertest` sobre ella sin levantar un servidor real ni tocar
+Mongo. Middlewares globales en orden dentro de `src/app.js`: `cors()` (abierto, sin allowlist de
+orígenes) → `express.json()` → estático `/img` → `GET /` (texto plano) → routers montados
+directamente con su prefijo (`/api/products`, `/api/categories`, `/api/auth`, `/api/cart`, y
+desde 2026-08-26 también `/api/addresses`, `/api/payment-methods`, `/api/orders`,
+`/api/wishlist`, `/api/users` — no hay un `routes/index.js` agregador) → error handler global al
+final. `src/config/db.conf.js`: `connectDB` con `mongoose.connect(process.env.MONGO_URI)`;
 `process.exit(1)` en error de conexión.
 
 Flujo de una petición varía por recurso:

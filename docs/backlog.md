@@ -16,18 +16,22 @@
 
 ## Épicas
 
-| ID | Épica | Spec |
-|---|---|---|
-| E1 | Persistencia real de checkout (direcciones, pagos, pedidos) | _(pendiente)_ |
-| E2 | Wishlist funcional | _(pendiente)_ |
-| E3 | Cuenta: Profile y Settings | _(pendiente)_ |
-| E4 | Seguridad del catálogo y de pagos | _(pendiente)_ |
-| E5 | Limpieza de bugs y código muerto detectados en la auditoría | _(pendiente)_ |
-| E6 | Suite de tests (backend + frontend) | _(pendiente)_ |
-| E7 | E2E con Cypress | _(pendiente)_ |
-| E8 | CI/CD completo | _(pendiente)_ |
-| E9 | Observability: carga con Artillery | _(pendiente)_ |
-| E10 | Despliegue a Render | _(pendiente)_ |
+> La columna **Spec** indica si existe un documento en [specs/](./specs/) (ninguna épica lo
+> tiene todavía, ver nota arriba — es independiente de si la épica ya se cerró). La columna
+> **Estado** se deriva de los items de esa épica en la [Tabla priorizada](#tabla-priorizada).
+
+| ID | Épica | Estado | Spec |
+|---|---|---|---|
+| E1 | Persistencia real de checkout (direcciones, pagos, pedidos) | **Cerrado (2026-08-26)** — F-01/F-02/F-03/A-01 | _(pendiente)_ |
+| E2 | Wishlist funcional | **Cerrado (2026-08-26)** — F-04 | _(pendiente)_ |
+| E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
+| E4 | Seguridad del catálogo y de pagos | En progreso — S-01/S-02/S-03 cerrados, queda **S-04** | _(pendiente)_ |
+| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-09, sin items pendientes | _(pendiente)_ |
+| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01 cerrados, T-01 en progreso, T-02/T-04 pendientes | _(pendiente)_ |
+| E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
+| E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
+| E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
+| E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
 
 ## Tabla priorizada
 
@@ -45,7 +49,8 @@
 | F-04 | Wishlist: UI + `wishlistService` + endpoint conectado | E2 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | T-01 | Elegir runner de tests backend (Vitest/Jest) + `mongodb-memory-server`, correr `test-planner` | E6 | Deuda técnica | **Alto** | En progreso |
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
-| T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) — bloqueado hasta hacer el split `app.js`/`server.js` (hoy `server.js` no exporta `app` sin efectos secundarios) e instalar `mongodb-memory-server`. Detalle completo del alcance bloqueado en [TEST_PLAN.md](../TEST_PLAN.md#fuera-de-este-alcance--integración-bloqueado) | E6 | Deuda técnica | **Alto** | Pendiente |
+| REF-01 | Split `app.js`/`server.js` en `ecommerce-api` — `server.js` no exportaba `app` sin efectos secundarios (dotenv/connectDB/listen se disparaban solo con importarlo), bloqueando cualquier test de integración con supertest | E6 | Refactor | **Alto** | **Cerrado (2026-08-26)** |
+| T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) — el split `app.js`/`server.js` que lo bloqueaba ya está cerrado (2026-08-26); falta instalar `mongodb-memory-server` y escribir los casos. Detalle completo del alcance en [TEST_PLAN.md](../TEST_PLAN.md#fuera-de-este-alcance--integración-bloqueado) | E6 | Deuda técnica | **Alto** | Pendiente |
 | S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | Pendiente |
 | F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
@@ -286,6 +291,29 @@ re-descubrir el mismo terreno.
   ruta llega a estos componentes, así que ningún test protegería comportamiento real; escribir
   tests ahí solo habría fijado en el tiempo un estado roto/mock que ya no representa el producto.
   Sin archivos CSS asociados que limpiar (ninguno de los dos tenía un `.css` propio).
+- **REF-01 (split `app.js`/`server.js`) — CERRADO 2026-08-26, desbloquea `T-04`:** se creó
+  `ecommerce-api/src/app.js` con toda la construcción de la app Express (middlewares, montaje de
+  rutas, error handler global) y `export default app`, **sin** `dotenv.config()`, `connectDB()`
+  ni `app.listen()` — importarlo ya no dispara ningún efecto secundario. `server.js` (raíz) quedó
+  como entrypoint delgado: `dotenv.config()` → `connectDB()` → `app.listen(port)`, importando
+  `app` desde `src/app.js`. `package.json` (`main`/`start`/`dev`) no cambió — sigue apuntando a
+  `server.js`, que sigue haciendo exactamente lo mismo que antes desde el punto de vista de quien
+  corre `npm start`/`npm run dev`. Detalle no obvio: el mount estático `/img` usaba
+  `path.dirname(fileURLToPath(import.meta.url))` para ubicar `public/img`; al mover ese código a
+  `src/app.js`, `__dirname` pasa a apuntar a `ecommerce-api/src/` en vez de `ecommerce-api/`, así
+  que la ruta se corrigió a `path.join(__dirname, '..', 'public', 'img')` — sin este ajuste las
+  imágenes de producto habrían dejado de servirse (404) sin que ningún test lo detectara.
+  Verificado: `npm test` sigue en 60/60; `npm start` real levanta con los mismos logs
+  (`dotenv`/`MongoDB connected`/`Server running`); curl contra `GET /`, `GET /api/products`,
+  `GET /api/users/me` sin token (401), `POST /api/auth/login` (200) y `GET /img/products/
+  tshirt-01.jpg` (200, `image/jpeg` — confirma que la corrección de `__dirname` funciona con un
+  archivo real, no solo que un 404 devuelva 404) responden igual que antes del refactor. Se
+  confirmó además que `src/app.js` se puede `import()` de forma aislada sin conexión a Mongo ni
+  servidor escuchando — el requisito real que pedía `T-04`/`TEST_PLAN.md` para poder montar
+  `supertest`. **Motivo de hacerlo ahora, antes que otros items de la cola:** varios pendientes
+  (`T-04`, y en menor medida `E2E-01`/`CI-01` si en algún momento levantan el backend para probar
+  contra él) dependían o se beneficiaban de este bootstrap ya limpio; hacerlo antes evita tener
+  que rehacer esas configuraciones más adelante.
 - **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
   ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
   `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`. **Matriz completa y

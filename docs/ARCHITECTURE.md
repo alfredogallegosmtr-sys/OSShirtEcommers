@@ -17,11 +17,15 @@ contraseña, ambos contra el backend (`PUT /api/users/me`, `PUT /api/users/me/pa
 
 ## Arquitectura técnica actual [CÓDIGO]
 
-- **Backend:** Express 5 (ESM, `"type": "module"`) + Mongoose 9. Middlewares globales en orden:
-  `cors()` (abierto) → `express.json()` → estático `/img` → `connectDB()` → routers montados
-  directamente (`/api/products`, `/api/categories`, `/api/auth`, `/api/cart`) → error handler
-  global. Auth con JWT (`jsonwebtoken` + `bcrypt`). Validación con `express-validator` en
-  products/categories/cart.
+- **Backend:** Express 5 (ESM, `"type": "module"`) + Mongoose 9. Desde 2026-08-26,
+  `server.js` (raíz) es solo el entrypoint (`dotenv.config()` → `connectDB()` → `app.listen()`);
+  `src/app.js` construye la app y la exporta sin efectos secundarios (`REF-01`, desbloquea tests
+  de integración con `supertest`). Middlewares globales en orden, dentro de `src/app.js`:
+  `cors()` (abierto) → `express.json()` → estático `/img` → routers montados directamente
+  (`/api/products`, `/api/categories`, `/api/auth`, `/api/cart`, `/api/addresses`,
+  `/api/payment-methods`, `/api/orders`, `/api/wishlist`, `/api/users`) → error handler global.
+  Auth con JWT (`jsonwebtoken` + `bcrypt`). Validación con `express-validator` en
+  products/categories/cart/address/paymentMethod/order/wishlist/user.
 - **Frontend:** React 19 (CRA/`react-scripts`). `index.js` → `ThemeProvider` → `App.jsx` →
   `BrowserRouter` → `AuthProvider` → `CartProvider` → `Layout` → `Routes`. Estado global vía
   Context (`AuthContext`, `CartContext`, `ThemeContext`).
