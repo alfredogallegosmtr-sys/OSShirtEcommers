@@ -93,6 +93,16 @@ Sin `PUT`/`DELETE` — el cliente no edita ni cancela órdenes en este alcance. 
 Un usuario tiene una sola wishlist (get-or-create, patrón de `Cart`). Contrato completo en
 [docs/contracts/wishlist.md](../docs/contracts/wishlist.md).
 
+## Users (`/api/users`)
+| Método | Path | Auth | Validador | Notas |
+|---|---|---|---|---|
+| GET | /api/users/me | auth | — | el usuario logueado, sin `password` |
+| PUT | /api/users/me | auth | `updateMeValidation` | body `name`/`email` opcionales; 422 si el email ya pertenece a otro usuario (`"User already exist"`) |
+| PUT | /api/users/me/password | auth | `changePasswordValidation` | body `{ currentPassword, newPassword }`; 401 si `currentPassword` no coincide |
+
+Solo self-service: no existe `GET /api/users/:id` ni ninguna forma de leer/editar a otro usuario
+por este contrato. Contrato completo en [docs/contracts/user.md](../docs/contracts/user.md).
+
 ## Fuera de `/api`
 - `GET /` → `"API Ecommerce with MongoDB"` (texto plano).
 - `GET /img/products/:file` → estático, sirve `ecommerce-api/public/img/products/`.
@@ -101,6 +111,7 @@ Un usuario tiene una sola wishlist (get-or-create, patrón de `Cart`). Contrato 
 ## Todos los modelos ya tienen rutas
 
 Los 8 modelos Mongoose tienen controller + router montados en `server.js` desde 2026-08-26
-(`WishList`/F-04 fue el último en conectarse). `src/routes/`: `product.routes.js`,
-`category.routes.js`, `auth.routes.js`, `cart.routes.js`, `address.routes.js`,
-`paymentMethod.routes.js`, `order.routes.js`, `wishlist.routes.js`.
+(`User`/F-05 fue el último en conectarse, vía self-service `/api/users/me`). `src/routes/`:
+`product.routes.js`, `category.routes.js`, `auth.routes.js`, `cart.routes.js`,
+`address.routes.js`, `paymentMethod.routes.js`, `order.routes.js`, `wishlist.routes.js`,
+`user.routes.js`.

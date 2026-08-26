@@ -11,8 +11,9 @@ al carrito como invitado (`localStorage`) o logueado (sincronizado con el backen
 selecciona dirección y método de pago reales (`Address`/`PaymentMethod`, backend) y al confirmar
 se crea una `Order` real vía API — el servidor calcula los totales desde el carrito, no el
 cliente. "Mis pedidos" consulta esa misma API. Desde la página de producto puede marcar
-favoritos (`WishList`, backend real); Settings y Profile siguen vacío/mínimo (Profile deriva del
-JWT decodificado, sin llamada real al backend).
+favoritos (`WishList`, backend real). En `/profile` ve sus datos reales (`GET /api/users/me`,
+no derivados del JWT) y desde ahí entra a `/settings` para editar nombre/email o cambiar su
+contraseña, ambos contra el backend (`PUT /api/users/me`, `PUT /api/users/me/password`).
 
 ## Arquitectura técnica actual [CÓDIGO]
 
@@ -24,7 +25,7 @@ JWT decodificado, sin llamada real al backend).
 - **Frontend:** React 19 (CRA/`react-scripts`). `index.js` → `ThemeProvider` → `App.jsx` →
   `BrowserRouter` → `AuthProvider` → `CartProvider` → `Layout` → `Routes`. Estado global vía
   Context (`AuthContext`, `CartContext`, `ThemeContext`).
-- **Base de datos:** MongoDB vía Mongoose, 8 modelos definidos, solo 4 con controller/router.
+- **Base de datos:** MongoDB vía Mongoose, 8 modelos definidos, los 8 con controller/router.
 - **Manejo de estado:** Context API (sin Redux ni librería externa de estado).
 - **Persistencia local vs remota:** ver Matriz de fuente de verdad, abajo.
 - **Autenticación:** JWT en `localStorage["authToken"]`, decodificado client-side sin verificar
@@ -40,13 +41,14 @@ JWT decodificado, sin llamada real al backend).
 
 | Dominio de datos | Fuente real hoy | Modelo backend existe | Notas |
 |---|---|---|---|
-| Sesión / usuario | Backend (JWT) | ✅ `User` | Perfil se deriva del token, sin `GET` dedicado |
+| Sesión / usuario | Backend (JWT) | ✅ `User` | Login/registro vía JWT; perfil real vía `GET /api/users/me` (F-05, ya no se deriva del token) |
 | Catálogo (productos/categorías) | Backend | ✅ | Lectura pública, escritura solo admin (`requireAuth`+`requireAdmin`) |
 | Carrito | localStorage + Backend | ✅ `Cart` | Único recurso genuinamente híbrido y sincronizado |
 | Pedidos | **Backend real** (`/api/orders`) | ✅ `Order` | F-03 cerrado 2026-08-26; totales calculados server-side desde el `Cart` real, nunca del cliente |
 | Direcciones de envío | **Backend real** (`/api/addresses`) | ✅ `Address` | F-01 cerrado 2026-08-26 (backend + frontend), verificado con Playwright de punta a punta. `shippingService` mock queda sin usar en `Checkout.jsx` |
 | Métodos de pago | **Backend real** (`/api/payment-methods`) | ✅ `PaymentMethod` | F-02 cerrado 2026-08-26 (backend + frontend); guarda solo `last4`/`brand` (S-03), rechaza `cardNumber`/`cvv` explícitamente. `paymentService` mock quedó sin usar en `Checkout.jsx` |
 | Wishlist | **Backend real** (`/api/wishlist`) | ✅ `WishList` | F-04 cerrado 2026-08-26; get-or-create por usuario, patrón de `Cart` |
+| Perfil / configuración de cuenta | **Backend real** (`/api/users/me`) | ✅ `User` | F-05/F-06 cerrado 2026-08-26; self-service puro, scoped a `req.user.id`, sin `GET /api/users/:id` |
 | Tema día/noche | localStorage (`app:theme`) | No aplica | Cosmético, no requiere backend |
 
 ## Dependencia clave entre módulos [CÓDIGO]
@@ -80,3 +82,6 @@ Ver [.claude/models.md](../.claude/models.md) para el detalle campo por campo de
 - `PaymentMethod` (desde 2026-08-26) nunca guarda el número completo de tarjeta ni el cvv —
   solo `last4`/`brand`. Un cobro real requeriría tokenización con un proveedor externo antes de
   exponer el modelo por API.
+- `User` self-service (desde 2026-08-26) no permite leer ni editar a otro usuario — no existe
+  `GET /api/users/:id`, todas las operaciones son sobre `req.user.id` (el usuario del propio
+  token).

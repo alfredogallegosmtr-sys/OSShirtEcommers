@@ -1,24 +1,21 @@
-import users from "../data/users.json";
+import apiClient from "./apiClient";
 
-export const fetchUsers = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(users);
-    }, 1500); // 1.5 segundos de delay
+const getMe = async () => {
+  const response = await apiClient.get("/users/me");
+  return response.data;
+};
+
+const updateMe = async (data) => {
+  const response = await apiClient.put("/users/me", data);
+  return response.data;
+};
+
+const changePassword = async ({ currentPassword, newPassword }) => {
+  const response = await apiClient.put("/users/me/password", {
+    currentPassword,
+    newPassword,
   });
+  return response.data;
 };
 
-export const searchUsers = async (query) => {
-  const lowerQuery = query.trim().toLowerCase();
-  return fetchUsers().then((data) =>
-    data.filter(
-      (user) =>
-        user.name.toLowerCase().includes(lowerQuery) ||
-        user.email?.toLowerCase().includes(lowerQuery)
-    )
-  );
-};
-
-export const getUserById = async (userId) => {
-  return fetchUsers().then((data) => data.find((user) => user._id === userId));
-};
+export { getMe, updateMe, changePassword };

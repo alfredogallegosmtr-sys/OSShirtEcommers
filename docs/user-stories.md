@@ -158,15 +158,49 @@ cerrado)
 - Se muestran al menos `name`, `email`, `role`.
 
 **Definición de terminado:**
-- Endpoint de perfil (`GET /api/auth/me` o similar) — a definir si se agrega a `auth.routes.js`
-  o se crea `user.routes.js`.
-- `Profile.jsx` consume ese endpoint.
+- ✅ Endpoint de perfil: `GET /api/users/me` en `user.routes.js` (nuevo, self-service, scoped a
+  `req.user.id`).
+- ✅ `Profile.jsx` consume ese endpoint en un `useEffect`, ya no deriva del JWT decodificado.
+- ✅ Verificado con Playwright: `/profile` muestra email/estado/última conexión reales, sin
+  "No disponible".
 
 **Dependencias técnicas:**
 - Ninguna otra épica bloquea esta.
 
 **Prioridad:** Medio
-**Estado actual relacionado:** Parcial (backlog F-05) — la página existe, pero no llama al backend
+**Estado actual relacionado:** Implementado y verificado en vivo (2026-08-26, backlog F-05
+cerrado)
+
+---
+
+**ID:** US-009
+**Título:** Editar mi nombre/email y cambiar mi contraseña
+**Como** cliente logueado
+**Quiero** poder actualizar mi nombre, mi email o mi contraseña desde una página de configuración
+**Para** mantener mis datos de cuenta al día sin depender de soporte
+
+**Criterios de aceptación:**
+- `/settings` permite editar `name`/`email` y guardar los cambios contra el backend.
+- `/settings` permite cambiar la contraseña pidiendo la contraseña actual, la nueva y su
+  confirmación.
+- Si el email ya está en uso por otra cuenta, se muestra un error claro (no un 500 genérico).
+- Si la contraseña actual es incorrecta, se muestra un error claro y no se cambia nada.
+
+**Definición de terminado:**
+- ✅ `PUT /api/users/me` (nombre/email) y `PUT /api/users/me/password` (cambio de contraseña) en
+  `user.routes.js`.
+- ✅ `pages/Setttings.jsx` (antes vacío) implementado con ambos formularios sobre `userService.js`
+  real.
+- ✅ Verificado con Playwright: actualizar nombre/email real, email duplicado rechazado con
+  mensaje, contraseña actual incorrecta rechazada con mensaje, confirmación no coincidente
+  rechazada client-side, cambio de contraseña real exitoso.
+
+**Dependencias técnicas:**
+- Dependía de US-006 (perfil real) para tener `userService.js` ya conectado al backend.
+
+**Prioridad:** Medio
+**Estado actual relacionado:** Implementado y verificado en vivo (2026-08-26, backlog F-06
+cerrado)
 
 ---
 

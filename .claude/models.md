@@ -6,7 +6,10 @@ y exportan `mongoose.model(...)` por defecto (`export default X`).
 - **User** (`User.js`): `name` (String, required, trim), `email` (String, required, unique, trim,
   lowercase), `password` (String, required — ya viene hasheado con bcrypt desde el controller),
   `role` (enum `["customer","admin"]`, default `"customer"`), `isActive` (Boolean, default true),
-  `email_verified` (Boolean, default false), `last_login` (Date).
+  `email_verified` (Boolean, default false), `last_login` (Date). **Con controller y router
+  desde 2026-08-26** (`user.controller.js`/`user.routes.js`, backlog F-05/F-06) — self-service
+  únicamente: `GET/PUT /api/users/me` y `PUT /api/users/me/password`, siempre sobre `req.user.id`;
+  no existe `GET /api/users/:id` ni ninguna forma de leer/editar a otro usuario.
 - **Product** (`Product.js`): `name` (String, required, trim), `description` (String), `price`
   (Number, required), `stock` (Number, default 0), `imageURL` (String, default
   `https://placehold.co/600x400`), `images` (String[]), `slug` (String, required, unique,
@@ -60,5 +63,5 @@ y exportan `mongoose.model(...)` por defecto (`export default X`).
 
 Los 8 modelos tienen controller + router montados en `server.js` desde 2026-08-26. Si una tarea
 nueva necesita un recurso más, seguir el patrón ya establecido en `cart.controller.js`/
-`cart.routes.js` (o cualquiera de `address`/`paymentMethod`/`order`/`wishlist`), no asumir que
-algo distinto ya está conectado.
+`cart.routes.js` (o cualquiera de `address`/`paymentMethod`/`order`/`wishlist`/`user`), no asumir
+que algo distinto ya está conectado.

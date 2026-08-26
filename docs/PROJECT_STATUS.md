@@ -10,18 +10,14 @@
 
 E-commerce de camisetas anime/manga/cultura pop: backend Express 5 + MongoDB (ESM,
 `ecommerce-api/`) y frontend React 19 / CRA (`ecommerce-app/`). Los **8 modelos Mongoose ya
-están expuestos por API** — `wishlist` (F-04) fue el último en conectarse, 2026-08-26. El
-checkout completo (dirección, pago, orden) y la wishlist ya corren de punta a punta sobre el
-backend real, verificado con Playwright; `localStorage` solo sigue usándose para
-`authToken`/`cart`/`app:theme`. `Settings` es la única página completamente vacía; `WishList.jsx`
-ya se implementó.
+están expuestos por API** — `user` (self-service, F-05/F-06) fue el último en conectarse,
+2026-08-26. El checkout completo (dirección, pago, orden), la wishlist, el perfil real y settings
+ya corren de punta a punta sobre el backend real, verificado con Playwright; `localStorage` solo
+sigue usándose para `authToken`/`cart`/`app:theme`. Ya no quedan páginas enrutadas vacías.
 
-El núcleo (auth, catálogo, carrito, checkout, wishlist) es sólido y fue verificado en vivo (curl +
-Playwright). La brecha restante es perfil real (F-05), settings (F-06), y los bugs de UI menores
-(B2/B3) todavía sin cerrar.
-
-**Estrategia recomendada: seguir el mismo patrón (backend real + verificación en vivo) para
-perfil y settings. No reescribir lo ya conectado.**
+El núcleo (auth, catálogo, carrito, checkout, wishlist, perfil, settings) es sólido y fue
+verificado en vivo (curl + Playwright). La brecha restante son los bugs de UI menores en páginas
+huérfanas sin ruta (B2/B3), sin impacto en el flujo real.
 
 ## Estado del backend [CÓDIGO]
 
@@ -35,6 +31,7 @@ perfil y settings. No reescribir lo ya conectado.**
 | Address | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-01) — protegido con `requireAuth`, scoped a `req.user.id` |
 | PaymentMethod | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-02) — protegido con `requireAuth`, rechaza `cardNumber`/`cvv` explícitamente |
 | WishList | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-04) — get-or-create por usuario, idempotente |
+| User (self-service) | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-05/F-06) — `GET/PUT /api/users/me`, `PUT /api/users/me/password`, protegido con `requireAuth`, scoped a `req.user.id` |
 
 Auth [CÓDIGO]: JWT Bearer (`Authorization`), payload `{ userId, name, role }`, `requireAuth`
 verifica con `JWT_SECRET`, password con `bcrypt` (saltRounds 10). **`requireAdmin` existe desde
@@ -47,16 +44,14 @@ middleware `validate` en `products`/`categories`/`cart`; `auth` con chequeo manu
 
 - **Servicios reales** (`apiClient`/axios → backend real): `authService`, `productsService`,
   `categoryService`, `cartService`, `addressService`, `paymentMethodService`, `orderService`,
-  `wishlistService` (los últimos 4, 2026-08-26, F-01/F-02/F-03/F-04).
-- **Servicio mock restante:** `userService` (`data/users.json`) — sin relación con `User` real,
-  fuera del alcance de F-05 (perfil). `shippingService`/`paymentService` (mocks viejos) se
-  borraron por quedar sin uso.
+  `wishlistService`, `userService` (los últimos 5, 2026-08-26, F-01/F-02/F-03/F-04/F-05).
+  `userService` se reescribió por completo: el mock viejo sobre `data/users.json` se borró (cero
+  importadores) y el nuevo llama a `/api/users/me`.
+- **Sin servicios mock restantes.** `shippingService`/`paymentService`/`userService` (mocks
+  viejos) y `utils/storageHelpers.js` se borraron por quedar sin uso.
 - **Páginas completas y funcionales:** Home, Product, CategoryPage, SearchResults, Login,
-  Register, Cart, Checkout, Orders, WishList (las últimas 4 ya sobre API real, no
-  `localStorage`/placeholder).
-- **Página placeholder vacía pero ya enrutada:** `pages/Setttings.jsx` (nombre de archivo con
-  typo — triple "t") sigue siendo literalmente `export default function X() {}`, detrás de
-  `ProtectedRoute` en `/settings` — un usuario logueado que entra ahí ve una página en blanco.
+  Register, Cart, Checkout, Orders, WishList, Profile, Settings (`Setttings.jsx`) — las últimas 6
+  ya sobre API real, no `localStorage`/placeholder.
 - **Páginas huérfanas** (sin `<Route>` en `App.jsx`): `pages/ProductDetails.jsx` (distinto del que
   sí se usa, `pages/Product.jsx`) importa `ProductDetailsCard` desde un archivo que no existe —
   rompe al instante si algo llega a importarlo. `pages/PurchaseOrder.jsx` es una página completa
@@ -73,8 +68,8 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   `shippingAddresses`, `paymentMethods` dejaron de usarse cuando se conectaron F-01/F-02/F-03
   (`utils/storageHelpers.js`, que solo servía a eso, se borró por quedar sin uso).
 - **Backend (vía API real):** los 8 recursos — auth, products, categories, cart, address,
-  paymentMethod, order, **wishlist** (2026-08-26) — ya expuestos y consumidos de verdad por el
-  frontend. Ningún recurso queda desalineado.
+  paymentMethod, order, wishlist, **user self-service** (2026-08-26) — ya expuestos y consumidos
+  de verdad por el frontend. Ningún recurso queda desalineado.
 
 ## Flujos funcionales [CÓDIGO]
 
@@ -88,8 +83,8 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | Crear pedido | Backend (`Order`, totales calculados server-side) | ✅ Funcional, verificado en vivo |
 | Mis pedidos (Orders) | Backend (`GET /api/orders`) | ✅ Funcional, verificado en vivo |
 | Wishlist | Backend (`GET/POST/DELETE /api/wishlist`) | ✅ Funcional, verificado en vivo |
-| Profile | Deriva del JWT decodificado client-side | ⚠️ Sin `GET` real al backend |
-| Settings | — | ❌ Placeholder |
+| Profile | Backend (`GET /api/users/me`) | ✅ Funcional, verificado en vivo |
+| Settings (editar perfil / cambiar contraseña) | Backend (`PUT /api/users/me`, `PUT /api/users/me/password`) | ✅ Funcional, verificado en vivo |
 | Breadcrumb (producto/categoría) | Backend (categorías pobladas) | ✅ Funcional (bug B1 corregido) |
 
 ## Bugs verificados [CÓDIGO]
@@ -99,7 +94,9 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | B1 | `Breadcrumb` esperaba prop `categories`, sus consumidores le pasaban `items` → nunca se renderizaba | ✅ Cerrado 2026-08-26 |
 | B2 | `pages/ProductDetails.jsx` (huérfano, no enrutado) importa un componente inexistente | Pendiente — bajo impacto, no enrutado |
 | B3 | `pages/PurchaseOrder.jsx` huérfana con datos hardcodeados, sin ruta | Pendiente — bajo impacto, no enrutado |
-| B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | ⚠️ Mitad cerrada 2026-08-26: `WishList.jsx` implementado (F-04); `Setttings.jsx` (F-06) sigue vacío |
+| B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | ✅ Cerrado 2026-08-26: `WishList.jsx` implementado (F-04); `Setttings.jsx` implementado (F-06) |
+| B8 | `ProfileCard.jsx` usaba `contextUser.role` en vez de `currentUser.role` (siempre "guest"); `currentUser.loginDate` (campo inexistente) en vez de `currentUser.last_login`; botones de acción eran stubs no-op (`() => {}`), incluido un "Panel de administración" sin ruta real | ✅ Cerrado 2026-08-26 (F-05) |
+| B9 | `ErrorMessage`/`Loading` (`components/common/`) solo aceptan `children`, no una prop `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` en vez de `{...}` como children, así que el texto nunca se renderiza (queda una caja vacía) | Pendiente — descubierto al construir F-05/F-06; se corrigió solo en el código nuevo (`Profile.jsx`/`Setttings.jsx`), los llamadores preexistentes no se tocaron (fuera de alcance de este item) |
 | B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
 | B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
 | B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
@@ -114,8 +111,8 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 - ~~Integridad del total del pedido~~ — resuelto: `order.controller.js` calcula
   `subtotalPrice`/`shippingCost`/`totalPrice` desde el `Cart` real del usuario, nunca desde el
   body de la petición.
-- **Mantenibilidad:** solo `WishList` sigue sin conectar (modelo Mongoose sin usar, página
-  frontend vacía) — ya no hay doble fuente de verdad en direcciones/pagos/pedidos.
+- **Mantenibilidad:** los 8 modelos ya están conectados de punta a punta — ya no queda ningún
+  modelo Mongoose sin usar ni página frontend enrutada vacía.
 
 ## Decisiones de producto confirmadas
 
@@ -153,7 +150,26 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   reescrito (antes vacío) para listar/quitar productos reales vía `ProductCard`. Verificado con
   Playwright: agregar desde el producto → persiste tras recargar la página → aparece en
   `/wishlist` → quitar deja el estado vacío correcto. Cierra `F-04` y la mitad de `B-04` de
-  [docs/backlog.md](./backlog.md) (queda pendiente `Setttings.jsx`, ver `F-06`).
+  [docs/backlog.md](./backlog.md).
+- **2026-08-26 — F-05 (Profile) y F-06 (Settings) conectados, épica E3 completa.**
+  `user.controller.js`/`user.routes.js` exponen `GET/PUT /api/users/me` y
+  `PUT /api/users/me/password`, siempre scoped a `req.user.id` (self-service puro, sin
+  `GET /api/users/:id`). `Profile.jsx` ahora hace `GET /api/users/me` en vez de derivar todo del
+  JWT decodificado (que solo trae `userId`/`name`/`role`). De paso se corrigió `ProfileCard.jsx`
+  (bug `B8`: `contextUser.role` → `currentUser.role`, `loginDate` inexistente →
+  `last_login` real, botones de acción no-op → navegación real a `/settings`/`/orders`, se quitó
+  el stub de "Panel de administración" por no existir esa ruta). `Setttings.jsx` (antes vacío,
+  `B4`) ahora tiene dos formularios reales: editar nombre/email y cambiar contraseña, ambos contra
+  el backend. El mock viejo `userService.js` (`data/users.json`) se borró (cero importadores) y se
+  reemplazó por uno real sobre `apiClient`. Verificado con Playwright de punta a punta: login →
+  `/profile` muestra email/estado/última conexión reales → "Editar Perfil" navega a `/settings` →
+  actualizar nombre/email funciona → email duplicado da 422 con mensaje correcto → cambiar
+  contraseña con la actual incorrecta da 401 → confirmación de contraseña no coincidente se
+  rechaza client-side → cambio de contraseña real funciona y persiste tras recargar `/profile`.
+  Se revirtió la contraseña del usuario semilla (`user4@test.com`) a `123456` tras la verificación
+  para no romper las credenciales de demo documentadas. Cierra `F-05`/`F-06` y el resto de `B-04`
+  de [docs/backlog.md](./backlog.md); descubre `B-09` (ver tabla de bugs), documentado pero no
+  corregido por quedar fuera de este alcance.
 
 ## Supuestos pendientes de validar
 

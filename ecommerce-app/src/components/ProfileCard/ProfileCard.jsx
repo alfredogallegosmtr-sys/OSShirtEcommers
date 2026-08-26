@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Button from "../common/Button";
 import "./ProfileCard.css";
@@ -7,26 +8,19 @@ const ROLE_COLORS = {
   customer: "#22c55e",
 };
 
-const ROLE_ACTIONS = {
-  admin: [
-    { label: "Editar Perfil", action: () => {} },
-    { label: "Cambiar contraseña", action: () => {} },
-    { label: "Ver todos los pedidos", action: () => {} },
-    { label: "Panel de administración", action: () => {} },
-  ],
-  customer: [
-    { label: "Editar Perfil", action: () => {} },
-    { label: "Cambiar contraseña", action: () => {} },
-    { label: "Ver mis pedidos", action: () => {} },
-  ],
-};
-
 export default function ProfileCard({ user, userProp }) {
-  const { user: contextUser} = useAuth();
+  const { user: contextUser } = useAuth();
+  const navigate = useNavigate();
   const currentUser = userProp || contextUser;
-  
-  const role = contextUser.role || "guest";
-  const actions = ROLE_ACTIONS[role] || [];
+
+  const role = currentUser.role || "guest";
+  const actions = [
+    { label: "Editar Perfil", action: () => navigate("/settings") },
+    { label: "Cambiar contraseña", action: () => navigate("/settings") },
+    ...(role === "admin"
+      ? [{ label: "Ver todos los pedidos", action: () => navigate("/orders") }]
+      : [{ label: "Ver mis pedidos", action: () => navigate("/orders") }]),
+  ];
 
   return (
     <div className="profile-container">
@@ -69,8 +63,8 @@ export default function ProfileCard({ user, userProp }) {
           <div className="info-item">
             <label>Última conexión:</label>
             <span>
-              {currentUser.loginDate
-                ? new Date(currentUser.loginDate).toLocaleString()
+              {currentUser.last_login
+                ? new Date(currentUser.last_login).toLocaleString()
                 : "No disponible"}
             </span>
           </div>

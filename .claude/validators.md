@@ -42,6 +42,10 @@ custom); si no, `next()`.
     opcional + `isEmail()`; `isDefault`/`isActive` opcionales + `isBoolean()`.
   - `updatePaymentMethodValidation` — `param("id").isMongoId()`; mismos campos que create, todos
     opcionales.
+- `user.routes.js` (todo el router pasa por `requireAuth`; self-service sobre `req.user.id`):
+  - `updateMeValidation` — `name` opcional + `notEmpty()`; `email` opcional + `isEmail()`.
+  - `changePasswordValidation` — `currentPassword` requerido; `newPassword` requerido +
+    `isLength({min:6})`.
 - `auth.routes.js`: **sin validadores de express-validator.** `register`/`login` siguen con
   chequeo manual inline dentro del controller (campos requeridos, email duplicado) — así está
   también en el proyecto de referencia, no es una omisión.

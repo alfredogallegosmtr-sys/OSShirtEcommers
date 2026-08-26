@@ -37,7 +37,7 @@
 | S-02 | Implementar middleware de rol admin (`isAdmin`) — no existe hoy | E4 | Feature faltante | **Crítico** | **Cerrado (2026-08-26)** |
 | S-03 | Definir cómo se protegerá `cardNumber`/`cvv` de `PaymentMethod` (cifrado/tokenización) **antes** de exponerlo por API | E4 | Deuda/Seguridad | **Crítico** | **Cerrado (2026-08-26)** |
 | B-01 | Fix `Breadcrumb`: prop `categories` vs `items` — no se renderiza nunca | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
-| B-04 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco para el usuario | E5 | Bug | **Alto** | Mitad cerrada (2026-08-26) — `WishList.jsx` listo, `Setttings.jsx` sigue pendiente (F-06) |
+| B-04 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco para el usuario | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
 | F-01 | `addressService` real + endpoint `Address` conectado a checkout | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | F-02 | `paymentMethodService` real + endpoint `PaymentMethod` conectado a checkout | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | F-03 | `orderService` + endpoint `Order` — checkout crea pedido real, no `localStorage` | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
@@ -47,9 +47,11 @@
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
 | T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) — bloqueado hasta hacer el split `app.js`/`server.js` (hoy `server.js` no exporta `app` sin efectos secundarios) e instalar `mongodb-memory-server`. Detalle completo del alcance bloqueado en [TEST_PLAN.md](../TEST_PLAN.md#fuera-de-este-alcance--integración-bloqueado) | E6 | Deuda técnica | **Alto** | Pendiente |
 | S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | Pendiente |
-| F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | Pendiente |
-| F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | Pendiente |
+| F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
+| F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | B-02 | `pages/ProductDetails.jsx` — import roto a componente inexistente (huérfano, no enrutado) | E5 | Bug | **Medio** | Pendiente |
+| B-08 | `ProfileCard.jsx`: `contextUser.role` en vez de `currentUser.role`, `currentUser.loginDate` inexistente en vez de `last_login`, botones de acción no-op incluyendo un "Panel de administración" sin ruta | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
+| B-09 | `ErrorMessage`/`Loading` solo aceptan `children`, no `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` y el texto nunca se renderiza | E5 | Bug | **Medio** | Pendiente |
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
 | DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
@@ -207,6 +209,52 @@ re-descubrir el mismo terreno.
     de un producto → cambia a "En favoritos" → **persiste tras recargar la página** (confirma
     que lee del backend, no de estado en memoria) → aparece en `/wishlist` con el `ProductCard`
     real → quitar deja el estado vacío correcto.
+- **F-05 (Profile) / F-06 (Settings) — CERRADO COMPLETO 2026-08-26 (backend + frontend), cierra
+  la épica E3 y el resto de `B-04`:**
+  - **Backend:** `user.controller.js` + `user.routes.js`, mismo patrón que `address`/
+    `paymentMethod` (todo bajo `requireAuth`, self-service puro sobre `req.user.id` — no existe
+    `GET /api/users/:id`). `GET /api/users/me` devuelve el usuario sin `password`. `PUT
+    /api/users/me` acepta `name`/`email` opcionales, 422 si el email ya pertenece a otro usuario
+    (mismo mensaje `"User already exist"` que `register`). `PUT /api/users/me/password` valida
+    `currentPassword` con `bcrypt.compare` (401 si no coincide) antes de hashear y guardar la
+    nueva. Contrato en `docs/contracts/user.md`. Verificado en vivo con curl contra
+    `user4@test.com`: 401 sin token, `GET /me` sin `password`, `PUT /me` con email duplicado →
+    422, actualización de nombre → 200, `PUT /me/password` con contraseña actual incorrecta →
+    401, cambio real → 200. **La cuenta de prueba se revirtió** (nombre y contraseña) a los
+    valores semilla (`"User 4"` / `123456`) después de verificar, para no romper la tabla de
+    credenciales demo de este backlog.
+  - **Frontend:** `userService.js` real (el mock viejo sobre `data/users.json` se borró, cero
+    importadores). `Profile.jsx` ahora hace `GET /api/users/me` en un `useEffect` y pasa el
+    resultado a `ProfileCard` vía `userProp` (mecanismo que ya existía en el componente pero no se
+    usaba). `pages/Setttings.jsx` (antes vacío, `B-04`) implementado con dos formularios: editar
+    nombre/email (`PUT /api/users/me`) y cambiar contraseña (`PUT /api/users/me/password`, con
+    validación client-side de que `newPassword`/`confirmNewPassword` coincidan antes de llamar a
+    la API).
+  - **Bug encontrado y corregido de paso (`B-08`):** `ProfileCard.jsx` comparaba
+    `contextUser.role` (variable que no existía en ese scope, siempre `undefined` → el badge de
+    rol mostraba "guest") en vez de `currentUser.role`; leía `currentUser.loginDate` (campo que
+    nunca existió en `User`) en vez de `currentUser.last_login`; los botones de "Acciones de la
+    cuenta" eran un objeto estático `ROLE_ACTIONS` con handlers no-op (`() => {}`), incluyendo un
+    botón "Panel de administración" que no apunta a ninguna ruta real del proyecto — se quitó en
+    vez de inventar una ruta que no existe. Ahora "Editar Perfil"/"Cambiar contraseña" navegan a
+    `/settings` y "Ver mis pedidos"/"Ver todos los pedidos" navegan a `/orders`.
+  - **Bug encontrado, no corregido por quedar fuera de alcance (`B-09`):** `ErrorMessage`/
+    `Loading` (`components/common/`) solo leen `children`, no una prop `message`; varios
+    llamadores preexistentes (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`,
+    `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}`, así que el texto
+    nunca se renderiza (queda una caja vacía en vez del mensaje). Se corrigió únicamente en el
+    código nuevo de este item (`Profile.jsx`/`Setttings.jsx`, usando `{...}` como children); los
+    llamadores preexistentes no se tocaron para no exceder el alcance de F-05/F-06.
+  - **Verificado de punta a punta con Playwright:** login (`user4@test.com`) → `/profile` muestra
+    email/estado/última conexión reales, sin "No disponible" → click "Editar Perfil" navega a
+    `/settings` → formulario ya viene con nombre/email reales precargados → guardar (sin cambios)
+    muestra mensaje de éxito → cambiar el email a uno ya existente (`user1@test.com`) da 422 con
+    mensaje "Ese email ya está en uso por otra cuenta" → contraseña actual incorrecta da 401 con
+    mensaje real → confirmación de contraseña no coincidente se rechaza client-side sin llamar a
+    la API → cambio de contraseña real (a `654321`) funciona y muestra éxito → **se revierte la
+    contraseña de vuelta a `123456`** en el mismo flujo, verificado con éxito → recargar
+    `/profile` confirma que nombre/email persistieron correctamente → "Ver mis pedidos" navega a
+    `/orders`. `npm test` del backend sigue en 60/60 después de los cambios.
 - **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
   ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
   `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`. **Matriz completa y
@@ -259,11 +307,11 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
    (`cors()` sin allowlist), prioridad Media, no bloquea nada más.
 2. ~~**E1 (persistencia de checkout)**~~ — F-01/F-02/F-03/A-01 cerrados 2026-08-26. Épica completa:
    dirección, pago y pedido corren de punta a punta sobre el backend real.
-3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26. `B-04` queda con mitad pendiente (`Setttings.jsx`,
-   ver E3).
-4. **E3 (cuenta: Profile y Settings)** — `F-05`/`F-06` (ambos Medio), únicas features de páginas
-   de usuario que faltan.
-5. **E5 (bugs y limpieza restante)** — `B-02`/`B-03` (páginas huérfanas, Medio/Bajo).
+3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26.
+4. ~~**E3 (cuenta: Profile y Settings)**~~ — F-05/F-06 cerrados 2026-08-26. `B-04` queda
+   completamente cerrado (ambas páginas, `WishList.jsx` y `Setttings.jsx`, implementadas).
+5. **E5 (bugs y limpieza restante)** — `B-02`/`B-03` (páginas huérfanas, Medio/Bajo), `B-09`
+   (`ErrorMessage`/`Loading` ignoran la prop `message`, Medio).
 5. **E6 + E7** (tests, E2E) — una vez estabilizada la persistencia, para no testear contra un
    contrato que va a cambiar.
 6. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada.
