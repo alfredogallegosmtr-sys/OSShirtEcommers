@@ -132,15 +132,18 @@ cerrado)
 - Persistencia real vía `WishList` (backend), no `localStorage`.
 
 **Definición de terminado:**
-- `WishList` tiene controller + router.
-- `pages/WishList.jsx` deja de estar vacío.
-- `wishlistService` real.
+- ✅ `WishList` tiene controller + router (get-or-create, idempotente).
+- ✅ `pages/WishList.jsx` ya no está vacío — lista productos reales con `ProductCard`.
+- ✅ `wishlistService.js` real.
+- ✅ Verificado con Playwright: agregar desde el producto, persiste tras recargar la página,
+  aparece en `/wishlist`, quitar funciona.
 
 **Dependencias técnicas:**
-- Ninguna otra épica bloquea esta.
+- Ninguna otra épica bloqueaba esta.
 
 **Prioridad:** Alto
-**Estado actual relacionado:** No implementado (backlog F-04) — página vacía pero ya enrutada
+**Estado actual relacionado:** Implementado y verificado en vivo (2026-08-26, backlog F-04
+cerrado)
 
 ---
 

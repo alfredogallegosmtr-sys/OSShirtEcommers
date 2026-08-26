@@ -83,15 +83,24 @@ Sin `PUT`/`DELETE` — el cliente no edita ni cancela órdenes en este alcance. 
 `paymentMethod` deben pertenecer al usuario logueado (404 si no). Contrato completo en
 [docs/contracts/orders.md](../docs/contracts/orders.md).
 
+## WishList (`/api/wishlist`)
+| Método | Path | Auth | Validador | Notas |
+|---|---|---|---|---|
+| GET | /api/wishlist | auth | — | wishlist del usuario logueado (se crea vacía si no existía), `products` poblado |
+| POST | /api/wishlist | auth | `addToWishlistValidation` | body `{ productId }`; idempotente, no duplica si ya está |
+| DELETE | /api/wishlist/:productId | auth | `productIdParamValidation` | responde 200 con la lista actualizada (no 204); idempotente si el producto no estaba |
+
+Un usuario tiene una sola wishlist (get-or-create, patrón de `Cart`). Contrato completo en
+[docs/contracts/wishlist.md](../docs/contracts/wishlist.md).
+
 ## Fuera de `/api`
 - `GET /` → `"API Ecommerce with MongoDB"` (texto plano).
 - `GET /img/products/:file` → estático, sirve `ecommerce-api/public/img/products/`.
 - Sin catch-all 404 explícito: Express responde el 404 default.
 
-## Modelos sin rutas todavía
+## Todos los modelos ya tienen rutas
 
-`WishList` es el único modelo Mongoose (`src/models/`) que sigue **sin controller ni router**.
-`Address` (F-01), `PaymentMethod` (F-02) y `Order` (F-03) ya tienen controller + router, los tres
-cerrados 2026-08-26. Antes de asumir que existe un endpoint, verificar `src/routes/` — hoy hay
-`product.routes.js`, `category.routes.js`, `auth.routes.js`, `cart.routes.js`,
-`address.routes.js`, `paymentMethod.routes.js`, `order.routes.js`.
+Los 8 modelos Mongoose tienen controller + router montados en `server.js` desde 2026-08-26
+(`WishList`/F-04 fue el último en conectarse). `src/routes/`: `product.routes.js`,
+`category.routes.js`, `auth.routes.js`, `cart.routes.js`, `address.routes.js`,
+`paymentMethod.routes.js`, `order.routes.js`, `wishlist.routes.js`.

@@ -11,6 +11,7 @@ import cartRoutes from './src/routes/cart.routes.js';
 import addressRoutes from './src/routes/address.routes.js';
 import paymentMethodRoutes from './src/routes/paymentMethod.routes.js';
 import orderRoutes from './src/routes/order.routes.js';
+import wishlistRoutes from './src/routes/wishlist.routes.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/payment-methods', paymentMethodRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

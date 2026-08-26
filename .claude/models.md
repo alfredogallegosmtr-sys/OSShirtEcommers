@@ -52,13 +52,13 @@ y exportan `mongoose.model(...)` por defecto (`export default X`).
   backlog F-02) — scoped a `req.user.id`, rechaza explícitamente `cardNumber`/`cvv` en el body
   (422, no los ignora en silencio), `isDefault:true` desmarca los demás métodos del usuario.
 - **WishList** (`WishList.js`): `user` (ObjectId → `User`, required), `products[]` (ObjectId →
-  `Product`, required). **Sin controller ni router.**
+  `Product`, required). **Con controller y router desde 2026-08-26** (`wishlist.controller.js`/
+  `wishlist.routes.js`, backlog F-04) — get-or-create por usuario (patrón de `Cart`), agregar/
+  quitar un producto es idempotente.
 
 ## Antes de asumir que un endpoint existe
 
-`Product`, `Category`, `User` (vía auth), `Cart`, `Address`, `PaymentMethod` y `Order` tienen
-controller + router montados en `server.js`. Solo `WishList` sigue sin exponer — si una tarea la
-necesita, hay que crear el controller y el router (seguir el patrón de `cart.controller.js`/
-`cart.routes.js`, `address.controller.js`/`address.routes.js`,
-`paymentMethod.controller.js`/`paymentMethod.routes.js`, u
-`order.controller.js`/`order.routes.js`), no asumir que ya está conectado.
+Los 8 modelos tienen controller + router montados en `server.js` desde 2026-08-26. Si una tarea
+nueva necesita un recurso más, seguir el patrón ya establecido en `cart.controller.js`/
+`cart.routes.js` (o cualquiera de `address`/`paymentMethod`/`order`/`wishlist`), no asumir que
+algo distinto ya está conectado.

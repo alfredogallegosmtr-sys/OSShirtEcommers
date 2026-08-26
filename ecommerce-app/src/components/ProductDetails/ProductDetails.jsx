@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import Breadcrumb from "../../layout/Breadcrumb/Breadcrumb";
 import { getProductById } from "../../services/productsService";
+import {
+  getWishlist,
+  addToWishlist,
+  removeFromWishlist,
+} from "../../services/wishlistService";
 import Badge from "../common/Badge";
 import Button from "../common/Button";
 import ErrorMessage from "../common/ErrorMessage/ErrorMessage";
@@ -11,9 +17,49 @@ import "./ProductDetails.css";
 
 export default function ProductDetails({ productId }) {
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsInWishlist(false);
+      return;
+    }
+    let cancelled = false;
+    getWishlist()
+      .then((wishlist) => {
+        if (cancelled) return;
+        const inList = (wishlist.products || []).some(
+          (item) => (item._id || item) === productId
+        );
+        setIsInWishlist(inList);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, productId]);
+
+  const handleToggleWishlist = async () => {
+    setWishlistLoading(true);
+    try {
+      if (isInWishlist) {
+        await removeFromWishlist(productId);
+        setIsInWishlist(false);
+      } else {
+        await addToWishlist(productId);
+        setIsInWishlist(true);
+      }
+    } catch (err) {
+      // silencioso: no bloquea el resto de la página por un fallo de wishlist
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +187,16 @@ export default function ProductDetails({ productId }) {
             <Link to="/cart" className="btn btn-outline btn-lg">
               Ver carrito
             </Link>
+            {isAuthenticated && (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={wishlistLoading}
+                onClick={handleToggleWishlist}
+              >
+                {isInWishlist ? "♥ En favoritos" : "♡ Agregar a favoritos"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

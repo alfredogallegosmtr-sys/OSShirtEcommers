@@ -9,20 +9,19 @@
 ## Resumen ejecutivo
 
 E-commerce de camisetas anime/manga/cultura pop: backend Express 5 + MongoDB (ESM,
-`ecommerce-api/`) y frontend React 19 / CRA (`ecommerce-app/`). El backend tiene **8 modelos
-Mongoose**, de los cuales **7 ya están expuestos por API** (`auth`, `products`, `categories`,
-`cart`, `address`, `paymentMethod`, `order` — los últimos 3 conectados 2026-08-26, épica E1
-completa). Solo `WishList` sigue sin controller/router. El checkout (dirección, pago, orden) ya
-corre de punta a punta sobre el backend real, verificado con Playwright; `localStorage` solo
-sigue usándose para `authToken`/`cart`/`app:theme`. `Wishlist` y `Settings` son las únicas
-páginas completamente vacías, ya enrutadas detrás de `ProtectedRoute`.
+`ecommerce-api/`) y frontend React 19 / CRA (`ecommerce-app/`). Los **8 modelos Mongoose ya
+están expuestos por API** — `wishlist` (F-04) fue el último en conectarse, 2026-08-26. El
+checkout completo (dirección, pago, orden) y la wishlist ya corren de punta a punta sobre el
+backend real, verificado con Playwright; `localStorage` solo sigue usándose para
+`authToken`/`cart`/`app:theme`. `Settings` es la única página completamente vacía; `WishList.jsx`
+ya se implementó.
 
-El núcleo (auth, catálogo, carrito, checkout completo) es sólido y fue verificado en vivo (curl +
-Playwright). La brecha restante es wishlist, perfil real, y los bugs de UI menores (B2/B3/B4)
-todavía sin cerrar.
+El núcleo (auth, catálogo, carrito, checkout, wishlist) es sólido y fue verificado en vivo (curl +
+Playwright). La brecha restante es perfil real (F-05), settings (F-06), y los bugs de UI menores
+(B2/B3) todavía sin cerrar.
 
 **Estrategia recomendada: seguir el mismo patrón (backend real + verificación en vivo) para
-wishlist y perfil. No reescribir lo ya conectado.**
+perfil y settings. No reescribir lo ya conectado.**
 
 ## Estado del backend [CÓDIGO]
 
@@ -35,7 +34,7 @@ wishlist y perfil. No reescribir lo ya conectado.**
 | Order | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-03) — arma products/totales desde el `Cart` real, nunca del cliente |
 | Address | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-01) — protegido con `requireAuth`, scoped a `req.user.id` |
 | PaymentMethod | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-02) — protegido con `requireAuth`, rechaza `cardNumber`/`cvv` explícitamente |
-| WishList | ✅ | ❌ | ❌ | **Huérfano** — modelo sin exponer |
+| WishList | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-04) — get-or-create por usuario, idempotente |
 
 Auth [CÓDIGO]: JWT Bearer (`Authorization`), payload `{ userId, name, role }`, `requireAuth`
 verifica con `JWT_SECRET`, password con `bcrypt` (saltRounds 10). **`requireAdmin` existe desde
@@ -47,17 +46,17 @@ middleware `validate` en `products`/`categories`/`cart`; `auth` con chequeo manu
 ## Estado del frontend [CÓDIGO]
 
 - **Servicios reales** (`apiClient`/axios → backend real): `authService`, `productsService`,
-  `categoryService`, `cartService`, `addressService`, `paymentMethodService`, `orderService`
-  (los últimos 3, 2026-08-26, F-01/F-02/F-03).
+  `categoryService`, `cartService`, `addressService`, `paymentMethodService`, `orderService`,
+  `wishlistService` (los últimos 4, 2026-08-26, F-01/F-02/F-03/F-04).
 - **Servicio mock restante:** `userService` (`data/users.json`) — sin relación con `User` real,
-  fuera del alcance E1. `shippingService`/`paymentService` (mocks viejos) se borraron por quedar
-  sin uso.
+  fuera del alcance de F-05 (perfil). `shippingService`/`paymentService` (mocks viejos) se
+  borraron por quedar sin uso.
 - **Páginas completas y funcionales:** Home, Product, CategoryPage, SearchResults, Login,
-  Register, Cart, Checkout, Orders (los tres últimos ya sobre API real, no `localStorage`).
-- **Páginas placeholder vacías pero ya enrutadas:** `pages/WishList.jsx` y `pages/Setttings.jsx`
-  (nombre de archivo con typo — triple "t") son literalmente `export default function X() {}`.
-  Ambas están detrás de `ProtectedRoute` en `/wishlist` y `/settings`: un usuario logueado que
-  entra ahí ve una página en blanco sin ningún aviso.
+  Register, Cart, Checkout, Orders, WishList (las últimas 4 ya sobre API real, no
+  `localStorage`/placeholder).
+- **Página placeholder vacía pero ya enrutada:** `pages/Setttings.jsx` (nombre de archivo con
+  typo — triple "t") sigue siendo literalmente `export default function X() {}`, detrás de
+  `ProtectedRoute` en `/settings` — un usuario logueado que entra ahí ve una página en blanco.
 - **Páginas huérfanas** (sin `<Route>` en `App.jsx`): `pages/ProductDetails.jsx` (distinto del que
   sí se usa, `pages/Product.jsx`) importa `ProductDetailsCard` desde un archivo que no existe —
   rompe al instante si algo llega a importarlo. `pages/PurchaseOrder.jsx` es una página completa
@@ -73,9 +72,9 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 - **localStorage [CÓDIGO]:** `authToken`, `cart`, `app:theme` — nada más; `orders`,
   `shippingAddresses`, `paymentMethods` dejaron de usarse cuando se conectaron F-01/F-02/F-03
   (`utils/storageHelpers.js`, que solo servía a eso, se borró por quedar sin uso).
-- **Backend (vía API real):** auth, products, categories, cart, **address, paymentMethod, order**
-  (2026-08-26) — 7 de 8 recursos ya expuestos y consumidos de verdad por el frontend.
-- **Desalineado:** solo wishlist (`WishList` existe en el backend, la página sigue vacía).
+- **Backend (vía API real):** los 8 recursos — auth, products, categories, cart, address,
+  paymentMethod, order, **wishlist** (2026-08-26) — ya expuestos y consumidos de verdad por el
+  frontend. Ningún recurso queda desalineado.
 
 ## Flujos funcionales [CÓDIGO]
 
@@ -88,7 +87,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | Checkout (direcciones/pagos) | Backend (`Address`/`PaymentMethod`) | ✅ Funcional, verificado en vivo |
 | Crear pedido | Backend (`Order`, totales calculados server-side) | ✅ Funcional, verificado en vivo |
 | Mis pedidos (Orders) | Backend (`GET /api/orders`) | ✅ Funcional, verificado en vivo |
-| Wishlist | — | ❌ Placeholder (`WishList` backend existe, sin usar) |
+| Wishlist | Backend (`GET/POST/DELETE /api/wishlist`) | ✅ Funcional, verificado en vivo |
 | Profile | Deriva del JWT decodificado client-side | ⚠️ Sin `GET` real al backend |
 | Settings | — | ❌ Placeholder |
 | Breadcrumb (producto/categoría) | Backend (categorías pobladas) | ✅ Funcional (bug B1 corregido) |
@@ -100,7 +99,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | B1 | `Breadcrumb` esperaba prop `categories`, sus consumidores le pasaban `items` → nunca se renderizaba | ✅ Cerrado 2026-08-26 |
 | B2 | `pages/ProductDetails.jsx` (huérfano, no enrutado) importa un componente inexistente | Pendiente — bajo impacto, no enrutado |
 | B3 | `pages/PurchaseOrder.jsx` huérfana con datos hardcodeados, sin ruta | Pendiente — bajo impacto, no enrutado |
-| B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | Pendiente |
+| B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | ⚠️ Mitad cerrada 2026-08-26: `WishList.jsx` implementado (F-04); `Setttings.jsx` (F-06) sigue vacío |
 | B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
 | B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
 | B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
@@ -148,6 +147,13 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   carrito → checkout → crear orden → total exacto (`IVA 16% + envío $350 si <$1000`) →
   `OrderConfirmation`/`Orders.jsx` muestran todo real. Cierra `F-03`/`A-01` de
   [docs/backlog.md](./backlog.md).
+- **2026-08-26 — F-04 (Wishlist) conectado.** `wishlist.controller.js` con patrón get-or-create
+  (un usuario, una wishlist, como `Cart`); agregar/quitar un producto es idempotente. Botón
+  "Agregar a favoritos" en `ProductDetails.jsx` (solo visible logueado); `pages/WishList.jsx`
+  reescrito (antes vacío) para listar/quitar productos reales vía `ProductCard`. Verificado con
+  Playwright: agregar desde el producto → persiste tras recargar la página → aparece en
+  `/wishlist` → quitar deja el estado vacío correcto. Cierra `F-04` y la mitad de `B-04` de
+  [docs/backlog.md](./backlog.md) (queda pendiente `Setttings.jsx`, ver `F-06`).
 
 ## Supuestos pendientes de validar
 

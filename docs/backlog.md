@@ -37,12 +37,12 @@
 | S-02 | Implementar middleware de rol admin (`isAdmin`) — no existe hoy | E4 | Feature faltante | **Crítico** | **Cerrado (2026-08-26)** |
 | S-03 | Definir cómo se protegerá `cardNumber`/`cvv` de `PaymentMethod` (cifrado/tokenización) **antes** de exponerlo por API | E4 | Deuda/Seguridad | **Crítico** | **Cerrado (2026-08-26)** |
 | B-01 | Fix `Breadcrumb`: prop `categories` vs `items` — no se renderiza nunca | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
-| B-04 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco para el usuario | E5 | Bug | **Alto** | Pendiente |
+| B-04 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco para el usuario | E5 | Bug | **Alto** | Mitad cerrada (2026-08-26) — `WishList.jsx` listo, `Setttings.jsx` sigue pendiente (F-06) |
 | F-01 | `addressService` real + endpoint `Address` conectado a checkout | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | F-02 | `paymentMethodService` real + endpoint `PaymentMethod` conectado a checkout | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | F-03 | `orderService` + endpoint `Order` — checkout crea pedido real, no `localStorage` | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | A-01 | `Orders.jsx` lee `GET /orders` real en vez de `localStorage["orders"]` | E1 | Alineación FE-BE | **Alto** | **Cerrado (2026-08-26)** |
-| F-04 | Wishlist: UI + `wishlistService` + endpoint conectado | E2 | Feature faltante | **Alto** | Pendiente |
+| F-04 | Wishlist: UI + `wishlistService` + endpoint conectado | E2 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | T-01 | Elegir runner de tests backend (Vitest/Jest) + `mongodb-memory-server`, correr `test-planner` | E6 | Deuda técnica | **Alto** | En progreso |
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
 | T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) — bloqueado hasta hacer el split `app.js`/`server.js` (hoy `server.js` no exporta `app` sin efectos secundarios) e instalar `mongodb-memory-server`. Detalle completo del alcance bloqueado en [TEST_PLAN.md](../TEST_PLAN.md#fuera-de-este-alcance--integración-bloqueado) | E6 | Deuda técnica | **Alto** | Pendiente |
@@ -190,6 +190,23 @@ re-descubrir el mismo terreno.
     se limpió directo en Mongo).
   - **Limpieza de paso:** `utils/storageHelpers.js` quedó sin ningún importador tras el cambio
     (tenía además funciones de normalización atadas a las formas viejas del mock) — borrado.
+- **F-04 (Wishlist) — CERRADO COMPLETO 2026-08-26 (backend + frontend), cierra la mitad de
+  `B-04`:**
+  - **Backend:** `wishlist.controller.js` + `wishlist.routes.js`, patrón get-or-create (un
+    usuario, una wishlist, como `Cart` — el schema `WishList` no tiene `unique` en `user`, pero
+    el controller nunca crea una segunda si ya existe). Agregar/quitar un producto es
+    idempotente (no duplica, no falla si ya no estaba). Contrato en
+    `docs/contracts/wishlist.md`. Verificado en vivo con curl: 401, 422 (`productId` inválido),
+    201 al agregar, no duplica en un segundo POST del mismo producto, 200 al quitar.
+  - **Frontend:** `wishlistService.js` real. Botón "♡ Agregar a favoritos" / "♥ En favoritos" en
+    `ProductDetails.jsx` (solo visible si `isAuthenticated`, patrón ya usado en el drawer de
+    categorías). `pages/WishList.jsx` — antes `export default function WishList() {}` vacío —
+    reescrito para listar los productos reales de la wishlist reusando `ProductCard`, con botón
+    de quitar.
+  - **Verificado de punta a punta con Playwright:** click en "Agregar a favoritos" en la página
+    de un producto → cambia a "En favoritos" → **persiste tras recargar la página** (confirma
+    que lee del backend, no de estado en memoria) → aparece en `/wishlist` con el `ProductCard`
+    real → quitar deja el estado vacío correcto.
 - **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
   ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
   `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`. **Matriz completa y
@@ -242,9 +259,11 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
    (`cors()` sin allowlist), prioridad Media, no bloquea nada más.
 2. ~~**E1 (persistencia de checkout)**~~ — F-01/F-02/F-03/A-01 cerrados 2026-08-26. Épica completa:
    dirección, pago y pedido corren de punta a punta sobre el backend real.
-3. **E5 (bugs y limpieza restante)** — `B-04` (wishlist/settings vacías, Alto) y `B-02`/`B-03`
-   (páginas huérfanas, Medio/Bajo) siguen pendientes.
-4. **E2 + E3** (wishlist, cuenta) — completan las páginas placeholder.
+3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26. `B-04` queda con mitad pendiente (`Setttings.jsx`,
+   ver E3).
+4. **E3 (cuenta: Profile y Settings)** — `F-05`/`F-06` (ambos Medio), únicas features de páginas
+   de usuario que faltan.
+5. **E5 (bugs y limpieza restante)** — `B-02`/`B-03` (páginas huérfanas, Medio/Bajo).
 5. **E6 + E7** (tests, E2E) — una vez estabilizada la persistencia, para no testear contra un
    contrato que va a cambiar.
 6. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada.

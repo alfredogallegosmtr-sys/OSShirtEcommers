@@ -8,10 +8,11 @@
 
 El usuario navega el catálogo público (productos/categorías, sin sesión requerida). Puede agregar
 al carrito como invitado (`localStorage`) o logueado (sincronizado con el backend). En checkout,
-selecciona dirección y método de pago desde datos **mock** (no del backend) y al confirmar se
-genera un "pedido" que se escribe directo en `localStorage["orders"]` — sin pasar por ningún
-endpoint. "Mis pedidos" lee esa misma clave. Wishlist, Settings y Profile son o vacíos o mínimos
-(Profile deriva del JWT decodificado, sin llamada real al backend).
+selecciona dirección y método de pago reales (`Address`/`PaymentMethod`, backend) y al confirmar
+se crea una `Order` real vía API — el servidor calcula los totales desde el carrito, no el
+cliente. "Mis pedidos" consulta esa misma API. Desde la página de producto puede marcar
+favoritos (`WishList`, backend real); Settings y Profile siguen vacío/mínimo (Profile deriva del
+JWT decodificado, sin llamada real al backend).
 
 ## Arquitectura técnica actual [CÓDIGO]
 
@@ -45,7 +46,7 @@ endpoint. "Mis pedidos" lee esa misma clave. Wishlist, Settings y Profile son o 
 | Pedidos | **Backend real** (`/api/orders`) | ✅ `Order` | F-03 cerrado 2026-08-26; totales calculados server-side desde el `Cart` real, nunca del cliente |
 | Direcciones de envío | **Backend real** (`/api/addresses`) | ✅ `Address` | F-01 cerrado 2026-08-26 (backend + frontend), verificado con Playwright de punta a punta. `shippingService` mock queda sin usar en `Checkout.jsx` |
 | Métodos de pago | **Backend real** (`/api/payment-methods`) | ✅ `PaymentMethod` | F-02 cerrado 2026-08-26 (backend + frontend); guarda solo `last4`/`brand` (S-03), rechaza `cardNumber`/`cvv` explícitamente. `paymentService` mock quedó sin usar en `Checkout.jsx` |
-| Wishlist | — (página vacía) | ✅ `WishList` (sin usar) | Ninguna fuente real todavía |
+| Wishlist | **Backend real** (`/api/wishlist`) | ✅ `WishList` | F-04 cerrado 2026-08-26; get-or-create por usuario, patrón de `Cart` |
 | Tema día/noche | localStorage (`app:theme`) | No aplica | Cosmético, no requiere backend |
 
 ## Dependencia clave entre módulos [CÓDIGO]
