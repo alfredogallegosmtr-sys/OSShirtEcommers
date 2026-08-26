@@ -96,7 +96,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | B3 | `pages/PurchaseOrder.jsx` huérfana con datos hardcodeados, sin ruta | Pendiente — bajo impacto, no enrutado |
 | B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | ✅ Cerrado 2026-08-26: `WishList.jsx` implementado (F-04); `Setttings.jsx` implementado (F-06) |
 | B8 | `ProfileCard.jsx` usaba `contextUser.role` en vez de `currentUser.role` (siempre "guest"); `currentUser.loginDate` (campo inexistente) en vez de `currentUser.last_login`; botones de acción eran stubs no-op (`() => {}`), incluido un "Panel de administración" sin ruta real | ✅ Cerrado 2026-08-26 (F-05) |
-| B9 | `ErrorMessage`/`Loading` (`components/common/`) solo aceptan `children`, no una prop `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` en vez de `{...}` como children, así que el texto nunca se renderiza (queda una caja vacía) | Pendiente — descubierto al construir F-05/F-06; se corrigió solo en el código nuevo (`Profile.jsx`/`Setttings.jsx`), los llamadores preexistentes no se tocaron (fuera de alcance de este item) |
+| B9 | `ErrorMessage`/`Loading` (`components/common/`) solo aceptan `children`, no una prop `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` en vez de `{...}` como children, así que el texto nunca se renderiza (queda una caja vacía) | ✅ Cerrado 2026-08-26 — corregidos los 5 llamadores; de paso se encontró y corrigió un segundo bug en `CategoryProducts.jsx` (mostraba el `kind` interno crudo `"NOT_FOUND"` en vez del texto amigable) |
 | B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
 | B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
 | B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
@@ -168,8 +168,17 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   rechaza client-side → cambio de contraseña real funciona y persiste tras recargar `/profile`.
   Se revirtió la contraseña del usuario semilla (`user4@test.com`) a `123456` tras la verificación
   para no romper las credenciales de demo documentadas. Cierra `F-05`/`F-06` y el resto de `B-04`
-  de [docs/backlog.md](./backlog.md); descubre `B-09` (ver tabla de bugs), documentado pero no
-  corregido por quedar fuera de este alcance.
+  de [docs/backlog.md](./backlog.md); descubre `B-09` (ver tabla de bugs), cerrado por separado a
+  continuación.
+- **2026-08-26 — B-09 (`ErrorMessage`/`Loading` ignoran `message`) cerrado.** Se corrigieron los 5
+  llamadores que pasaban `message={...}` en vez de `{...}` como children (`Checkout.jsx`,
+  `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`). De paso se encontró
+  y corrigió un segundo bug encadenado en `CategoryProducts.jsx`: mostraba el `kind` interno de
+  `classifyError` (`"NOT_FOUND"`) en vez de un texto amigable, porque `error` siempre es verdadero
+  en esa rama y nunca caía al fallback `"Categoría no encontrada"`. Verificado con Playwright:
+  `/category/<id-inexistente>` y `/product/<id-inexistente>` muestran el mensaje real; `/wishlist`,
+  `/orders`, `/checkout` y una categoría real siguen sin regresiones. Cierra `B-09` de
+  [docs/backlog.md](./backlog.md).
 
 ## Supuestos pendientes de validar
 

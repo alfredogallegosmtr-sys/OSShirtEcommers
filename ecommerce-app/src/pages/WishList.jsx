@@ -47,7 +47,7 @@ export default function WishList() {
   if (loading) {
     return (
       <div className="wishlist-page">
-        <Loading message="Cargando tu lista de favoritos..." />
+        <Loading>Cargando tu lista de favoritos...</Loading>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function WishList() {
   if (error) {
     return (
       <div className="wishlist-page">
-        <ErrorMessage message={error} />
+        <ErrorMessage>{error}</ErrorMessage>
       </div>
     );
   }

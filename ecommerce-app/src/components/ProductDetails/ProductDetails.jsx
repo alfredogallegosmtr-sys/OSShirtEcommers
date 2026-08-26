@@ -92,7 +92,7 @@ export default function ProductDetails({ productId }) {
   if (error === "NOT_FOUND") {
     return (
       <div className="product-details-container">
-        <ErrorMessage message={error}>
+        <ErrorMessage>
           <h2>Producto no encontrado</h2>
           <p className="muted">
             Este producto no existe o fue retirado del catálogo.
@@ -106,7 +106,7 @@ export default function ProductDetails({ productId }) {
   if (error === "NETWORK" || error === "TIMEOUT") {
     return (
       <div className="product-details-container">
-        <ErrorMessage message={error}>
+        <ErrorMessage>
           <h2>No pudimos conectar con el servidor.</h2>
           <p className="muted">
             Revisa tu conexión a internet.
@@ -120,7 +120,7 @@ export default function ProductDetails({ productId }) {
   if (error === "SERVER_ERROR") {
     return (
       <div className="product-details-container">
-        <ErrorMessage message={error}>
+        <ErrorMessage>
           <h2>Algo salió mal de nuestro lado.</h2>
           <p className="muted">
             Estamos trabajando en ello. Intenta en unos minutos.
@@ -133,7 +133,7 @@ export default function ProductDetails({ productId }) {
   if (error) {
     return (
       <div className="product-details-container">
-        <ErrorMessage message={error}>
+        <ErrorMessage>
           <p className="muted">Ocurrió un error inesperado.</p>
         </ErrorMessage>
       </div>

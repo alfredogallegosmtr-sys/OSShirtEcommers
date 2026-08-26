@@ -51,7 +51,7 @@
 | F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | B-02 | `pages/ProductDetails.jsx` — import roto a componente inexistente (huérfano, no enrutado) | E5 | Bug | **Medio** | Pendiente |
 | B-08 | `ProfileCard.jsx`: `contextUser.role` en vez de `currentUser.role`, `currentUser.loginDate` inexistente en vez de `last_login`, botones de acción no-op incluyendo un "Panel de administración" sin ruta | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
-| B-09 | `ErrorMessage`/`Loading` solo aceptan `children`, no `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` y el texto nunca se renderiza | E5 | Bug | **Medio** | Pendiente |
+| B-09 | `ErrorMessage`/`Loading` solo aceptan `children`, no `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` y el texto nunca se renderiza | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
 | DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
@@ -255,6 +255,23 @@ re-descubrir el mismo terreno.
     contraseña de vuelta a `123456`** en el mismo flujo, verificado con éxito → recargar
     `/profile` confirma que nombre/email persistieron correctamente → "Ver mis pedidos" navega a
     `/orders`. `npm test` del backend sigue en 60/60 después de los cambios.
+- **B-09 (`ErrorMessage`/`Loading` ignoran `message`) — CERRADO 2026-08-26:** los componentes
+  (`components/common/ErrorMessage/ErrorMessage.jsx`, `.../Loading/Loading.jsx`) solo leen
+  `children`; se corrigieron los 5 llamadores que pasaban `message={...}` en vez de `{...}` como
+  children: `Checkout.jsx` (loading y error), `Orders.jsx` (loading), `WishList.jsx` (loading y
+  error), `CategoryProducts.jsx` (loading y las dos ramas de error, que además tenían contenido
+  extra como children — se combinó todo en un solo bloque de children), `ProductDetails.jsx`
+  (4 ramas de error, donde `message={error}` era además dead code: `error` guardaba el `kind`
+  interno de `classifyError` como `"NOT_FOUND"`, nunca pensado para mostrarse — el texto real ya
+  estaba completo en los children, así que solo se quitó la prop). **Hallazgo adicional al
+  verificar con Playwright:** `CategoryProducts.jsx` tenía un segundo bug encadenado —
+  `message={error || "Categoría no encontrada"}` mostraba el `kind` crudo (`"NOT_FOUND"`) en vez
+  del texto amigable, porque `error` siempre es verdadero en esa rama (nunca cae al fallback); se
+  corrigió a mostrar siempre "Categoría no encontrada", igual que el patrón ya usado en
+  `ProductDetails.jsx` (texto humano fijo por rama, nunca el `kind` interno). Verificado con
+  Playwright: `/category/<id-inexistente>` y `/product/<id-inexistente>` ahora sí muestran el
+  mensaje real; `/wishlist`, `/orders`, `/checkout` y una categoría real siguen renderizando sin
+  regresiones.
 - **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
   ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
   `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`. **Matriz completa y
@@ -310,8 +327,8 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
 3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26.
 4. ~~**E3 (cuenta: Profile y Settings)**~~ — F-05/F-06 cerrados 2026-08-26. `B-04` queda
    completamente cerrado (ambas páginas, `WishList.jsx` y `Setttings.jsx`, implementadas).
-5. **E5 (bugs y limpieza restante)** — `B-02`/`B-03` (páginas huérfanas, Medio/Bajo), `B-09`
-   (`ErrorMessage`/`Loading` ignoran la prop `message`, Medio).
+5. ~~**B-09**~~ — cerrado 2026-08-26. Queda de **E5** solo `B-02`/`B-03` (páginas huérfanas,
+   Medio/Bajo, sin ruta real — bajo impacto).
 5. **E6 + E7** (tests, E2E) — una vez estabilizada la persistencia, para no testear contra un
    contrato que va a cambiar.
 6. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada.

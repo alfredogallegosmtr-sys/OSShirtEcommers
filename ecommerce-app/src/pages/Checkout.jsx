@@ -362,9 +362,9 @@ export default function Checkout() {
   return (
     // Mostrar loading o error antes del contenido principal
     loadingLocal ? (
-      <Loading message="Cargando direcciones y métodos de pago..." />
+      <Loading>Cargando direcciones y métodos de pago...</Loading>
     ) : localError ? (
-      <ErrorMessage message={localError} />
+      <ErrorMessage>{localError}</ErrorMessage>
     ) : (
       <div className="checkout-container">
         <div className="checkout-left">

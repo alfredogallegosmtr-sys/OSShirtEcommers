@@ -45,7 +45,7 @@ export default function CategoryProducts({ categoryId }) {
   if (loading) {
     return (
       <div className="category-products-root">
-        <Loading message="Cargando categoría y productos..." />
+        <Loading>Cargando categoría y productos...</Loading>
       </div>
     );
   }
@@ -53,7 +53,8 @@ export default function CategoryProducts({ categoryId }) {
   if (error || !category) {
     return (
       <div className="category-products-root">
-        <ErrorMessage message={error || "Categoría no encontrada"}>
+        <ErrorMessage>
+          Categoría no encontrada
           <p className="category-products-muted">
             Vuelve al <Link to="/">inicio</Link> o explora nuestras categorías
             destacadas.
@@ -91,7 +92,8 @@ export default function CategoryProducts({ categoryId }) {
             ))}
           </div>
         ) : (
-          <ErrorMessage message="No se encontraron productos">
+          <ErrorMessage>
+            No se encontraron productos
             <p className="category-products-muted">
               No hay productos disponibles en esta categoría por el momento.
             </p>

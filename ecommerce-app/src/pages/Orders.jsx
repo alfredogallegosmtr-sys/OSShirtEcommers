@@ -68,7 +68,7 @@ export default function Orders() {
   if (loading) {
     return (
       <div className="orders-page">
-        <Loading message="Cargando tus pedidos..." />
+        <Loading>Cargando tus pedidos...</Loading>
       </div>
     );
   }
