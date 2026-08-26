@@ -22,6 +22,7 @@ import {
   updateAddress,
   deleteAddress,
 } from "../services/addressService";
+import { createOrder } from "../services/orderService";
 import "./Checkout.css";
 
 export default function Checkout() {
@@ -329,7 +330,13 @@ export default function Checkout() {
    * Crea el objeto de orden final y simula el envío.
    * Guarda en localStorage para persistencia simple y redirige.
    */
-  const handleCreateOrder = () => {
+  /**
+   * Crea la orden vía API real (el backend arma products/totales a partir del
+   * carrito real del usuario, no de lo que calcula este componente — ver
+   * docs/contracts/orders.md). El carrito ya queda vacío server-side; `clearCart()`
+   * solo sincroniza el estado local del `CartContext` para que la UI lo refleje.
+   */
+  const handleCreateOrder = async () => {
     if (
       !selectedAddress ||
       !selectedPayment ||
@@ -339,33 +346,17 @@ export default function Checkout() {
       return;
     }
 
-    const order = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      items: cartItems.map((item) => ({
-        _id: item.product._id,
-        name: item.product.name,
-        price: item.product.price,
-        imageURL: item.product.imageURL,
-        quantity: item.quantity,
-        subtotal: item.product.price * item.quantity,
-      })),
-      subtotal,
-      tax: taxAmount,
-      shipping: shippingCost,
-      total: grandTotal,
-      shippingAddress: selectedAddress,
-      paymentMethod: selectedPayment,
-      status: "confirmed",
-    };
-
-    // Simulación de persistencia
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    orders.push(order);
-    localStorage.setItem("orders", JSON.stringify(orders));
-    setIsOrderFinished(true);
-    navigate("/order-confirmation", { state: { order } });
-    clearCart();
+    try {
+      const order = await createOrder({
+        addressId: selectedAddress._id,
+        paymentMethodId: selectedPayment._id,
+      });
+      setIsOrderFinished(true);
+      navigate("/order-confirmation", { state: { order } });
+      clearCart();
+    } catch (err) {
+      setLocalError("No se pudo completar la orden.");
+    }
   };
 
   return (

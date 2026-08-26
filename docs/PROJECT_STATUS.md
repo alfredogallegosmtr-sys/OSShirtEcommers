@@ -10,20 +10,19 @@
 
 E-commerce de camisetas anime/manga/cultura pop: backend Express 5 + MongoDB (ESM,
 `ecommerce-api/`) y frontend React 19 / CRA (`ecommerce-app/`). El backend tiene **8 modelos
-Mongoose** pero solo **4 recursos expuestos por API** (`auth`, `products`, `categories`, `cart`).
-`Order`, `Address`, `PaymentMethod` y `WishList` tienen modelo pero **ningún controller ni
-router** — no son accesibles por HTTP. El frontend consume los 4 recursos reales vía `apiClient`,
-pero para direcciones, métodos de pago y "mis pedidos" usa **JSON mock local**
-(`data/*.json` + `setTimeout`) que **no tiene ninguna relación** con los modelos `Address` /
-`PaymentMethod` / `Order` del backend — ni siquiera comparten forma de datos. `Wishlist` y
-`Settings` son páginas completamente vacías pero ya están enrutadas detrás de `ProtectedRoute`.
+Mongoose**, de los cuales **7 ya están expuestos por API** (`auth`, `products`, `categories`,
+`cart`, `address`, `paymentMethod`, `order` — los últimos 3 conectados 2026-08-26, épica E1
+completa). Solo `WishList` sigue sin controller/router. El checkout (dirección, pago, orden) ya
+corre de punta a punta sobre el backend real, verificado con Playwright; `localStorage` solo
+sigue usándose para `authToken`/`cart`/`app:theme`. `Wishlist` y `Settings` son las únicas
+páginas completamente vacías, ya enrutadas detrás de `ProtectedRoute`.
 
-El núcleo (auth, catálogo, carrito) es sólido y fue verificado en vivo (curl + Playwright) en
-sesiones previas de este mismo proyecto. La brecha central es la **falta de persistencia real**
-en checkout, pedidos, wishlist y perfil, más un grupo de bugs de UI ya identificados por lectura
-completa del código.
+El núcleo (auth, catálogo, carrito, checkout completo) es sólido y fue verificado en vivo (curl +
+Playwright). La brecha restante es wishlist, perfil real, y los bugs de UI menores (B2/B3/B4)
+todavía sin cerrar.
 
-**Estrategia recomendada: estabilizar, documentar, normalizar persistencia. No reescribir.**
+**Estrategia recomendada: seguir el mismo patrón (backend real + verificación en vivo) para
+wishlist y perfil. No reescribir lo ya conectado.**
 
 ## Estado del backend [CÓDIGO]
 
@@ -33,7 +32,7 @@ completa del código.
 | Categories | ✅ | ✅ | ✅ | Completo — lectura pública, escritura **solo admin** (2026-08-26) |
 | Auth (register/login) | ✅ (`User`) | ✅ | ✅ | Completo, validación manual inline (sin `express-validator`) |
 | Cart | ✅ | ✅ | ✅ | Completo, protegido con `requireAuth` |
-| Order | ✅ | ❌ | ❌ | **Huérfano** — modelo sin exponer |
+| Order | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-03) — arma products/totales desde el `Cart` real, nunca del cliente |
 | Address | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-01) — protegido con `requireAuth`, scoped a `req.user.id` |
 | PaymentMethod | ✅ | ✅ | ✅ | Completo desde 2026-08-26 (F-02) — protegido con `requireAuth`, rechaza `cardNumber`/`cvv` explícitamente |
 | WishList | ✅ | ❌ | ❌ | **Huérfano** — modelo sin exponer |
@@ -48,12 +47,13 @@ middleware `validate` en `products`/`categories`/`cart`; `auth` con chequeo manu
 ## Estado del frontend [CÓDIGO]
 
 - **Servicios reales** (`apiClient`/axios → backend real): `authService`, `productsService`,
-  `categoryService`, `cartService`.
-- **Servicios mock** (JSON local en `data/*.json` + `setTimeout`, sin relación con los modelos del
-  backend): `userService` (`data/users.json`), `paymentService` (`data/paymentMethods.json`),
-  `shippingService` (`data/shipping-address.json`). **No existe `orderService`.**
+  `categoryService`, `cartService`, `addressService`, `paymentMethodService`, `orderService`
+  (los últimos 3, 2026-08-26, F-01/F-02/F-03).
+- **Servicio mock restante:** `userService` (`data/users.json`) — sin relación con `User` real,
+  fuera del alcance E1. `shippingService`/`paymentService` (mocks viejos) se borraron por quedar
+  sin uso.
 - **Páginas completas y funcionales:** Home, Product, CategoryPage, SearchResults, Login,
-  Register, Cart, Checkout (con caveats — ver más abajo), Orders (lee `localStorage`).
+  Register, Cart, Checkout, Orders (los tres últimos ya sobre API real, no `localStorage`).
 - **Páginas placeholder vacías pero ya enrutadas:** `pages/WishList.jsx` y `pages/Setttings.jsx`
   (nombre de archivo con typo — triple "t") son literalmente `export default function X() {}`.
   Ambas están detrás de `ProtectedRoute` en `/wishlist` y `/settings`: un usuario logueado que
@@ -70,16 +70,12 @@ middleware `validate` en `products`/`categories`/`cart`; `auth` con chequeo manu
 
 Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-de-verdad).
 
-- **localStorage [CÓDIGO]:** `authToken`, `cart`, `app:theme`, y — vía
-  `utils/storageHelpers.js` `STORAGE_KEYS` — `orders`, `shippingAddresses`, `paymentMethods`
-  ([Checkout.jsx:371](../ecommerce-app/src/pages/Checkout.jsx#L371)).
-- **Backend (vía API real):** auth, products, categories, **cart** (único recurso realmente
-  híbrido: localStorage-first + sync contra `/api/cart` si hay sesión).
-- **Completamente desalineado:** órdenes (`Order` existe en el backend, **nunca se llama**;
-  `Checkout.jsx` escribe directo a `localStorage.setItem("orders", ...)`), direcciones y pagos
-  (`Address`/`PaymentMethod` existen en el backend, el frontend usa JSON mock de un dominio de
-  datos distinto, sin relación de campos), wishlist (`WishList` existe en el backend, la página
-  está vacía).
+- **localStorage [CÓDIGO]:** `authToken`, `cart`, `app:theme` — nada más; `orders`,
+  `shippingAddresses`, `paymentMethods` dejaron de usarse cuando se conectaron F-01/F-02/F-03
+  (`utils/storageHelpers.js`, que solo servía a eso, se borró por quedar sin uso).
+- **Backend (vía API real):** auth, products, categories, cart, **address, paymentMethod, order**
+  (2026-08-26) — 7 de 8 recursos ya expuestos y consumidos de verdad por el frontend.
+- **Desalineado:** solo wishlist (`WishList` existe en el backend, la página sigue vacía).
 
 ## Flujos funcionales [CÓDIGO]
 
@@ -89,38 +85,38 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | Catálogo / Detalle / Categoría / Búsqueda | Backend | ✅ Funcional |
 | Drawer de categorías / navegación | Backend (categorías) + UI local | ✅ Funcional |
 | Carrito (add/update/remove) | localStorage + Backend (híbrido) | ✅ Funcional, verificado en vivo |
-| Checkout (direcciones/pagos) | JSON mock local, sin relación con el backend | ⚠️ Simulado |
-| Crear pedido | **localStorage** | ❌ No persiste en backend (`Order` sin usar) |
-| Mis pedidos (Orders) | localStorage | ❌ No persiste en backend |
+| Checkout (direcciones/pagos) | Backend (`Address`/`PaymentMethod`) | ✅ Funcional, verificado en vivo |
+| Crear pedido | Backend (`Order`, totales calculados server-side) | ✅ Funcional, verificado en vivo |
+| Mis pedidos (Orders) | Backend (`GET /api/orders`) | ✅ Funcional, verificado en vivo |
 | Wishlist | — | ❌ Placeholder (`WishList` backend existe, sin usar) |
 | Profile | Deriva del JWT decodificado client-side | ⚠️ Sin `GET` real al backend |
 | Settings | — | ❌ Placeholder |
-| Breadcrumb (producto/categoría) | — | ❌ Bug: nunca se renderiza (ver Bugs) |
+| Breadcrumb (producto/categoría) | Backend (categorías pobladas) | ✅ Funcional (bug B1 corregido) |
 
 ## Bugs verificados [CÓDIGO]
 
-| # | Bug | Ubicación | Severidad |
-|---|---|---|---|
-| B1 | `Breadcrumb` espera prop `categories`, sus dos consumidores le pasan `items` → nunca se renderiza | [Breadcrumb.jsx](../ecommerce-app/src/layout/Breadcrumb/Breadcrumb.jsx), `ProductDetails.jsx`/`CategoryProducts.jsx` | Alto (UX) |
-| B2 | `pages/ProductDetails.jsx` importa `ProductDetailsCard` desde un archivo inexistente | [pages/ProductDetails.jsx](../ecommerce-app/src/pages/ProductDetails.jsx) | Medio (huérfano, no enrutado) |
-| B3 | `pages/PurchaseOrder.jsx` completa, con datos hardcodeados, sin ruta ni link | [pages/PurchaseOrder.jsx](../ecommerce-app/src/pages/PurchaseOrder.jsx) | Bajo (huérfano) |
-| B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco para el usuario | [pages/WishList.jsx](../ecommerce-app/src/pages/WishList.jsx), [pages/Setttings.jsx](../ecommerce-app/src/pages/Setttings.jsx) | Alto (UX) |
-| B5 | `data/categories.json` no lo importa nada; contenido de otro dominio (celulares Android) | [data/categories.json](../ecommerce-app/src/data/categories.json) | Bajo (código muerto) |
-| B6 | `ProtectedRoute` en `/profile` acepta rol `"cliente"`, que no existe en `User.role` (`customer`/`admin`) | [pages/ProtectedRoute.jsx](../ecommerce-app/src/pages/ProtectedRoute.jsx) | Bajo (ruido) |
-| B7 | `server_practice.js` y `db.config_practice.js` — archivos de 0 bytes, scaffolding del curso | [ecommerce-api/server_practice.js](../ecommerce-api/server_practice.js) | Bajo (limpieza) |
+| # | Bug | Estado |
+|---|---|---|
+| B1 | `Breadcrumb` esperaba prop `categories`, sus consumidores le pasaban `items` → nunca se renderizaba | ✅ Cerrado 2026-08-26 |
+| B2 | `pages/ProductDetails.jsx` (huérfano, no enrutado) importa un componente inexistente | Pendiente — bajo impacto, no enrutado |
+| B3 | `pages/PurchaseOrder.jsx` huérfana con datos hardcodeados, sin ruta | Pendiente — bajo impacto, no enrutado |
+| B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | Pendiente |
+| B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
+| B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
+| B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
 
 ## Riesgos
 
-- **Pérdida de datos:** pedidos, direcciones y métodos de pago solo en `localStorage` — se
-  borran al limpiar el navegador o cambiar de dispositivo.
-- **Seguridad [CÓDIGO]:** `cors()` abierto sin allowlist (riesgo aún vigente, ver `S-04`).
-  `PaymentMethod` ya no guarda `cardNumber`/`cvv` (S-03 cerrado 2026-08-26): solo `last4`/`brand`
-  para mostrar en UI; un cobro real requeriría tokenización con un proveedor externo.
-- **Integridad:** el total del pedido se calcularía solo en frontend si se llegara a conectar
-  Checkout sin validación backend — no hay endpoint de creación de orden hoy que lo prevenga ni
-  lo permita.
-- **Mantenibilidad:** doble fuente de verdad (modelos Mongoose sin usar + mock JSON del frontend)
-  duplica el trabajo cuando se decida conectar cada uno.
+- ~~Pérdida de datos: pedidos/direcciones/pagos solo en `localStorage`~~ — resuelto, los tres
+  persisten en el backend real desde 2026-08-26 (F-01/F-02/F-03).
+- **Seguridad [CÓDIGO]:** `cors()` abierto sin allowlist es el único riesgo de seguridad vigente
+  (`S-04`, Medio). `PaymentMethod` ya no guarda `cardNumber`/`cvv` (S-03); un cobro real
+  requeriría tokenización con un proveedor externo.
+- ~~Integridad del total del pedido~~ — resuelto: `order.controller.js` calcula
+  `subtotalPrice`/`shippingCost`/`totalPrice` desde el `Cart` real del usuario, nunca desde el
+  body de la petición.
+- **Mantenibilidad:** solo `WishList` sigue sin conectar (modelo Mongoose sin usar, página
+  frontend vacía) — ya no hay doble fuente de verdad en direcciones/pagos/pedidos.
 
 ## Decisiones de producto confirmadas
 
@@ -143,14 +139,20 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   ahí referencias a la forma vieja del mock). Cierra `F-01`/`F-02` de
   [docs/backlog.md](./backlog.md). El pago sigue sin conectarse a un proveedor real — solo se
   guarda `last4`/`brand` derivados en el cliente.
+- **2026-08-26 — F-03 (Order) conectado, epica E1 completa.** `order.controller.js` crea la
+  orden a partir del `Cart` real del usuario (no de lo que mande el cliente), valida que
+  `address`/`paymentMethod` le pertenezcan (404 si no), y vacía el carrito server-side al crear.
+  `Checkout.jsx` ya llama a `POST /api/orders`; `Orders.jsx`/`OrderConfirmation.jsx` leen
+  `GET /api/orders` en vez de `localStorage`. `utils/storageHelpers.js` (dedicado a los mocks
+  viejos) se borró por quedar sin uso. Verificado con Playwright de punta a punta: agregar al
+  carrito → checkout → crear orden → total exacto (`IVA 16% + envío $350 si <$1000`) →
+  `OrderConfirmation`/`Orders.jsx` muestran todo real. Cierra `F-03`/`A-01` de
+  [docs/backlog.md](./backlog.md).
 
 ## Supuestos pendientes de validar
 
-- ~~El rol `"cliente"` en `ProtectedRoute`~~ — resuelto, `B-06` cerrado (quitado de `allowedRoles`).
-- ~~Contrato de `Address`/`PaymentMethod` vs. lo que esperaba `Checkout.jsx`~~ — resuelto al cerrar
-  `F-01`/`F-02`: sí había diferencias de nombres de campo reales (confirmado, no solo hipótesis) y
-  se corrigieron en `Checkout.jsx`, `Orders.jsx` y `OrderConfirmation.jsx`. Sigue pendiente
-  `Order` (F-03).
+- ~~El rol `"cliente"` en `ProtectedRoute`~~, ~~contrato de `Address`/`PaymentMethod`/`Order` vs.
+  lo que esperaba `Checkout.jsx`~~ — ambos resueltos (`B-06`, `F-01`/`F-02`/`F-03`).
 - **[HIPÓTESIS]** No hay evidencia de multi-tenant en este proyecto (un solo comercio); no se
   audita esa dimensión.
 - **[DATO REAL]** Los `PaymentMethod` sembrados **antes** de cerrar S-03 conservan el `cardNumber`

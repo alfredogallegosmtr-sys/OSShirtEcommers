@@ -73,6 +73,16 @@ Igual que en `cart`, todo el router pasa por `router.use(requireAuth)`. Contrato
 Mismo esquema que `address.routes.js` (todo bajo `requireAuth`, scoped a `req.user.id`).
 Contrato completo en [docs/contracts/payment-method.md](../docs/contracts/payment-method.md).
 
+## Orders (`/api/orders`)
+| Método | Path | Auth | Validador | Notas |
+|---|---|---|---|---|
+| GET | /api/orders | auth | — | lista las órdenes del usuario logueado, `products.productId`/`address`/`paymentMethod` poblados |
+| POST | /api/orders | auth | `createOrderValidation` | body `{ addressId, paymentMethodId }` únicamente — el backend arma `products`/totales desde el carrito real del usuario, no confía en nada que mande el cliente; vacía el carrito al crear la orden |
+
+Sin `PUT`/`DELETE` — el cliente no edita ni cancela órdenes en este alcance. `address`/
+`paymentMethod` deben pertenecer al usuario logueado (404 si no). Contrato completo en
+[docs/contracts/orders.md](../docs/contracts/orders.md).
+
 ## Fuera de `/api`
 - `GET /` → `"API Ecommerce with MongoDB"` (texto plano).
 - `GET /img/products/:file` → estático, sirve `ecommerce-api/public/img/products/`.
@@ -80,8 +90,8 @@ Contrato completo en [docs/contracts/payment-method.md](../docs/contracts/paymen
 
 ## Modelos sin rutas todavía
 
-`Order`, `WishList` tienen modelo Mongoose (`src/models/`) pero **ningún controller ni router**.
-`Address` (2026-08-26, F-01) y `PaymentMethod` (2026-08-26, F-02) ya tienen controller + router.
-Antes de asumir que existe un endpoint, verificar `src/routes/` — hoy hay `product.routes.js`,
-`category.routes.js`, `auth.routes.js`, `cart.routes.js`, `address.routes.js`,
-`paymentMethod.routes.js`.
+`WishList` es el único modelo Mongoose (`src/models/`) que sigue **sin controller ni router**.
+`Address` (F-01), `PaymentMethod` (F-02) y `Order` (F-03) ya tienen controller + router, los tres
+cerrados 2026-08-26. Antes de asumir que existe un endpoint, verificar `src/routes/` — hoy hay
+`product.routes.js`, `category.routes.js`, `auth.routes.js`, `cart.routes.js`,
+`address.routes.js`, `paymentMethod.routes.js`, `order.routes.js`.

@@ -40,8 +40,8 @@
 | B-04 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco para el usuario | E5 | Bug | **Alto** | Pendiente |
 | F-01 | `addressService` real + endpoint `Address` conectado a checkout | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | F-02 | `paymentMethodService` real + endpoint `PaymentMethod` conectado a checkout | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
-| F-03 | `orderService` + endpoint `Order` — checkout crea pedido real, no `localStorage` | E1 | Feature faltante | **Alto** | Pendiente |
-| A-01 | `Orders.jsx` lee `GET /orders` real en vez de `localStorage["orders"]` | E1 | Alineación FE-BE | **Alto** | Pendiente |
+| F-03 | `orderService` + endpoint `Order` — checkout crea pedido real, no `localStorage` | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
+| A-01 | `Orders.jsx` lee `GET /orders` real en vez de `localStorage["orders"]` | E1 | Alineación FE-BE | **Alto** | **Cerrado (2026-08-26)** |
 | F-04 | Wishlist: UI + `wishlistService` + endpoint conectado | E2 | Feature faltante | **Alto** | Pendiente |
 | T-01 | Elegir runner de tests backend (Vitest/Jest) + `mongodb-memory-server`, correr `test-planner` | E6 | Deuda técnica | **Alto** | En progreso |
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
@@ -167,9 +167,29 @@ re-descubrir el mismo terreno.
     el `cardNumber` viejo en Mongo y no tienen `last4`/`brand` — se ven como "Método de pago /
     **** ----" en la UI. Es un dato de seed sin backfill, no un bug; anotado en
     `docs/PROJECT_STATUS.md`, no se toca ahora.
-- **F-03 (Order):** mismo patrón que F-01/F-02 en cuanto arranque — ya no está bloqueado por
-  nada (Address y PaymentMethod, sus dos referencias requeridas, ya son reales). Contrato en
-  `docs/contracts/orders.md` antes de implementar.
+- **F-03 (Order) / A-01 — CERRADO COMPLETO 2026-08-26 (backend + frontend), épica E1 completa:**
+  - **Backend:** `order.controller.js` + `order.routes.js`. `POST /api/orders` recibe solo
+    `{ addressId, paymentMethodId }` — arma `products`/`subtotalPrice`/`shippingCost`/
+    `totalPrice` desde el `Cart` real del usuario (mismas constantes de negocio que ya usaba
+    `Checkout.jsx`: IVA 16%, envío $350 si subtotal < $1000), nunca confía en un total mandado
+    por el cliente. Verifica que `address`/`paymentMethod` pertenezcan al usuario logueado (404
+    si no). Vacía el carrito server-side al crear la orden. Contrato en
+    `docs/contracts/orders.md`. Verificado en vivo con curl: 401, 422 (carrito vacío), 404
+    (dirección ajena), 201 con total exacto verificado a mano.
+  - **Frontend:** `orderService.js` real. `Checkout.jsx` ya no escribe a `localStorage["orders"]`
+    — llama a `POST /api/orders` y navega a `OrderConfirmation` con la orden real devuelta.
+    `Orders.jsx` reescrito para consultar `GET /api/orders` (ya no `readLocalJSON`/
+    `STORAGE_KEYS`). `OrderConfirmation.jsx`/`Orders.jsx` actualizados al shape real de `Order`
+    (`order.products[].productId`, `order.address`, `order.subtotalPrice`/`shippingCost`/
+    `totalPrice` — el IVA se recalcula por resta para mostrarlo como línea aparte, porque el
+    schema no tiene un campo de impuesto separado).
+  - **Verificado de punta a punta con Playwright:** agregar al carrito → checkout → confirmar →
+    `OrderConfirmation` con total exacto ($379 subtotal → $60.64 IVA → $350 envío → $789.64
+    total) → `/orders` lista y detalle muestran la misma orden real, con método de pago PayPal
+    renderizado correctamente. Orden de prueba borrada después (sin endpoint DELETE por diseño,
+    se limpió directo en Mongo).
+  - **Limpieza de paso:** `utils/storageHelpers.js` quedó sin ningún importador tras el cambio
+    (tenía además funciones de normalización atadas a las formas viejas del mock) — borrado.
 - **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
   ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
   `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`. **Matriz completa y
@@ -220,9 +240,10 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
 
 1. ~~**E4 (seguridad del catálogo)**~~ — S-01/S-02/S-03 cerrados 2026-08-26. Solo queda **S-04**
    (`cors()` sin allowlist), prioridad Media, no bloquea nada más.
-2. **E1 (persistencia de checkout)** — el gap arquitectónico central; con S-03 ya resuelto,
-   `F-02` (conectar `PaymentMethod` real) queda desbloqueado.
-3. **E5 (bugs y limpieza)** — bajo costo, alto valor de UX (B-01, B-04 son visibles al usuario).
+2. ~~**E1 (persistencia de checkout)**~~ — F-01/F-02/F-03/A-01 cerrados 2026-08-26. Épica completa:
+   dirección, pago y pedido corren de punta a punta sobre el backend real.
+3. **E5 (bugs y limpieza restante)** — `B-04` (wishlist/settings vacías, Alto) y `B-02`/`B-03`
+   (páginas huérfanas, Medio/Bajo) siguen pendientes.
 4. **E2 + E3** (wishlist, cuenta) — completan las páginas placeholder.
 5. **E6 + E7** (tests, E2E) — una vez estabilizada la persistencia, para no testear contra un
    contrato que va a cambiar.

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Button from "../components/common/Button";
 import Icon from "../components/common/Icon/Icon";
 import Loading from "../components/common/Loading/Loading";
-import { STORAGE_KEYS, readLocalJSON } from "../utils/storageHelpers";
+import { getOrders } from "../services/orderService";
 import "./Orders.css";
 
 const formatMoney = (value = 0) =>
@@ -29,37 +29,56 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadOrders = () => {
-      const storedOrders = readLocalJSON(STORAGE_KEYS.orders) || [];
-      const sortedOrders = [...storedOrders].sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
-      );
-      setOrders(sortedOrders);
-      setSelectedOrderId((current) => current ?? sortedOrders[0]?.id ?? null);
-      setLoading(false);
-    };
+    let cancelled = false;
+
+    async function loadOrders() {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedOrders = await getOrders();
+        if (cancelled) return;
+        setOrders(fetchedOrders || []);
+        setSelectedOrderId((current) => current ?? fetchedOrders?.[0]?._id ?? null);
+      } catch (err) {
+        if (!cancelled) setError("No se pudieron cargar tus pedidos.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
 
     loadOrders();
-    window.addEventListener("storage", loadOrders);
-    return () => window.removeEventListener("storage", loadOrders);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const selectedOrder = useMemo(
-    () => orders.find((order) => order.id === selectedOrderId) || null,
+    () => orders.find((order) => order._id === selectedOrderId) || null,
     [orders, selectedOrderId]
   );
 
   const detailStatusToken = selectedOrder
-    ? (selectedOrder.status || "confirmed").toLowerCase()
-    : "confirmed";
-  const detailStatusLabel = selectedOrder?.status || "Confirmado";
+    ? (selectedOrder.status || "pending").toLowerCase()
+    : "pending";
+  const detailStatusLabel = selectedOrder?.status || "Pendiente";
 
   if (loading) {
     return (
       <div className="orders-page">
-        <Loading message="Cargando pedidos guardados..." />
+        <Loading message="Cargando tus pedidos..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="orders-page orders-empty">
+        <Icon name="package" size={48} />
+        <h1>No pudimos cargar tus pedidos</h1>
+        <p>{error}</p>
       </div>
     );
   }
@@ -68,10 +87,11 @@ export default function Orders() {
     return (
       <div className="orders-page orders-empty">
         <Icon name="package" size={48} />
-        <h1>No tienes pedidos guardados</h1>
+        <h1>No tienes pedidos todavía</h1>
         <p>
-          Cada vez que confirmes una compra en el checkout, la orden se guarda
-          en tu navegador para consultarla más tarde.
+          Cada vez que confirmes una compra en el checkout, la orden queda
+          guardada en tu cuenta para consultarla más tarde, desde cualquier
+          dispositivo.
         </p>
         <Link to="/" className="orders-link">
           <Button>Descubrir productos</Button>
@@ -88,13 +108,13 @@ export default function Orders() {
           <h1>Mis pedidos</h1>
           <p className="muted">
             {orders.length === 1
-              ? "Tienes 1 pedido guardado en este dispositivo"
-              : `Tienes ${orders.length} pedidos guardados en este dispositivo`}
+              ? "Tienes 1 pedido en tu cuenta"
+              : `Tienes ${orders.length} pedidos en tu cuenta`}
           </p>
         </div>
         <Button
           variant="secondary"
-          onClick={() => setSelectedOrderId(orders[0]?.id ?? null)}
+          onClick={() => setSelectedOrderId(orders[0]?._id ?? null)}
         >
           Ver más reciente
         </Button>
@@ -108,27 +128,27 @@ export default function Orders() {
           </div>
           <div className="orders-list-body">
             {orders.map((order) => {
-              const itemCount = order.items?.length || 0;
-              const statusToken = (order.status || "confirmed").toLowerCase();
-              const isActive = selectedOrderId === order.id;
+              const itemCount = order.products?.length || 0;
+              const statusToken = (order.status || "pending").toLowerCase();
+              const isActive = selectedOrderId === order._id;
               return (
                 <button
-                  key={order.id}
+                  key={order._id}
                   className={`order-card${isActive ? " active" : ""}`}
-                  onClick={() => setSelectedOrderId(order.id)}
+                  onClick={() => setSelectedOrderId(order._id)}
                 >
                   <div className="order-card-head">
-                    <span className="order-id">#{order.id}</span>
+                    <span className="order-id">#{order._id}</span>
                     <span
                       className={`order-status order-status-${statusToken}`}
                     >
-                      {order.status || "Confirmado"}
+                      {order.status || "Pendiente"}
                     </span>
                   </div>
-                  <p className="order-date">{formatDate(order.date)}</p>
+                  <p className="order-date">{formatDate(order.createdAt)}</p>
                   <div className="order-card-meta">
                     <span>{itemCount} artículos</span>
-                    <strong>{formatMoney(order.total || 0)}</strong>
+                    <strong>{formatMoney(order.totalPrice || 0)}</strong>
                   </div>
                 </button>
               );
@@ -141,9 +161,9 @@ export default function Orders() {
             <>
               <div className="order-detail-header">
                 <div>
-                  <p className="eyebrow">Pedido #{selectedOrder.id}</p>
-                  <h2>{formatMoney(selectedOrder.total || 0)}</h2>
-                  <p className="muted">{formatDate(selectedOrder.date)}</p>
+                  <p className="eyebrow">Pedido #{selectedOrder._id}</p>
+                  <h2>{formatMoney(selectedOrder.totalPrice || 0)}</h2>
+                  <p className="muted">{formatDate(selectedOrder.createdAt)}</p>
                 </div>
                 <span
                   className={`order-status order-status-${detailStatusToken}`}
@@ -157,38 +177,47 @@ export default function Orders() {
                 <ul className="order-summary-list">
                   <li>
                     <span>Subtotal</span>
-                    <strong>{formatMoney(selectedOrder.subtotal || 0)}</strong>
+                    <strong>{formatMoney(selectedOrder.subtotalPrice || 0)}</strong>
                   </li>
                   <li>
                     <span>IVA</span>
-                    <strong>{formatMoney(selectedOrder.tax || 0)}</strong>
+                    <strong>
+                      {formatMoney(
+                        Math.max(
+                          0,
+                          (selectedOrder.totalPrice || 0) -
+                            (selectedOrder.subtotalPrice || 0) -
+                            (selectedOrder.shippingCost || 0)
+                        )
+                      )}
+                    </strong>
                   </li>
                   <li>
                     <span>Envío</span>
                     <strong>
-                      {selectedOrder.shipping === 0
+                      {selectedOrder.shippingCost === 0
                         ? "Gratis"
-                        : formatMoney(selectedOrder.shipping || 0)}
+                        : formatMoney(selectedOrder.shippingCost || 0)}
                     </strong>
                   </li>
                   <li className="order-summary-total">
                     <span>Total</span>
-                    <strong>{formatMoney(selectedOrder.total || 0)}</strong>
+                    <strong>{formatMoney(selectedOrder.totalPrice || 0)}</strong>
                   </li>
                 </ul>
               </div>
 
               <div className="order-section">
                 <h3>Dirección de envío</h3>
-                {selectedOrder.shippingAddress ? (
+                {selectedOrder.address ? (
                   <address className="order-address">
-                    <strong>{selectedOrder.shippingAddress.address}</strong>
+                    <strong>{selectedOrder.address.address}</strong>
                     <p>
-                      {selectedOrder.shippingAddress.city},{" "}
-                      {selectedOrder.shippingAddress.state} —{" "}
-                      {selectedOrder.shippingAddress.postalCode}
+                      {selectedOrder.address.city},{" "}
+                      {selectedOrder.address.state} —{" "}
+                      {selectedOrder.address.postalCode}
                     </p>
-                    <p>{selectedOrder.shippingAddress.country}</p>
+                    <p>{selectedOrder.address.country}</p>
                   </address>
                 ) : (
                   <p className="muted">Sin dirección registrada.</p>
@@ -219,20 +248,17 @@ export default function Orders() {
               <div className="order-section">
                 <h3>Productos</h3>
                 <ul className="order-items">
-                  {selectedOrder.items?.map((item, index) => (
-                    <li key={`${selectedOrder.id}-${item.id || index}`}>
+                  {selectedOrder.products?.map((item, index) => (
+                    <li key={item.productId?._id || index}>
                       <div>
-                        <p>{item.name || item.title || "Producto"}</p>
+                        <p>{item.productId?.name || "Producto"}</p>
                         <span>
                           Cantidad: {item.quantity || 1} · Precio:{" "}
                           {formatMoney(item.price || 0)}
                         </span>
                       </div>
                       <strong>
-                        {formatMoney(
-                          item.subtotal ||
-                            (item.price || 0) * (item.quantity || 1)
-                        )}
+                        {formatMoney((item.price || 0) * (item.quantity || 1))}
                       </strong>
                     </li>
                   ))}

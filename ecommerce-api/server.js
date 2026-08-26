@@ -10,6 +10,7 @@ import authRoutes from './src/routes/auth.routes.js';
 import cartRoutes from './src/routes/cart.routes.js';
 import addressRoutes from './src/routes/address.routes.js';
 import paymentMethodRoutes from './src/routes/paymentMethod.routes.js';
+import orderRoutes from './src/routes/order.routes.js';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/payment-methods', paymentMethodRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

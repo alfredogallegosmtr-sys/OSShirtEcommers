@@ -28,7 +28,11 @@ y exportan `mongoose.model(...)` por defecto (`export default X`).
   `subtotalPrice`/`shippingCost` (Number, required, default 0), `totalPrice` (Number, required),
   `status` (enum `["pending","processing","shipped","delivered","cancelled"]`, default `"pending"`),
   `paymentStatus` (enum `["pending","paid","failed","refunded"]`, default `"pending"`).
-  **Sin controller ni router todavía** — el frontend simula órdenes en `localStorage`.
+  **Con controller y router desde 2026-08-26** (`order.controller.js`/`order.routes.js`, backlog
+  F-03) — scoped a `req.user.id`. `products`/`subtotalPrice`/`shippingCost`/`totalPrice` los
+  calcula el backend a partir del `Cart` real del usuario (nunca de lo que mande el cliente);
+  `address`/`paymentMethod` deben pertenecer al usuario logueado. Crear una orden vacía el
+  carrito server-side. Sin `PUT`/`DELETE` en este alcance.
 - **Address** (`Address.js`): `user` (ObjectId → `User`, required), `address`/`city`/`state`
   (String, required, trim), `postalCode` (String, required, min 4, max 6, trim — `min`/`max`
   son no-ops en `String`, no rechazan longitud), `country` (String, required, trim), `phone`
@@ -52,8 +56,9 @@ y exportan `mongoose.model(...)` por defecto (`export default X`).
 
 ## Antes de asumir que un endpoint existe
 
-`Product`, `Category`, `User` (vía auth), `Cart`, `Address` y `PaymentMethod` tienen controller +
-router montados en `server.js`. `Order` y `WishList` siguen sin exponer — si una tarea los
-necesita, hay que crear el controller y el router (seguir el patrón de
-`cart.controller.js`/`cart.routes.js`, `address.controller.js`/`address.routes.js`, o
-`paymentMethod.controller.js`/`paymentMethod.routes.js`), no asumir que ya están conectados.
+`Product`, `Category`, `User` (vía auth), `Cart`, `Address`, `PaymentMethod` y `Order` tienen
+controller + router montados en `server.js`. Solo `WishList` sigue sin exponer — si una tarea la
+necesita, hay que crear el controller y el router (seguir el patrón de `cart.controller.js`/
+`cart.routes.js`, `address.controller.js`/`address.routes.js`,
+`paymentMethod.controller.js`/`paymentMethod.routes.js`, u
+`order.controller.js`/`order.routes.js`), no asumir que ya está conectado.

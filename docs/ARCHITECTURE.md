@@ -42,7 +42,7 @@ endpoint. "Mis pedidos" lee esa misma clave. Wishlist, Settings y Profile son o 
 | Sesión / usuario | Backend (JWT) | ✅ `User` | Perfil se deriva del token, sin `GET` dedicado |
 | Catálogo (productos/categorías) | Backend | ✅ | Lectura pública, escritura solo admin (`requireAuth`+`requireAdmin`) |
 | Carrito | localStorage + Backend | ✅ `Cart` | Único recurso genuinamente híbrido y sincronizado |
-| Pedidos | **localStorage únicamente** | ✅ `Order` (sin usar) | Doble fuente potencial si se conecta sin migrar lo existente |
+| Pedidos | **Backend real** (`/api/orders`) | ✅ `Order` | F-03 cerrado 2026-08-26; totales calculados server-side desde el `Cart` real, nunca del cliente |
 | Direcciones de envío | **Backend real** (`/api/addresses`) | ✅ `Address` | F-01 cerrado 2026-08-26 (backend + frontend), verificado con Playwright de punta a punta. `shippingService` mock queda sin usar en `Checkout.jsx` |
 | Métodos de pago | **Backend real** (`/api/payment-methods`) | ✅ `PaymentMethod` | F-02 cerrado 2026-08-26 (backend + frontend); guarda solo `last4`/`brand` (S-03), rechaza `cardNumber`/`cvv` explícitamente. `paymentService` mock quedó sin usar en `Checkout.jsx` |
 | Wishlist | — (página vacía) | ✅ `WishList` (sin usar) | Ninguna fuente real todavía |

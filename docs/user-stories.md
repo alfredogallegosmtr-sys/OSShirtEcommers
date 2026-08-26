@@ -80,16 +80,18 @@ cerrado)
 - La orden queda asociada al usuario autenticado (`req.user.id`, nunca del body).
 
 **Definición de terminado:**
-- `Order` tiene controller + router.
-- `Checkout.jsx` deja de escribir a `localStorage["orders"]` como fuente de verdad.
-- CA verificados en vivo (curl o Playwright), no solo lectura de código.
+- ✅ `Order` tiene controller + router.
+- ✅ `Checkout.jsx` ya no escribe a `localStorage["orders"]` — llama a `POST /api/orders`.
+- ✅ CA verificados en vivo: curl (total exacto, 404 en dirección/pago ajenos, 422 carrito vacío)
+  y Playwright (flujo completo real en navegador).
 
 **Dependencias técnicas:**
-- Depende de US-001 y US-002 (Order referencia `address` y `paymentMethod` como requeridos en
-  el schema).
+- Dependía de US-001 y US-002 (ya cerradas) — `Order` referencia `address` y `paymentMethod`
+  como requeridos en el schema.
 
 **Prioridad:** Alto
-**Estado actual relacionado:** No implementado (backlog F-03)
+**Estado actual relacionado:** Implementado y verificado en vivo (2026-08-26, backlog F-03
+cerrado)
 
 ---
 
@@ -105,14 +107,16 @@ cerrado)
   pago), ahora desde el backend.
 
 **Definición de terminado:**
-- `orderService` real en `services/`.
-- Sin regresión visual respecto al `Orders.jsx` actual.
+- ✅ `orderService.js` real en `services/`.
+- ✅ `Orders.jsx` reescrito para el shape real de `Order` (sin regresión funcional: misma UI,
+  datos reales en vez de mock).
 
 **Dependencias técnicas:**
-- Depende de US-003 (no hay nada que listar sin órdenes reales).
+- Dependía de US-003 (ya cerrada).
 
 **Prioridad:** Alto
-**Estado actual relacionado:** No implementado (backlog A-01)
+**Estado actual relacionado:** Implementado y verificado en vivo (2026-08-26, backlog A-01
+cerrado)
 
 ---
 

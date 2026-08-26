@@ -15,13 +15,15 @@ export default function OrderConfirmation() {
     }
   }, [order, navigate]);
 
-  const address = order.shippingAddress || {};
-  const subtotal = order.subtotal || 0;
-  const tax = order.tax || 0;
-  const shipping = order.shipping || 0;
-  const total = order.total || 0;
-  const orderDate = order.date
-    ? new Date(order.date).toLocaleDateString()
+  const address = order.address || {};
+  const subtotal = order.subtotalPrice || 0;
+  const shipping = order.shippingCost || 0;
+  const total = order.totalPrice || 0;
+  // El schema Order no tiene un campo de IVA separado (queda embebido en totalPrice) —
+  // se recupera por resta solo para mostrarlo como línea aparte, igual que en Checkout.jsx.
+  const tax = Math.max(0, total - subtotal - shipping);
+  const orderDate = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString()
     : "No disponible";
 
   // Utilidad para formatear moneda (MXN)
@@ -39,7 +41,7 @@ export default function OrderConfirmation() {
         </div>
         <h1>¡Gracias por tu compra!</h1>
         <p className="confirmation-message">
-          Tu pedido <strong>#{order.id || "N/A"}</strong> ha sido confirmado y
+          Tu pedido <strong>#{order._id || "N/A"}</strong> ha sido confirmado y
           está siendo procesado
         </p>
         <div className="confirmation-details">
@@ -51,10 +53,10 @@ export default function OrderConfirmation() {
             </p>
             <h3>Productos</h3>
             <ul className="order-items">
-              {(order.items || []).map((item) => (
-                <li key={item._id}>
-                  {item.name} x {item.quantity} - {formatMoney(item.price)}
-                  <span>{formatMoney(item.subtotal)}</span>
+              {(order.products || []).map((item) => (
+                <li key={item.productId?._id || item._id}>
+                  {item.productId?.name} x {item.quantity} - {formatMoney(item.price)}
+                  <span>{formatMoney(item.price * item.quantity)}</span>
                 </li>
               ))}
             </ul>
