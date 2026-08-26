@@ -49,7 +49,7 @@
 | S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | Pendiente |
 | F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
-| B-02 | `pages/ProductDetails.jsx` — import roto a componente inexistente (huérfano, no enrutado) | E5 | Bug | **Medio** | Pendiente |
+| B-02 | `pages/ProductDetails.jsx` — import roto a componente inexistente (huérfano, no enrutado) | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | B-08 | `ProfileCard.jsx`: `contextUser.role` en vez de `currentUser.role`, `currentUser.loginDate` inexistente en vez de `last_login`, botones de acción no-op incluyendo un "Panel de administración" sin ruta | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | B-09 | `ErrorMessage`/`Loading` solo aceptan `children`, no `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` y el texto nunca se renderiza | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
@@ -58,7 +58,7 @@
 | T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | Pendiente |
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | Pendiente |
 | CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | Pendiente |
-| B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | Pendiente |
+| B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-05 | `data/categories.json` — código muerto, contenido de otro dominio | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-07 | Borrar `server_practice.js` / `db.config_practice.js` (0 bytes, scaffolding del curso) | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | OBS-01 | Instalar Artillery + escenario de carga contra endpoints reales | E9 | Deuda técnica | **Bajo** | Pendiente |
@@ -272,6 +272,20 @@ re-descubrir el mismo terreno.
   Playwright: `/category/<id-inexistente>` y `/product/<id-inexistente>` ahora sí muestran el
   mensaje real; `/wishlist`, `/orders`, `/checkout` y una categoría real siguen renderizando sin
   regresiones.
+- **B-02/B-03 (páginas huérfanas) — CERRADOS 2026-08-26 (borradas, no reescritas):** verificado
+  con grep en todo el repo que ninguna de las dos tenía importador fuera de sí misma (no aparecen
+  en `App.jsx` ni en ningún otro archivo). `pages/ProductDetails.jsx` importaba
+  `components/ProductDetails/ProductDetailsCard`, un módulo que **no existe en el repo** —
+  hubiera roto al instante si algo llegaba a importarlo; el producto real se sirve desde
+  `pages/Product.jsx` → `components/ProductDetails/ProductDetails.jsx`, ya enrutado en
+  `/product/:productId`. `pages/PurchaseOrder.jsx` era un borrador de resumen de compra con
+  `addressList`/`paymentMethodList` hardcodeados usando las formas viejas del mock
+  (`alias`/`placeHolder`/`cardNumber`/`cvv`, las mismas que F-01/F-02 ya reemplazaron en todo el
+  resto del código) y un botón "Pagar" sin conectar — completamente superado por `Checkout.jsx`,
+  que ya hace todo esto contra el backend real. Se optó por borrar en vez de mover a tests: ninguna
+  ruta llega a estos componentes, así que ningún test protegería comportamiento real; escribir
+  tests ahí solo habría fijado en el tiempo un estado roto/mock que ya no representa el producto.
+  Sin archivos CSS asociados que limpiar (ninguno de los dos tenía un `.css` propio).
 - **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
   ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
   `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`. **Matriz completa y
@@ -327,8 +341,8 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
 3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26.
 4. ~~**E3 (cuenta: Profile y Settings)**~~ — F-05/F-06 cerrados 2026-08-26. `B-04` queda
    completamente cerrado (ambas páginas, `WishList.jsx` y `Setttings.jsx`, implementadas).
-5. ~~**B-09**~~ — cerrado 2026-08-26. Queda de **E5** solo `B-02`/`B-03` (páginas huérfanas,
-   Medio/Bajo, sin ruta real — bajo impacto).
+5. ~~**E5 (bugs y limpieza restante)**~~ — `B-02`/`B-03`/`B-09` cerrados 2026-08-26. Épica
+   completa: sin páginas huérfanas ni mensajes de error/carga silenciados.
 5. **E6 + E7** (tests, E2E) — una vez estabilizada la persistencia, para no testear contra un
    contrato que va a cambiar.
 6. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada.

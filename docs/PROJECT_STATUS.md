@@ -16,8 +16,8 @@ ya corren de punta a punta sobre el backend real, verificado con Playwright; `lo
 sigue usándose para `authToken`/`cart`/`app:theme`. Ya no quedan páginas enrutadas vacías.
 
 El núcleo (auth, catálogo, carrito, checkout, wishlist, perfil, settings) es sólido y fue
-verificado en vivo (curl + Playwright). La brecha restante son los bugs de UI menores en páginas
-huérfanas sin ruta (B2/B3), sin impacto en el flujo real.
+verificado en vivo (curl + Playwright). La épica de limpieza de bugs y código muerto (E5) está
+completa: ya no quedan páginas huérfanas ni bugs de UI conocidos sin cerrar.
 
 ## Estado del backend [CÓDIGO]
 
@@ -52,11 +52,10 @@ middleware `validate` en `products`/`categories`/`cart`; `auth` con chequeo manu
 - **Páginas completas y funcionales:** Home, Product, CategoryPage, SearchResults, Login,
   Register, Cart, Checkout, Orders, WishList, Profile, Settings (`Setttings.jsx`) — las últimas 6
   ya sobre API real, no `localStorage`/placeholder.
-- **Páginas huérfanas** (sin `<Route>` en `App.jsx`): `pages/ProductDetails.jsx` (distinto del que
-  sí se usa, `pages/Product.jsx`) importa `ProductDetailsCard` desde un archivo que no existe —
-  rompe al instante si algo llega a importarlo. `pages/PurchaseOrder.jsx` es una página completa
-  de resumen de compra con datos hardcodeados, sin ninguna ruta ni link que apunte ahí — parece
-  una versión previa de `Checkout.jsx`.
+- **Sin páginas huérfanas.** `pages/ProductDetails.jsx` (import roto a `ProductDetailsCard`,
+  archivo inexistente) y `pages/PurchaseOrder.jsx` (resumen de compra con datos hardcodeados,
+  superado por `Checkout.jsx`) se borraron el 2026-08-26 (`B-02`/`B-03`) tras confirmar con grep
+  que ninguna tenía importador real fuera de sí misma.
 - `apiClient`: `baseURL http://localhost:4001/api`, inyecta `Bearer` desde
   `localStorage["authToken"]`, interceptor `classifyError`.
 
@@ -92,8 +91,8 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | # | Bug | Estado |
 |---|---|---|
 | B1 | `Breadcrumb` esperaba prop `categories`, sus consumidores le pasaban `items` → nunca se renderizaba | ✅ Cerrado 2026-08-26 |
-| B2 | `pages/ProductDetails.jsx` (huérfano, no enrutado) importa un componente inexistente | Pendiente — bajo impacto, no enrutado |
-| B3 | `pages/PurchaseOrder.jsx` huérfana con datos hardcodeados, sin ruta | Pendiente — bajo impacto, no enrutado |
+| B2 | `pages/ProductDetails.jsx` (huérfano, no enrutado) importa un componente inexistente | ✅ Cerrado 2026-08-26 (archivo borrado, sin importadores) |
+| B3 | `pages/PurchaseOrder.jsx` huérfana con datos hardcodeados, sin ruta | ✅ Cerrado 2026-08-26 (archivo borrado, sin importadores) |
 | B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | ✅ Cerrado 2026-08-26: `WishList.jsx` implementado (F-04); `Setttings.jsx` implementado (F-06) |
 | B8 | `ProfileCard.jsx` usaba `contextUser.role` en vez de `currentUser.role` (siempre "guest"); `currentUser.loginDate` (campo inexistente) en vez de `currentUser.last_login`; botones de acción eran stubs no-op (`() => {}`), incluido un "Panel de administración" sin ruta real | ✅ Cerrado 2026-08-26 (F-05) |
 | B9 | `ErrorMessage`/`Loading` (`components/common/`) solo aceptan `children`, no una prop `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` en vez de `{...}` como children, así que el texto nunca se renderiza (queda una caja vacía) | ✅ Cerrado 2026-08-26 — corregidos los 5 llamadores; de paso se encontró y corrigió un segundo bug en `CategoryProducts.jsx` (mostraba el `kind` interno crudo `"NOT_FOUND"` en vez del texto amigable) |
@@ -179,6 +178,15 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   `/category/<id-inexistente>` y `/product/<id-inexistente>` muestran el mensaje real; `/wishlist`,
   `/orders`, `/checkout` y una categoría real siguen sin regresiones. Cierra `B-09` de
   [docs/backlog.md](./backlog.md).
+- **2026-08-26 — B-02/B-03 (páginas huérfanas) cerrados, épica E5 completa.** Se borraron
+  `pages/ProductDetails.jsx` y `pages/PurchaseOrder.jsx` tras confirmar con grep que ninguna tenía
+  importador real fuera de sí misma. `ProductDetails.jsx` importaba
+  `components/ProductDetails/ProductDetailsCard`, un módulo inexistente en el repo — el producto
+  real ya se sirve desde `pages/Product.jsx`. `PurchaseOrder.jsx` era un borrador de checkout con
+  datos hardcodeados usando las formas viejas del mock (`alias`/`placeHolder`/`cardNumber`/`cvv`),
+  completamente superado por `Checkout.jsx`. Se borraron en vez de reescribirse: sin ruta que
+  llegue a ellas, no había comportamiento real que preservar ni proteger con tests. Cierra
+  `B-02`/`B-03` de [docs/backlog.md](./backlog.md) — E5 queda sin items pendientes.
 
 ## Supuestos pendientes de validar
 
