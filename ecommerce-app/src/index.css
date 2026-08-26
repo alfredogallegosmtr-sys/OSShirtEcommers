@@ -1,0 +1,258 @@
+/* 1) Reset mínimo y tipografía */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Patrón sutil de olas japonesas (seigaiha) sobre el fondo washi */
+  background-color: var(--bg);
+  background-image: radial-gradient(
+    circle at 50% 100%,
+    transparent 32%,
+    rgba(var(--accent-rgb), 0.05) 32%,
+    rgba(var(--accent-rgb), 0.05) 40%,
+    transparent 40%,
+    transparent 63%,
+    rgba(var(--accent-rgb), 0.05) 63%,
+    rgba(var(--accent-rgb), 0.05) 71%,
+    transparent 71%
+  );
+  background-size: 44px 22px;
+}
+
+/* 2) Variables CSS completas */
+:root {
+  /* Paleta "Cálida" (modo día) */
+  --palette-1: #ffe8d6;
+  --palette-2: #ffb79a;
+  --palette-3: #ff8360;
+  --palette-4: #e8543f;
+  --palette-5: #9c2b1b;
+
+  --color-white: #fffdf7; /* washi / papel */
+  --color-black: #1a1512; /* sumi / tinta */
+  --color-vermilion: var(--palette-4); /* acento cálido principal */
+  --color-crimson: var(--palette-5); /* acento cálido oscuro */
+  --color-indigo: var(--palette-5); /* banda de marca en modo día */
+  --color-strong-blue: var(--palette-5); /* alias retro-compatible (bandas header/footer/nav) */
+  --color-gold: var(--palette-3); /* acento secundario cálido */
+  --color-purple: #6d4c7d; /* murasaki */
+  --color-pink: #d9788f; /* sakura */
+  --color-yellow: #e0a526; /* kincha */
+  --color-green: #6e8b3d; /* matcha */
+  --color-blue: #4e7ca1; /* asagi */
+  --color-red: #c1272d;
+  --color-light-gray: #efe8db;
+  --color-strong-gray: #d8ccb8;
+  --color-gray: #7a6d5c;
+  --color-dark: #2a231d;
+  --color-darker: #17130f;
+
+  /* Tema claro (paleta cálida) */
+  --bg: var(--palette-1);
+  --surface: color-mix(in srgb, var(--palette-1) 25%, white);
+  --text: var(--palette-5);
+  --muted: color-mix(in srgb, var(--palette-5) 55%, var(--palette-1));
+  --border: color-mix(in srgb, var(--palette-2) 35%, white);
+  --accent: var(--color-vermilion);
+  --accent-contrast: color-mix(in srgb, var(--palette-1) 25%, white);
+  --accent-rgb: 232, 84, 63;
+  --ink: var(--color-black);
+  --gold: var(--color-gold);
+  --indigo: var(--color-indigo);
+
+  /* Tipografía */
+  --font-display: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN",
+    "Noto Serif JP", Georgia, "Times New Roman", serif;
+
+  /* Variables adicionales */
+  --radius: 8px;
+  --r1: 4px;
+  --r2: 6px;
+  --r3: 8px;
+  --r4: 12px;
+  --r5: 16px;
+  --gap: 16px;
+
+  /* Elevaciones */
+  --elev-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --elev-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+  --elev-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+  --elev-4: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+  --elev-5: 0 19px 38px rgba(0, 0, 0, 0.3), 0 15px 12px rgba(0, 0, 0, 0.22);
+}
+
+/* Tema oscuro (paleta "Noche") */
+:root[data-theme="dark"] {
+  --palette-1: #0b132b;
+  --palette-2: #1c2541;
+  --palette-3: #3a506b;
+  --palette-4: #5bc0be;
+  --palette-5: #6fffe9;
+
+  --color-strong-blue: var(--palette-2); /* banda de marca en modo noche */
+  --color-indigo: var(--palette-2);
+
+  --bg: var(--palette-1);
+  --surface: var(--palette-2);
+  --text: color-mix(in srgb, var(--palette-5) 40%, white);
+  --muted: var(--palette-4);
+  --border: var(--palette-3);
+  --accent: var(--palette-4);
+  --accent-contrast: var(--palette-1);
+  --accent-rgb: 91, 192, 190;
+  --gold: var(--palette-5); /* acento brillante para modo noche */
+}
+
+/* 3) Utilidades base */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3vw, 24px);
+}
+
+.container-wide {
+  max-width: 1400px;
+}
+.container-narrow {
+  max-width: 800px;
+}
+
+.grid {
+  display: grid;
+  gap: var(--gap);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.flex {
+  display: flex;
+  gap: clamp(12px, 2vw, 16px);
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-center {
+  align-items: center;
+  justify-content: center;
+}
+.flex-between {
+  justify-content: space-between;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Tipografía */
+h1,
+h2,
+h3,
+.h1,
+.h2 {
+  font-family: var(--font-display);
+}
+
+.h1 {
+  font-size: clamp(30px, 4vw, 38px);
+  font-weight: 700;
+  margin: 0 0 12px;
+  letter-spacing: 0.4px;
+  line-height: 1.25;
+}
+
+.h2 {
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 600;
+  margin: 0 0 8px;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+}
+
+/* Acento tipo pincel bajo los títulos de sección */
+.section-title,
+.list-title {
+  font-family: var(--font-display);
+  position: relative;
+  padding-bottom: 10px;
+}
+.section-title::after,
+.list-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 56px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+
+.muted {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Componentes base */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  padding: 16px;
+}
+
+/* Focus y accesibilidad */
+:where(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a {
+  color: var(--accent);
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  color: color-mix(in srgb, var(--accent) 80%, black);
+}
+
+/* Tema oscuro específico */
+[data-theme="dark"] a:hover {
+  color: color-mix(in srgb, var(--accent) 80%, white);
+}
+
+/* Responsive base */
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}

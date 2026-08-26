@@ -1,0 +1,24 @@
+[
+    {
+        "_id": "690eb4b4f62bb3fb3e9947f3",
+        "userId": "67fc9bda370302bf46079352",
+        "type": "credit_card",
+        "cardNumber": "4444444444444444",
+        "cardHolderName": "Rodrigo",
+        "expiryDate": "08/31",
+        "isDefault": false,
+        "isActive": true,
+        "__v": 0
+    },
+    {
+        "_id": "691262743278bbc102261a4a",
+        "userId": "67fc9bda370302bf46079352",
+        "type": "credit_card",
+        "cardNumber": "4444444444445555",
+        "cardHolderName": "Rodrigo",
+        "expiryDate": "08/31",
+        "isDefault": true,
+        "isActive": true,
+        "__v": 0
+    }
+]

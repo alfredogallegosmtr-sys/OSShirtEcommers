@@ -1,0 +1,34 @@
+[
+  {
+    "title": "Camisetas de Anime",
+    "subtitle": "Diseños originales de tus series favoritas",
+    "image": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&h=600&fit=crop",
+    "buttonText": "Ver colección anime",
+    "buttonLink": "/search?q=anime",
+    "backgroundColor": "#243b6b"
+  },
+  {
+    "title": "Manga & Cultura Japonesa",
+    "subtitle": "Del papel a tu camiseta: estilo otaku auténtico",
+    "image": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200&h=600&fit=crop",
+    "buttonText": "Explorar manga",
+    "buttonLink": "/search?q=manga",
+    "backgroundColor": "#c1272d"
+  },
+  {
+    "title": "K-Culture & Manhwa",
+    "subtitle": "Cultura coreana, china y asiática en cada diseño",
+    "image": "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&h=600&fit=crop",
+    "buttonText": "Descubrir",
+    "buttonLink": "/search?q=cultura",
+    "backgroundColor": "#6d4c7d"
+  },
+  {
+    "title": "Envío Gratis",
+    "subtitle": "En compras superiores a $50",
+    "image": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200&h=600&fit=crop",
+    "buttonText": "Comprar ahora",
+    "buttonLink": "/",
+    "backgroundColor": "#2a231d"
+  }
+]
