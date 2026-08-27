@@ -12,6 +12,7 @@
     "test:integration": "vitest run tests/integration",
     "test:watch": "vitest tests/",
     "test:coverage": "vitest run tests/ --coverage",
+    "test:load": "artillery run loadtest/catalog.yml",
     "lint": "eslint src tests server.js"
   },
   "keywords": [],
@@ -34,6 +35,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^4.1.11",
+    "artillery": "^2.0.34",
+    "artillery-plugin-publish-metrics": "^2.38.0",
     "eslint": "^10.9.1",
     "globals": "^17.11.0",
     "mongodb-memory-server": "^11.2.0",

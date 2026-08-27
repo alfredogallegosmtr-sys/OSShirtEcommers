@@ -9,12 +9,13 @@ Prometheus :9090  ──scrape cada 5s──►  Pushgateway
 Grafana :3050  ──consulta──►  Prometheus   (datasource ya provisionado)
 ```
 
-> **Importante:** este repo (OSShirtEcommers) **todavía no tiene Artillery instalado ni un
-> script `test:load`**, a diferencia del proyecto de referencia. El stack de Docker (Pushgateway
-> + Prometheus + Grafana) queda listo y funcional, pero hasta que no se agregue Artillery con un
-> plugin `publish-metrics` apuntando al Pushgateway, no habrá métricas que ver. Si se necesita,
-> hay que instalar `artillery` como devDependency en `ecommerce-api`, escribir un escenario
-> (`.yml`) y un script `npm run test:load` — no asumir que ya existe.
+> **OBS-01 cerrado (2026-08-27):** `artillery` y `artillery-plugin-publish-metrics` ya son
+> devDependencies de `ecommerce-api`, el escenario real vive en
+> `ecommerce-api/loadtest/catalog.yml` y corre con `npm run test:load`. Apunta a los endpoints
+> públicos del catálogo (`/api/products`, `/api/products/search`, `/api/categories`,
+> `/api/categories/:id/products`) y a uno autenticado (`GET /api/cart`, con login único en el
+> hook `before` para no chocar con el rate limiting de `S-05`). Verificado en vivo: Artillery →
+> Pushgateway → Prometheus, 16 series scrapeadas correctamente.
 
 ## Puertos
 
@@ -42,6 +43,15 @@ cd observability
 cp .env.example .env          # define el password de Grafana (no se commitea)
 docker compose up -d
 docker compose ps             # los 3 contenedores deben estar "running"
+```
+
+## Correr la prueba de carga
+
+Con el stack de arriba corriendo y la API en `:4001` con datos sembrados:
+
+```bash
+cd ../ecommerce-api
+npm run test:load             # ecommerce-api/loadtest/catalog.yml
 ```
 
 - **Grafana**: http://localhost:3050 — login con `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`
