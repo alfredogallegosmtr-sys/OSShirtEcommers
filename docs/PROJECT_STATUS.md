@@ -23,8 +23,11 @@ errores conocidos sin cerrar. La épica de suite de tests (E6) también está co
 reales en todo el monorepo** (107 backend — unitarios + integración de
 auth/cart/category/product/`connectDB` — y 301 frontend, arrancando ambos desde cero). La
 restructuración `app.js`/`server.js` (`REF-01`) fue la pieza que lo desbloqueó; los hallazgos que
-produjo ese trabajo (`B-10` a `B-14`) ya se corrigieron; la filosofía de cobertura y las
-convenciones quedaron documentadas en [docs/testing.md](../docs/testing.md).
+produjo ese trabajo (`B-10` a `B-15`) ya se corrigieron; la filosofía de cobertura y las
+convenciones quedaron documentadas en [docs/testing.md](../docs/testing.md). `E7` (E2E con
+Cypress) tiene las 3 specs completas escritas y verificadas por método alternativo — solo falta
+poder correr el runner real de Cypress, bloqueado en la máquina de desarrollo actual (ver
+`E2E-01`).
 
 ## Estado del backend [CÓDIGO]
 
@@ -109,6 +112,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | B12 | `RegisterForm.jsx` no capturaba email duplicado (422 sin `errors` → `kind:"VALIDATION"` sin `fields`) ni errores de red/timeout/servidor — el registro fallaba en silencio total, sin ningún mensaje visible | ✅ Cerrado 2026-08-26 — mismo hallazgo de `test-planner`, verificado y corregido |
 | B13 | `OrderConfirmation.jsx` leía `order.address` síncronamente durante el render, antes de que el `useEffect` de redirección corriera — entrar sin `state.order` lanzaba `TypeError` en vez de redirigir a `/` | ✅ Cerrado 2026-08-26 — mismo hallazgo de `test-planner`, verificado y corregido |
 | B14 | `Button.jsx` (`components/common/`) no reenviaba props extra (`title`, etc.) al `<button>` real — sin `{...rest}`, se perdían en silencio. Afectaba tooltips reales en `Cart.jsx`, `Checkout.jsx` y `CartView.jsx` | ✅ Cerrado 2026-08-26 — encontrado por `frontend-tester` al escribir tests de `T-02` (Prioridad MEDIA), fix con `{...rest}` (mismo patrón que `Input.jsx`) |
+| B15 | `Checkout.jsx` (`handleCreateOrder`) no tenía ninguna bandera de "enviando" — un doble clic real en "Confirmar y Pagar" podía disparar dos `POST /api/orders` mientras la primera petición seguía en curso | ✅ Cerrado 2026-08-27 — encontrado al escribir `E2E-01`, fix con estado `isSubmittingOrder` que deshabilita el botón desde el inicio de `handleCreateOrder` |
 | B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
 | B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
 | B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
@@ -348,6 +352,27 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   Cierra `T-01` de [docs/backlog.md](./backlog.md) — **`E6` queda completa: 107 tests de backend +
   301 de frontend = 408 tests reales en todo el monorepo**, arrancando desde cero al inicio de
   este esfuerzo.
+- **2026-08-27 — E2E-01 (Cypress): specs completas escritas, verificadas por método alternativo,
+  encuentra y cierra B-15.** Se instaló y configuró Cypress (`cypress.config.js`,
+  `cypress/support/`, `cypress/utils/`) y se escribieron las 3 specs pedidas —
+  `register.cy.js`, `login.cy.js`, `checkout.cy.js` (los 4 bloques funcionales reales del
+  checkout de esta app, no un wizard genérico) — más `cy.loginByApi()`/`cy.addProductToCart()`.
+  **Tres hallazgos reales corregidos durante la escritura:** el carrito híbrido necesita
+  limpiarse también en el servidor entre tests; las secciones de dirección/pago pueden cargar ya
+  colapsadas con datos previos del usuario; la nota original de `B-13` sobre "recargar la
+  página" era imprecisa (el History API conserva `location.state` a través de un reload real,
+  corregido en la documentación de `B-13`). **Hallazgo nuevo, cerrado como `B-15`:**
+  `Checkout.jsx` no prevenía un doble clic real en "Confirmar y Pagar" — fix con un estado
+  `isSubmittingOrder`, más una prueba de regresión en `Checkout.test.jsx` (302 tests de frontend
+  ahora). **Cypress no pudo ejecutarse en esta máquina de desarrollo** — el binario falla su
+  propio smoke test interno (`bad option: --smoke-test`) pese a una reinstalación limpia, firma
+  Authenticode válida y `resources/app` completo; se agotaron los pasos de diagnóstico seguros
+  sin resolverlo. **Verificación alternativa:** cada flujo de las 3 specs se corrió de punta a
+  punta contra el backend/frontend reales con Playwright, replicando las mismas aserciones —
+  así se encontraron los 3 hallazgos y `B-15`, pero esto no sustituye correr las specs reales con
+  el runner de Cypress. Detalle completo, tabla de `data-testid`, y recomendaciones de CI en
+  [docs/testing.md](../docs/testing.md#e2e-con-cypress-ecommerce-appcypress). `E2E-01`/`E7`
+  quedan en progreso — el bloqueo es de esta máquina específica, no del código ni de las specs.
 
 ## Supuestos pendientes de validar
 

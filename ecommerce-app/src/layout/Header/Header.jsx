@@ -340,7 +340,9 @@ export default function Header() {
                 aria-label="Ver carrito de compras"
               >
                 <Icon name="shoppingCart" size={24} />
-                <span className="cart-badge">{totalItems}</span>
+                <span className="cart-badge" data-testid="cart-count">
+                  {totalItems}
+                </span>
               </Link>
 
               {/* Desktop Theme Toggle */}

@@ -1,10 +1,9 @@
 name: CI
 
-# Versión reducida: este proyecto todavía no tiene ESLint/Prettier con scripts npm,
-# suite de tests (Vitest/Jest+coverage), Cypress E2E ni despliegue configurado en Render.
-# Por ahora el gate es solo "instala y compila sin errores" en ambos paquetes. Cuando se
-# agregue lint/tests/E2E/deploy real, ampliar este workflow siguiendo el patrón de
-# 2026-2-ReactFS/.github/workflows/ci-cd.yml (lint -> test+coverage -> e2e -> deploy).
+# Este proyecto no tiene ESLint/Prettier con scripts npm ni despliegue configurado en Render
+# todavía, así que ese alcance sigue fuera de este workflow. Sí tiene suite de tests real en
+# ambos paquetes (Vitest en ecommerce-api, Jest+RTL en ecommerce-app) y specs E2E con Cypress
+# en ecommerce-app/cypress — corren en los jobs test-api, test-app y e2e de abajo.
 on:
   push:
     branches: [main]
@@ -17,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-api:
-    name: Install API (ecommerce-api)
+  test-api:
+    name: Test API (ecommerce-api)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,8 +33,13 @@ jobs:
 
       - run: npm ci
 
-  build-app:
-    name: Install + build App (ecommerce-app)
+      # Vitest + mongodb-memory-server: no necesita un Mongo real ni MONGO_URI en CI,
+      # cada test levanta su propia instancia en memoria (ver tests/integration/helpers/db.js).
+      - name: Tests unitarios + integración con cobertura
+        run: npm run test:coverage
+
+  test-app:
+    name: Test + build App (ecommerce-app)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -51,8 +55,81 @@ jobs:
 
       - run: npm ci
 
-      # CI=true hace que react-scripts trate los warnings de ESLint como errores.
+      # CI=true hace que react-scripts corra Jest una sola vez (sin watch) y trate los
+      # warnings de ESLint del build como errores.
+      - name: Tests unitarios con cobertura
+        run: npm test -- --coverage --watchAll=false
+        env:
+          CI: true
+
       - name: Build de producción
         run: npm run build
         env:
           CI: true
+
+  e2e:
+    name: E2E con Cypress (headless)
+    runs-on: ubuntu-latest
+    needs: [test-api, test-app]
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      MONGO_URI: mongodb://127.0.0.1:27017/osshirt_e2e
+      JWT_SECRET: e2e-ci-jwt-secret
+      JWT_REFRESH_SECRET: e2e-ci-jwt-refresh-secret
+      JWT_EXPIRES_IN: 1h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 4001
+      CORS_ALLOWED_ORIGINS: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ecommerce-api/package-lock.json
+
+      - name: Instalar dependencias de la API
+        working-directory: ecommerce-api
+        run: npm ci
+
+      # user4@test.com / 123456 (password del seed) es el usuario de prueba por defecto
+      # que usa cy.loginByApi() — ver ecommerce-app/cypress.config.js.
+      - name: Sembrar datos de prueba
+        working-directory: ecommerce-api
+        run: npm run seed
+
+      - name: Levantar la API en background
+        working-directory: ecommerce-api
+        run: npm start &
+
+      - name: Instalar, levantar frontend y correr specs de Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ecommerce-app
+          install-command: npm ci
+          start: npm start
+          wait-on: "http://localhost:4001, http://localhost:3001"
+          wait-on-timeout: 120
+        env:
+          CI: true
+          CYPRESS_BASE_URL: http://localhost:3001
+          CYPRESS_API_URL: http://localhost:4001/api
+
+      - name: Subir video/screenshots si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-artifacts
+          path: |
+            ecommerce-app/cypress/videos
+            ecommerce-app/cypress/screenshots
+          if-no-files-found: ignore

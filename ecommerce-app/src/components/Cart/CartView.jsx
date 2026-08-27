@@ -38,14 +38,18 @@ export default function CartView() {
               <Button
                 variant="secondary"
                 size="sm"
+                aria-label="Disminuir cantidad"
                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
               >
                 <Icon name="minus" size={15}></Icon>
               </Button>
-              <span>{item.quantity}</span>
+              <span data-testid={`cart-item-quantity-${item.product._id}`}>
+                {item.quantity}
+              </span>
               <Button
                 variant="secondary"
                 size="sm"
+                aria-label="Aumentar cantidad"
                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
               >
                 <Icon name="plus" size={15}></Icon>

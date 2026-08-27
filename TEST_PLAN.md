@@ -1,9 +1,11 @@
 # TEST_PLAN — OSShirtEcommers
 
 > Monorepo: backend `ecommerce-api/` (este documento, sección de arriba, 107 tests) y frontend
-> `ecommerce-app/` (sección "Frontend", al final, 301 tests — `T-02` cerrado 2026-08-27). Fuente
-> de verdad de ambas: los archivos reales en `src/`, verificados leyendo el código, no supuestos.
-> Filosofía de cobertura y convenciones de testing: [docs/testing.md](./docs/testing.md).
+> `ecommerce-app/` (sección "Frontend", al final, 302 tests — `T-02` cerrado 2026-08-27 con 301;
+> +1 el mismo día por la regresión de `B-15`, encontrado escribiendo `E2E-01`). Fuente de verdad
+> de ambas: los archivos reales en `src/`, verificados leyendo el código, no supuestos. Filosofía
+> de cobertura y convenciones de testing: [docs/testing.md](./docs/testing.md). El plan y estado
+> de la suite E2E (Cypress) vive íntegro en `docs/testing.md`, no se duplica aquí.
 
 # Backend — ecommerce-api
 
@@ -416,11 +418,15 @@ correcto y no queden como tests de caracterización de un bug:**
    registrado" junto al campo email.
 3. **`OrderConfirmation.jsx` — CORREGIDO 2026-08-26:** leía `order.address` (y otros campos)
    **síncronamente durante el render**, antes de que el `useEffect` que redirige a `/` cuando no
-   hay `order` llegara a ejecutarse — entrar a `/order-confirmation` directamente (URL escrita a
-   mano, recarga de página, link viejo) lanzaba `TypeError: Cannot read properties of undefined
-   (reading 'address')` en vez de redirigir. Se agregó un `if (!order) return null;` justo
-   después del `useEffect`. Verificado en vivo con Playwright: navegar a `/order-confirmation`
-   sin `state` → redirige a `/` sin ningún error de página.
+   hay `order` llegara a ejecutarse — entrar a `/order-confirmation` sin pasar por el
+   `navigate(..., {state})` real del checkout (URL escrita a mano, bookmark, link viejo) lanzaba
+   `TypeError: Cannot read properties of undefined (reading 'address')` en vez de redirigir. Se
+   agregó un `if (!order) return null;` justo después del `useEffect`. Verificado en vivo con
+   Playwright: navegar a `/order-confirmation` sin `state` → redirige a `/` sin ningún error de
+   página. **Nota agregada al escribir `E2E-01`:** un simple reload (F5) de esa misma página
+   **no** dispara el bug — el History API conserva `location.state` de la misma entrada de
+   historial a través de un reload real (verificado en vivo); la mención original de "recarga"
+   como disparador era imprecisa.
 
 Estos tres hallazgos no están en `docs/backlog.md` como items abiertos — se cerraron el mismo día
 que se encontraron (`B-11`, `B-12`, `B-13`), ver el detalle ahí.
@@ -974,3 +980,12 @@ que se encontraron (`B-11`, `B-12`, `B-13`), ver el detalle ahí.
   `["admin", "customer"]` (sin `"cliente"`), igual al enum de `User.role`.
 - No existen `userService`/`paymentService`/`shippingService` con datos locales: todos los
   servicios del repo pegan a la API real vía `apiClient`, así que todo se cubre con MSW.
+
+## Nota post-cierre: `B-15` (2026-08-27)
+
+Al escribir `E2E-01` (Cypress, ver `docs/testing.md`) se encontró que `Checkout.jsx` no tenía
+ninguna bandera de "enviando" — el botón "Confirmar y Pagar" seguía habilitado mientras la
+petición estaba en curso, así que un doble clic real podía disparar dos `POST /api/orders`. Se
+corrigió con un estado `isSubmittingOrder` y se agregó una prueba de regresión en
+`Checkout.test.jsx` (302 tests de frontend en total ahora, no 301). Detalle completo en
+`docs/backlog.md`.

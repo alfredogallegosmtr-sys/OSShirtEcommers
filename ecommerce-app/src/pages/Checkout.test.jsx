@@ -121,6 +121,43 @@ test("happy crear orden: click en Confirmar y Pagar -> POST /api/orders con addr
   expect(JSON.parse(localStorage.getItem("cart"))).toHaveLength(0);
 });
 
+test("negativo: doble clic en Confirmar y Pagar mientras la petición está en curso no crea dos órdenes (B-15)", async () => {
+  seedCart([cartItem()]);
+  mockDataOk();
+  let requestCount = 0;
+  server.use(
+    rest.post("http://localhost:4001/api/orders", async (req, res, ctx) => {
+      requestCount += 1;
+      return res(
+        ctx.delay(50),
+        ctx.status(201),
+        ctx.json({
+          _id: "o1",
+          createdAt: "2026-01-15T10:00:00.000Z",
+          subtotalPrice: 400,
+          shippingCost: 350,
+          totalPrice: 814,
+          address: addressFixture(),
+          products: [{ productId: { _id: "p1", name: "Camiseta Naruto" }, quantity: 2, price: 200 }],
+        }),
+      );
+    }),
+  );
+
+  renderCheckout();
+  const payButton = await screen.findByRole("button", { name: /confirmar y pagar/i });
+  await waitFor(() => expect(payButton).toBeEnabled());
+
+  await userEvent.click(payButton);
+  // El botón debe deshabilitarse de inmediato mientras la petición está en curso.
+  expect(await screen.findByRole("button", { name: /procesando/i })).toBeDisabled();
+  // Un segundo click mientras sigue deshabilitado no debe disparar una segunda petición.
+  await userEvent.click(screen.getByRole("button", { name: /procesando/i }));
+
+  await screen.findByText("¡Gracias por tu compra!");
+  expect(requestCount).toBe(1);
+});
+
 test("negativo: carrito vacío -> redirige a /cart", async () => {
   mockDataOk();
 

@@ -1,11 +1,10 @@
 # Estrategia de testing — OSShirtEcommers
 
 > **Documento vivo.** Resume cómo se prueba este repo hoy, verificado contra el código real
-> (`ecommerce-api/vitest.config.js`, `ecommerce-app/package.json`, los archivos de test mismos) —
-> no un plan aspiracional. Cierra la última pieza de `T-01` en [backlog.md](./backlog.md). El
-> detalle caso por caso (qué prueba cada archivo) vive en
-> [TEST_PLAN.md](../TEST_PLAN.md) (raíz del repo); este documento es la capa de arriba —
-> filosofía, convenciones y dónde está cada cosa, no la matriz de casos.
+> (`ecommerce-api/vitest.config.js`, `ecommerce-app/package.json`, `ecommerce-app/cypress.config.js`,
+> los archivos de test mismos) — no un plan aspiracional. El detalle caso por caso (qué prueba
+> cada archivo) vive en [TEST_PLAN.md](../TEST_PLAN.md) (raíz del repo); este documento es la
+> capa de arriba — filosofía, convenciones, cómo correr todo, y dónde está cada cosa.
 
 ## Backend (`ecommerce-api/`)
 
@@ -15,9 +14,9 @@
 - **Estructura:** `tests/unit/` (middlewares y modelos, sin DB real — `Document.validate()`
   puro) y `tests/integration/` (HTTP real vía `supertest` contra `src/app.js`, DB real vía
   `mongodb-memory-server`).
-- **Estado real (2026-08-27):** 105 tests — 60 unitarios (2 middlewares + 8 modelos) + 45 de
-  integración (`auth`/`cart`/`category`/`product`, más las 4 constraints `unique` de índice).
-  Detalle completo en [TEST_PLAN.md](../TEST_PLAN.md).
+- **Estado real (2026-08-27):** 107 tests — 60 unitarios (2 middlewares + 8 modelos) + 47 de
+  integración (`auth`/`cart`/`category`/`product`, las 4 constraints `unique` de índice, y
+  `connectDB`). Detalle completo en [TEST_PLAN.md](../TEST_PLAN.md).
 - **Convención innegociable: nunca mockear Mongoose a mano.** Nada de `vi.mock('mongoose')` ni
   stubs de `Model.find`/`Model.create`. Los tests de integración conectan a un
   `mongodb-memory-server` real y ejercitan el ODM real. La única excepción legítima es espiar
@@ -36,10 +35,10 @@
 - **Runner:** Jest + `@testing-library/react`/`user-event`, vía `react-scripts test` (ya
   integrado por CRA, sin config propia más allá de un `moduleNameMapper`, ver más abajo).
 - **Comando:** `CI=true npm test` (modo no-watch; `npm test` a secas queda en watch mode).
-- **Estado real (2026-08-27):** 301 tests en 56 archivos — Prioridad ALTA (111: `apiClient`,
+- **Estado real (2026-08-27):** 302 tests en 56 archivos — Prioridad ALTA (111: `apiClient`,
   `AuthContext`/`CartContext`/`ThemeContext`, `ProtectedRoute`, `LoginForm`/`RegisterForm`, los 9
-  servicios), MEDIA (169: páginas y componentes con lógica real) y BAJA (21: componentes de
-  presentación pura). Detalle completo en
+  servicios), MEDIA (170: páginas y componentes con lógica real, incluye la regresión de `B-15`)
+  y BAJA (21: componentes de presentación pura). Detalle completo en
   [TEST_PLAN.md](../TEST_PLAN.md#frontend--ecommerce-app).
 - **Convención innegociable: nunca mockear `fetch`/`axios` a mano.** Las peticiones reales de
   `apiClient` se interceptan con **MSW**, fijado en **`msw@1.3.2`** — no v2. Se probó v2 primero;
@@ -56,6 +55,241 @@
     v7 lo necesita, jsdom 16 no lo expone).
   - `package.json` → `jest.moduleNameMapper` para `react-router/dom` (Jest 27 no resuelve el mapa
     `exports` de `package.json` que usa `react-router-dom` v7).
+
+## E2E con Cypress (`ecommerce-app/cypress/`)
+
+Cierra `E2E-01`/`E7` en [backlog.md](./backlog.md). A diferencia de los tests unitarios/de
+integración de arriba, **estos hablan con el backend y la base de datos reales** — nada de MSW
+ni `mongodb-memory-server`. No hay pasarela de pago externa que mockear: `PaymentMethod` es un
+recurso propio de este backend (decisión `S-03`), nunca hay un proveedor real (Stripe/PayPal/etc.)
+de por medio.
+
+### Diferencia entre las tres capas de test de este repo
+
+| Capa | Qué ejercita | DB/API | Dónde |
+|---|---|---|---|
+| Unitario (backend) | Reglas de un modelo o middleware aislado | Ninguna (`Document.validate()`) | `ecommerce-api/tests/unit/` |
+| Integración (backend) | Un controller+ruta completo vía HTTP | `mongodb-memory-server` (real, efímera) | `ecommerce-api/tests/integration/` |
+| Unitario/componente (frontend) | Un componente/hook/servicio aislado | MSW (interceptada, nunca red real) | `ecommerce-app/src/**/*.test.jsx` |
+| **E2E (Cypress)** | **El flujo real de punta a punta, navegador real** | **Backend + Mongo reales, corriendo de verdad** | `ecommerce-app/cypress/` |
+
+### Dependencias instaladas
+
+`cypress@15.21.1`, `@testing-library/cypress@10.1.3` (da `cy.findByRole`/`findByLabelText`/
+`findByText`, mismo estilo de consulta que ya usan los tests de RTL — evita `data-testid` en casi
+todos los formularios porque los labels ya están asociados correctamente) y
+`start-server-and-test@3.0.12`, todas como devDependencies de `ecommerce-app/`.
+
+### Estructura de carpetas
+
+```
+ecommerce-app/
+├── cypress.config.js
+└── cypress/
+    ├── e2e/
+    │   ├── auth/
+    │   │   ├── register.cy.js
+    │   │   └── login.cy.js
+    │   └── checkout/
+    │       └── checkout.cy.js
+    ├── support/
+    │   ├── commands.js   (cy.loginByApi, cy.addProductToCart)
+    │   └── e2e.js
+    └── utils/
+        └── testData.js   (buildUniqueUser, buildAddress, buildCard)
+```
+
+No hay `cypress/fixtures/`: se decidió deliberadamente no usar fixtures estáticos de
+usuarios/productos. Un producto con un `_id` fijo dejaría de existir tras un
+`SEED_ALLOW_RESET=true npm run seed`, y el registro **nunca** puede reusar un email fijo (el
+backend lo rechaza con 422 "User already exist" a partir de la segunda corrida) — por eso
+`addProductToCart` toma el primer producto real vía `GET /api/products` y `buildUniqueUser()`
+genera un email con timestamp en cada corrida. `cypress/fixtures/products.json`/`users.json` no
+se crearon porque ningún test los habría usado — habría sido una carpeta vacía de conveniencia,
+no datos reales.
+
+### Variables de entorno
+
+| Variable | Default (en `cypress.config.js`) | Uso |
+|---|---|---|
+| `CYPRESS_BASE_URL` | `http://localhost:3001` | URL del frontend |
+| `CYPRESS_API_URL` | `http://localhost:4001/api` | Mismo default que usa `apiClient.js` — Cypress corre fuera del proceso de la app y no lee su `.env` |
+| `CYPRESS_TEST_USER_EMAIL` | `user4@test.com` | Usuario semilla real, customer (no admin), para login/checkout |
+| `CYPRESS_TEST_USER_PASSWORD` | `123456` | Password del seed (ver "Contexto operativo" en `backlog.md`) |
+
+Para correr contra otro ambiente o usuario, sobreescribir por variable de entorno del shell o con
+un `cypress.env.json` local en `ecommerce-app/` (gitignorado) — **nunca** comitear credenciales
+reales de un ambiente que no sea este seed de desarrollo.
+
+### Cómo correr
+
+Requiere el backend real + Mongo real corriendo (no `mongodb-memory-server`) — arrancar
+`ecommerce-api` (`npm start` o `npm run dev`) por separado primero:
+
+```bash
+# Terminal 1 — backend real (necesita Mongo corriendo)
+cd ecommerce-api && npm start
+
+# Terminal 2 — Cypress, arranca el frontend por vos y espera a que responda
+cd ecommerce-app
+npm run cypress:open        # modo interactivo
+npm run test:e2e            # headless, una sola corrida
+npm run test:e2e:headed     # headless pero con navegador visible
+npm run test:e2e:ci         # levanta SOLO el frontend (start-server-and-test) y corre headless
+```
+
+`test:e2e:ci` no levanta `ecommerce-api` — `start-server-and-test` puede orquestar varios
+servidores pero no puede garantizar que Mongo esté disponible (no es un contenedor, es un
+servicio del sistema). Ver "Recomendaciones para CI/CD" más abajo para qué falta para
+automatizar esto por completo.
+
+### Datos de prueba: creación, preparación y limpieza
+
+- **Usuarios de prueba (registro):** `buildUniqueUser()` en `cypress/utils/testData.js` genera
+  `cypress-<timestamp>@example.com` en cada corrida — nunca colisiona, nunca necesita limpieza
+  explícita (no hay `DELETE /api/users` en este backend por diseño; son cuentas de descarte
+  inofensivas que quedan en la base).
+- **Usuario para login/checkout:** el seed real (`user4@test.com`/`123456`, customer). No se crea
+  por API — ya existe desde `npm run seed`.
+- **Productos:** `cy.addProductToCart()` toma el primero real de `GET /api/products` — nunca un
+  id fijo.
+- **Carrito:** el carrito de un usuario con sesión es **híbrido** (`localStorage` + servidor, ver
+  `CartContext.jsx`) — antes de cada test de checkout, el `beforeEach` vacía el carrito real del
+  servidor con `DELETE /api/cart`, no solo `localStorage` (limpiar solo `localStorage` no alcanza
+  para un usuario autenticado y deja tests dependientes de corridas anteriores — hallazgo real
+  encontrado escribiendo esta suite, no un supuesto).
+- **Direcciones y métodos de pago:** `checkout.cy.js` guarda los `_id` de lo que crea vía
+  `cy.intercept` y los borra con `DELETE /api/addresses/:id`/`DELETE /api/payment-methods/:id`
+  en un `afterEach` — ambos endpoints sí existen.
+- **Órdenes:** **no se pueden limpiar.** `POST /api/orders` no tiene contraparte `DELETE` (ver
+  [docs/contracts/orders.md](./contracts/orders.md)) — es una decisión de diseño del backend, no
+  un hueco de esta suite. Cada corrida completa de `checkout.cy.js` deja una orden real en el
+  historial de `user4@test.com`. Para un reset completo del catálogo/usuarios/órdenes de
+  desarrollo: `SEED_ALLOW_RESET=true npm run seed` (borra y re-siembra las 7 colecciones — no
+  correrlo casualmente, es destructivo para *todo* el dev DB, no solo los datos de Cypress).
+- **Sección de dirección/pago ya colapsada:** si el usuario de prueba ya tiene una dirección o
+  método de pago (de una corrida anterior, o del seed), `Checkout.jsx` los auto-selecciona y
+  colapsa esa sección — `checkout.cy.js` maneja esto con un helper `ensureSectionExpanded()` que
+  pulsa "Cambiar" solo si la sección ya está colapsada, en vez de asumir un estado inicial fijo.
+
+### `cy.loginByApi()` y `cy.addProductToCart()`
+
+Ambos en `cypress/support/commands.js`.
+
+- **`cy.loginByApi({ email, password })`** — `POST /api/auth/login` directo (nunca pasa por
+  `LoginForm`), usa `cy.session()` para cachear la sesión entre tests. Este backend usa JWT por
+  header (`Authorization: Bearer`), **sin cookies HTTP-only ni sessionStorage** — el token se
+  guarda en `localStorage["authToken"]` dentro del `setup` de `cy.session`, replicando
+  exactamente lo que hace `AuthContext.jsx`. Como `cy.session()` no deja la app cargada, todo
+  test que lo use debe hacer `cy.visit(...)` después.
+- **`cy.addProductToCart({ productId?, quantity? })`** — usa la interfaz real (visita
+  `/product/:id`, clickea "Agregar al carrito") porque el objetivo es validar la integración
+  visual del carrito, no solo dejar una precondición. `ProductDetails.jsx` no tiene selector de
+  cantidad propio (siempre agrega 1) — para `quantity > 1` el comando visita `/cart` después y
+  usa el botón real "Aumentar cantidad" las veces que faga falta, en vez de inventar un mecanismo
+  que no existe en la UI real.
+
+### Qué partes del checkout están mockeadas
+
+**Ninguna.** Es E2E real: `POST /api/auth/*`, `/api/addresses`, `/api/payment-methods` y
+`/api/orders` van contra el backend real y escriben en Mongo real. Los `cy.intercept(...)` en las
+specs son solo para crear **alias** (`cy.wait("@alias")`) y sincronizar la prueba con la
+respuesta real — nunca para reemplazarla con un stub (a diferencia de MSW en los tests de
+componentes, que sí reemplaza la red por completo).
+
+### Qué no se puede probar completamente
+
+- **Una pasarela de pago externa real** — no existe en este proyecto. `PaymentMethod` nunca se
+  conecta a Stripe/PayPal/etc.; un cobro real requeriría integrarlo primero (fuera del alcance
+  actual, ver `docs/backlog.md`).
+- **Validación de campos obligatorios vacíos en `AddressForm`/`PaymentForm` vía Cypress
+  `cy.get(...).click()` sin llenar nada:** esto SÍ funciona en Cypress (a diferencia de los tests
+  Jest/jsdom, que no implementan la API de validación de restricciones HTML) porque Cypress corre
+  en un navegador real — se verificó en vivo que el envío vacío efectivamente no dispara la
+  petición.
+- **Inventario/stock insuficiente en el flujo de carrito** — no existe esa validación en esta
+  app (no se inventó una prueba para una regla que no está implementada).
+
+### Tabla de `data-testid` y atributos de accesibilidad agregados
+
+Solo se agregaron donde no había alternativa semántica estable (rol, label o texto). La mayoría
+de los formularios (login, registro, dirección, pago) se prueban por `label`/`role`/texto real,
+sin ningún `data-testid` nuevo.
+
+| Módulo | Componente | Elemento | Identificador | Archivo |
+|---|---|---|---|---|
+| Header | `Header.jsx` | Contador del carrito | `data-testid="cart-count"` | `src/layout/Header/Header.jsx` |
+| Carrito | `CartView.jsx` | Cantidad de un ítem | `data-testid="cart-item-quantity-{productId}"` | `src/components/Cart/CartView.jsx` |
+| Carrito | `CartView.jsx` | Botón disminuir cantidad | `aria-label="Disminuir cantidad"` | `src/components/Cart/CartView.jsx` |
+| Carrito | `CartView.jsx` | Botón aumentar cantidad | `aria-label="Aumentar cantidad"` | `src/components/Cart/CartView.jsx` |
+
+Los `aria-label` de arriba son, ante todo, una corrección real de accesibilidad (los botones
+`+`/`-` solo tenían un ícono SVG, sin nombre accesible) — que de paso resuelve la necesidad de un
+selector estable, siguiendo el orden de prioridad de esta guía (rol+nombre antes que
+`data-testid`). El resto de selectores usados en las specs son `cy.findByRole`/`findByLabelText`/
+`findByText` sobre markup que ya era accesible, o clases CSS ya existentes y estables
+(`.cart-item`, `.selected-address`, `.summary-section`, etc.) cuando no había una alternativa de
+rol/texto razonable.
+
+### Errores conocidos / limitaciones de este entorno
+
+- **Cypress no pudo ejecutarse en esta máquina de desarrollo.** El binario de Cypress
+  (`Cypress.exe`, instalado y reinstalado limpio, firma Authenticode válida, `resources/app`
+  completo) falla su propio smoke test interno (`Cypress.exe --smoke-test --ping=N`) con
+  `bad option: --smoke-test` — un formato de error atípico para Electron, que sugiere una
+  restricción de seguridad a nivel de sistema operativo en esta máquina, no un problema del
+  proyecto ni de las specs. Se agotaron los pasos de diagnóstico seguros (reinstalación limpia,
+  `cypress verify`, verificación de firma digital, `Unblock-File`) sin resolverlo — no se intentó
+  nada más invasivo (deshabilitar antivirus, cambiar políticas del sistema) sin autorización
+  explícita. **Las specs nunca se corrieron con el runner real de Cypress.**
+- **Verificación alternativa realizada en su lugar:** cada flujo que cubren `register.cy.js`,
+  `login.cy.js` y `checkout.cy.js` se ejecutó de punta a punta contra el backend/frontend reales
+  usando Playwright (ya usado en este proyecto para verificación manual, ver el resto de este
+  documento y `docs/backlog.md`) replicando exactamente las mismas aserciones. Esto encontró y
+  corrigió 3 problemas reales antes de darlas por buenas: (1) el carrito híbrido necesita
+  limpiarse también en el servidor, no solo en `localStorage`; (2) las secciones de
+  dirección/pago pueden cargar ya colapsadas si el usuario tiene datos previos, y hay que
+  expandirlas con "Cambiar" antes de poder crear uno nuevo; (3) la nota original de `B-13`
+  mencionaba "recargar la página" como disparador del bug — verificado en vivo que es falso, el
+  History API conserva `location.state` a través de un reload real, se corrigió la documentación
+  y la aserción de la prueba. **No sustituye correr las specs reales** — es la mejor evidencia
+  posible sin el runner de Cypress disponible, no una garantía de que Cypress las ejecutará sin
+  fricciones (sintaxis específica de comandos, timeouts, comportamiento de `cy.session()`, etc.
+  quedan sin confirmar con el runner real).
+- **Próximo paso recomendado:** correr `npm run test:e2e` en una máquina donde el binario de
+  Cypress sí inicie (otra máquina de desarrollo, un contenedor Linux, o resolviendo la restricción
+  de esta máquina con quien administre sus políticas de seguridad) y corregir cualquier ajuste de
+  sintaxis que surja — la lógica y las aserciones ya están verificadas contra el comportamiento
+  real de la app.
+
+### Recomendaciones para CI/CD
+
+(2026-08-27) Implementado en `.github/workflows/ci-cd.yml` — ya no es solo `npm ci` + build:
+
+- **`test-api`**: `npm ci` + `npm run test:coverage`. No necesita Mongo real en el runner porque
+  toda la suite usa `mongodb-memory-server` (levanta su propia instancia en memoria por test, ver
+  `tests/integration/helpers/db.js`).
+- **`test-app`**: `npm ci` + `npm test -- --coverage --watchAll=false` (con `CI: true` para que
+  `react-scripts` corra Jest una sola vez) + `npm run build`.
+- **`e2e`**: corre después de que `test-api`/`test-app` pasen (`needs:`). Usa un *service
+  container* `mongo:7` real (Cypress necesita el backend real corriendo como proceso aparte, no
+  importado dentro del test runner — `mongodb-memory-server` no sirve aquí), siembra datos con
+  `npm run seed` (crea `user4@test.com`/`123456`, el usuario por defecto de
+  `cy.loginByApi()`/`cypress.config.js`), levanta `ecommerce-api` en background, y usa
+  `cypress-io/github-action@v6` para instalar dependencias del frontend, levantar
+  `ecommerce-app` (`npm start`) y correr las specs contra ambos (`wait-on` sobre los dos puertos).
+  Sube `cypress/videos`/`cypress/screenshots` como artifact solo si el job falla.
+- Ningún paso usa `|| true` — cualquier test o spec rota rompe el pipeline.
+- **Sin confirmar todavía**: este job no se ha visto correr en un runner real de GitHub Actions
+  desde este entorno (no hay forma de disparar Actions aquí) — la lógica y cada variable de
+  entorno se justificaron contra el código real (`db.conf.js`, `seed.js`, `cypress.config.js`),
+  pero falta la primera ejecución real en CI para confirmarlo. Ubuntu (el runner de
+  `cypress-io/github-action`) es un entorno distinto al bloqueo de `Cypress.exe` documentado
+  arriba, que es específico de esta máquina Windows — es razonable esperar que sí funcione ahí,
+  pero es una expectativa, no un hecho verificado.
+- **Todavía fuera de este workflow**: lint — ningún `package.json` (`ecommerce-api` ni
+  `ecommerce-app`) tiene hoy script `lint`/`format:check`; agregarlo requiere primero configurar
+  ESLint/Prettier en ambos paquetes, fuera del alcance de este cambio.
 
 ## Filosofía de cobertura (no es un número)
 
@@ -88,12 +322,15 @@ si las ramas reales siguen cubiertas.
 
 ## Fuera de alcance de este documento (trackeado aparte en `backlog.md`)
 
-- **E2E con Cypress** (`E2E-01`/`E7`) — todavía no empezado.
 - **Tests de integración para `address`/`paymentMethod`/`order`/`wishlist`/`user`** — extensión
   futura de `T-04`, no autorizada todavía.
-- **Gate de CI sobre los tests** (`CI-01`/`E8`) — el workflow actual solo hace `npm ci` + build,
-  no corre `npm test` como requisito de merge.
+- **Lint como gate de CI** (`CI-01`/`E8`) — el workflow ya corre `npm test`/coverage y Cypress
+  como requisito de merge (2026-08-27), pero no lint: ningún `package.json` tiene script
+  `lint`/`format:check` todavía.
 - **Pruebas de carga** (`OBS-01`/`E9`) — Artillery no instalado todavía.
+- **Ejecutar `npm run test:e2e` con el runner real de Cypress** — bloqueado en esta máquina de
+  desarrollo específica (ver "Errores conocidos" en la sección de E2E arriba); las specs están
+  escritas y verificadas por un método alternativo, pero no confirmadas con el runner real.
 
 ## Nota sobre `docs/test-plans/`
 

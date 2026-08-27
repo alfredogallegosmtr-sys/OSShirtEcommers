@@ -26,10 +26,10 @@
 | E2 | Wishlist funcional | **Cerrado (2026-08-26)** — F-04 | _(pendiente)_ |
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
-| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-14, sin items pendientes | _(pendiente)_ |
+| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-27)** — B-01 a B-15, sin items pendientes | _(pendiente)_ |
 | E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/REF-01/T-04 todos cerrados, 107 tests backend + 301 frontend = 408 tests reales | _(pendiente)_ |
-| E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
-| E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
+| E7 | E2E con Cypress | En progreso — specs escritas y verificadas por método alternativo (Playwright), runner real de Cypress bloqueado en la máquina de desarrollo | _(pendiente)_ |
+| E8 | CI/CD completo | En progreso — CI-01 parcial: jobs de test+cobertura (backend/frontend) y E2E con Cypress agregados al workflow (2026-08-27); falta lint (ningún `package.json` tiene script `lint` todavía) | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
 | E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
 
@@ -54,7 +54,7 @@
 | B-10 | `POST /api/products` con `slug` duplicado respondía 500 genérico en vez de 422 — `Product.create()` no capturaba el error de índice duplicado de Mongo (`code: 11000`), y el error handler global solo reconocía `ValidationError` de Mongoose | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | B-11 | `LoginForm.jsx` (`handleLoginError`) solo trataba `CLIENT_ERROR`+400, pero login inválido responde 401 real — contraseña incorrecta mostraba el mensaje genérico de error en vez de "Email o contraseña incorrectos" | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
 | B-12 | `RegisterForm.jsx` (`handleRegisterError`) no capturaba email duplicado (422 `{message}` sin `errors` → `kind:"VALIDATION"` sin `fields`) ni errores de red/timeout/servidor — el registro fallaba en silencio total, sin ningún mensaje visible | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
-| B-13 | `OrderConfirmation.jsx` leía `order.address` síncronamente durante el render, antes de que el `useEffect` de redirección corriera — entrar a `/order-confirmation` sin `state.order` (URL directa, recarga, link viejo) lanzaba `TypeError` en vez de redirigir a `/` | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
+| B-13 | `OrderConfirmation.jsx` leía `order.address` síncronamente durante el render, antes de que el `useEffect` de redirección corriera — entrar a `/order-confirmation` sin `state.order` (URL escrita a mano, bookmark, link viejo/compartido — cualquier navegación fresca que no pasó por el `navigate(..., {state})` real del checkout) lanzaba `TypeError` en vez de redirigir a `/` | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
 | B-14 | `Button.jsx` (`components/common/`) no reenviaba props extra (`title`, etc.) al `<button>` real — sin `{...rest}` ni destructuring explícito, cualquier `title` pasado por un consumidor se perdía en silencio. Afectaba tooltips reales en `Cart.jsx`, `Checkout.jsx` y `CartView.jsx` (explican por qué un botón está deshabilitado, o qué hace) | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | **Cerrado (2026-08-26)** |
 | F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
@@ -66,8 +66,9 @@
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
 | DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
 | T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — ALTA/MEDIA/BAJA completas, 301 tests |
-| E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | Pendiente |
-| CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | Pendiente |
+| E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | En progreso — Cypress instalado y configurado, 3 specs completas escritas (`register`/`login`/`checkout`), `cy.loginByApi`/`cy.addProductToCart` implementados; falta poder correr el runner real de Cypress en esta máquina (bloqueado, ver detalle) |
+| B-15 | `Checkout.jsx` (`handleCreateOrder`) no tenía ninguna bandera de "enviando" — un doble clic real en "Confirmar y Pagar" podía disparar dos `POST /api/orders` mientras la primera petición seguía en curso | E5 | Bug | **Alto** | **Cerrado (2026-08-27)** |
+| CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | En progreso (2026-08-27) — tests+cobertura (`test-api`/`test-app`) y E2E con Cypress (`e2e`, con Mongo real como service container) agregados; falta lint (sin scripts `lint`/`format:check` en ningún `package.json`) y confirmar que el job `e2e` corre verde en un runner real (no se ha disparado GitHub Actions todavía) |
 | B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-05 | `data/categories.json` — código muerto, contenido de otro dominio | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-07 | Borrar `server_practice.js` / `db.config_practice.js` (0 bytes, scaffolding del curso) | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
@@ -528,10 +529,16 @@ re-descubrir el mismo terreno.
     específicas sí muestre algo vía `RegisterErrorMessage`.
   - **B-13 (`OrderConfirmation.jsx`):** el componente leía `order.address` (y varios campos más)
     **síncronamente durante el render**, antes de que el `useEffect` que redirige a `/` cuando no
-    hay `order` llegara a ejecutarse. Entrar a `/order-confirmation` directamente — URL escrita a
-    mano, recarga de página, o un link viejo/compartido — lanzaba `TypeError: Cannot read
-    properties of undefined (reading 'address')` en vez de redirigir silenciosamente. Fix: guarda
-    `if (!order) return null;` inmediatamente después del `useEffect`.
+    hay `order` llegara a ejecutarse. Entrar a `/order-confirmation` sin haber pasado por el
+    `navigate(..., {state})` real del checkout — URL escrita a mano, un bookmark, o un link
+    viejo/compartido — lanzaba `TypeError: Cannot read properties of undefined (reading
+    'address')` en vez de redirigir silenciosamente. Fix: guarda `if (!order) return null;`
+    inmediatamente después del `useEffect`. **Corrección posterior (encontrada al escribir
+    `E2E-01`):** recargar la página (F5) sobre `/order-confirmation` **no** dispara este bug —
+    el History API del navegador conserva `location.state` de la misma entrada de historial a
+    través de un reload real, verificado en vivo con Playwright. La descripción original de este
+    hallazgo mencionaba "recarga de página" como disparador; no lo es. El caso real sigue siendo
+    válido (navegación fresca sin pasar por el checkout), solo se corrigió la redacción.
   - **Verificado con Playwright en los tres casos, contra un backend/frontend recién levantados:**
     login con password incorrecto contra `user1@test.com` real → "Email o contraseña incorrectos";
     registro con `user1@test.com` (ya existente) → "Este email ya está registrado" junto al campo
@@ -554,15 +561,67 @@ re-descubrir el mismo terreno.
   comportamiento roto (`Checkout.test.jsx`, `CartView.test.jsx`) para verificar ahora el
   comportamiento correcto. Verificado: `npm test` del frontend en 191/191 tras el fix, y build de
   producción (`react-scripts build`) limpio. Cierra `B-14` de este backlog.
-- **E2E-01 (Cypress):** el proyecto de referencia usa un seed dedicado vía *task* de Cypress para
-  datos de prueba, no el `npm run seed` normal — replicar ese patrón en vez de reusar el seed de
-  producción. Escenario mínimo: login → agregar al carrito → checkout (depende de F-03 para
-  tener un backend real de órdenes contra el cual probar).
-- **CI-01 (CI/CD completo):** `.github/workflows/ci-cd.yml` hoy es la versión reducida (solo
-  `npm ci` + build). Antes de agregar el job de lint hace falta configurar ESLint + Prettier en
-  ambos paquetes — ningún `package.json` tiene hoy scripts `lint`/`format:check`. El workflow ya
-  trae un comentario apuntando al patrón completo de
-  `2026-2-ReactFS/.github/workflows/ci-cd.yml` para cuando toque ampliarlo.
+- **E2E-01 (Cypress) — EN PROGRESO desde 2026-08-27, especificado y verificado por método
+  alternativo, runner real bloqueado en esta máquina:** se instaló `cypress@15.21.1` +
+  `@testing-library/cypress@10.1.3` + `start-server-and-test@3.0.12` en `ecommerce-app/`, se
+  configuró `cypress.config.js` (baseUrl, env con overrides por variable de entorno, video/
+  screenshot en fallos, retries) y se escribieron las 3 specs completas pedidas:
+  `cypress/e2e/auth/register.cy.js` (6 casos: render, campos obligatorios, email inválido,
+  contraseñas distintas, éxito, email duplicado), `cypress/e2e/auth/login.cy.js` (8 casos:
+  render, 3 validaciones nativas HTML5, credenciales incorrectas, éxito, persistencia de sesión,
+  protección de rutas) y `cypress/e2e/checkout/checkout.cy.js` (los 4 bloques funcionales reales
+  del checkout de esta app — no un wizard de 4 pasos genérico, ver `docs/testing.md`). Se
+  implementaron `cy.loginByApi()` (login real por API, cachea con `cy.session()`, escribe el JWT
+  en `localStorage["authToken"]` — este backend no usa cookies) y `cy.addProductToCart()` (usa la
+  interfaz real, toma el primer producto real del catálogo, nunca un id fijo).
+  **No se usaron fixtures estáticos** (`users.json`/`products.json`): un producto con id fijo
+  dejaría de existir tras un reset del seed, y el registro no puede reusar un email fijo —
+  decisión documentada en `docs/testing.md`, no un olvido de la estructura sugerida.
+  **Tres hallazgos reales encontrados al escribir y verificar las specs, corregidos antes de
+  darlas por buenas:**
+  1. El carrito de un usuario con sesión es híbrido (`localStorage` + servidor) — limpiar solo
+     `localStorage` entre tests no alcanza, hay que vaciar también el carrito real del servidor
+     (`DELETE /api/cart`) o los tests heredan ítems de corridas anteriores.
+  2. Si el usuario de prueba ya tiene una dirección/método de pago (de una corrida anterior o del
+     seed), `Checkout.jsx` los auto-selecciona y colapsa esa sección — hay que pulsar "Cambiar"
+     primero. Se agregó un helper `ensureSectionExpanded()` en la spec en vez de asumir un estado
+     inicial fijo.
+  3. La nota original de `B-13` decía que "recargar la página" podía disparar ese bug — falso,
+     verificado en vivo: el History API conserva `location.state` a través de un reload real. Se
+     corrigió la redacción de `B-13` (ver su entrada arriba) y la aserción de la spec para probar
+     el caso real (una navegación fresca sin pasar por el checkout, no un reload).
+  **Hallazgo nuevo, cerrado el mismo día como `B-15`:** al escribir el caso de "prevención de
+  doble clic" se confirmó que `Checkout.jsx` no tenía ninguna bandera de "enviando" — el botón
+  "Confirmar y Pagar" seguía habilitado mientras la petición estaba en curso, así que un doble
+  clic real podía disparar dos `POST /api/orders`. Fix: se agregó el estado `isSubmittingOrder`,
+  deshabilita el botón y cambia su texto a "Procesando..." desde el inicio de
+  `handleCreateOrder`, antes del `await` a la API. Se agregó una prueba unitaria de regresión en
+  `Checkout.test.jsx` (simula la petición con `ctx.delay`, hace dos clicks, confirma una sola
+  petición) además de cubrirlo en la spec E2E real.
+  **Cypress no pudo ejecutarse en esta máquina de desarrollo** — el binario
+  (`Cypress.exe`, reinstalado limpio, firma Authenticode válida, `resources/app` completo) falla
+  su propio smoke test interno con `bad option: --smoke-test`, un error atípico de Electron que
+  sugiere una restricción de seguridad del sistema operativo, no un problema del proyecto. Se
+  agotaron los pasos de diagnóstico seguros (reinstalación, `cypress verify`, verificación de
+  firma, `Unblock-File`) sin resolverlo; no se intentó nada más invasivo sin autorización.
+  **Verificación alternativa realizada:** cada flujo de las 3 specs se ejecutó de punta a punta
+  contra el backend/frontend reales con Playwright, replicando las mismas aserciones — así se
+  encontraron los 3 hallazgos de arriba y `B-15`. No sustituye correr las specs reales con el
+  runner de Cypress; detalle completo, incluyendo la tabla de `data-testid` agregados y las
+  recomendaciones de CI, en [docs/testing.md](../docs/testing.md#e2e-con-cypress-ecommerce-appcypress).
+  **Próximo paso:** correr `npm run test:e2e` en una máquina donde el binario de Cypress sí
+  inicie.
+- **CI-01 (CI/CD completo):** `.github/workflows/ci-cd.yml` ya no es la versión reducida —
+  (2026-08-27) tiene tres jobs: `test-api` (`npm run test:coverage`, sin Mongo real porque usa
+  `mongodb-memory-server`), `test-app` (`npm test -- --coverage --watchAll=false` + build) y `e2e`
+  (Mongo real como *service container*, `npm run seed`, API en background, y
+  `cypress-io/github-action@v6` levantando el frontend y corriendo las 3 specs, con
+  video/screenshots subidos como artifact solo si falla). Sigue faltando: (1) lint — antes hace
+  falta configurar ESLint + Prettier en ambos paquetes, ningún `package.json` tiene hoy scripts
+  `lint`/`format:check`; (2) confirmar que el job `e2e` corre verde en un runner real — se escribió
+  y se justificó cada paso, pero no se ha podido disparar GitHub Actions desde este entorno para
+  verlo ejecutar. Detalle completo en
+  [docs/testing.md](../docs/testing.md#recomendaciones-para-cicd).
 - **OBS-01 (Artillery):** el stack de Docker (Prometheus + Grafana + Pushgateway,
   `observability/`) ya está listo y funcional — falta instalar `artillery` + el plugin
   `publish-metrics` como devDependency en `ecommerce-api`, escribir el escenario de carga
@@ -602,8 +661,10 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
    manejar, ni props perdidas en componentes compartidos.
 6. ~~**E6 (tests)**~~ — `REF-01`, `T-01`, `T-04` (107 tests backend) y `T-02` (301 tests
    frontend) cerrados 2026-08-26/27. Épica completa: 408 tests reales en todo el monorepo.
-7. **E7 (E2E con Cypress)** — sin bloqueos técnicos (F-03 ya cerrado), ahora con integración real
-   de backend (`T-04`) ya cerrada — no debería descubrir los mismos huecos dos veces.
+7. **E7 (E2E con Cypress)** — `E2E-01` especificado y verificado por método alternativo
+   (Playwright) el 2026-08-27, incluyendo el fix de `B-15` que encontró. Solo falta correr el
+   runner real de Cypress (bloqueado en la máquina de desarrollo actual, ver detalle en
+   `E2E-01` y `docs/testing.md`).
 8. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada
    (CI-01 necesita ESLint/Prettier primero; DEP-01 depende de CI-01).
 

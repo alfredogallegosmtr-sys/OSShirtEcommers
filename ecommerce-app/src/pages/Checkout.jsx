@@ -43,6 +43,7 @@ export default function Checkout() {
     (subtotal + taxAmount + shippingCost).toFixed(2)
   );
   const [isOrderFinished, setIsOrderFinished] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   // Utilidad para formatear moneda (MXN)
   const formatMoney = (v) =>
@@ -338,6 +339,7 @@ export default function Checkout() {
    */
   const handleCreateOrder = async () => {
     if (
+      isSubmittingOrder ||
       !selectedAddress ||
       !selectedPayment ||
       !cartItems ||
@@ -346,6 +348,7 @@ export default function Checkout() {
       return;
     }
 
+    setIsSubmittingOrder(true);
     try {
       const order = await createOrder({
         addressId: selectedAddress._id,
@@ -356,6 +359,7 @@ export default function Checkout() {
       clearCart();
     } catch (err) {
       setLocalError("No se pudo completar la orden.");
+      setIsSubmittingOrder(false);
     }
   };
 
@@ -491,13 +495,16 @@ export default function Checkout() {
             <Button
               className="pay-button"
               disabled={
+                isSubmittingOrder ||
                 !selectedAddress ||
                 !selectedPayment ||
                 !cartItems ||
                 cartItems.length === 0
               }
               title={
-                !cartItems || cartItems.length === 0
+                isSubmittingOrder
+                  ? "Procesando tu pedido..."
+                  : !cartItems || cartItems.length === 0
                   ? "No hay productos en el carrito"
                   : !selectedAddress
                   ? "Selecciona una dirección de envío"
@@ -507,7 +514,7 @@ export default function Checkout() {
               }
               onClick={handleCreateOrder}
             >
-              Confirmar y Pagar
+              {isSubmittingOrder ? "Procesando..." : "Confirmar y Pagar"}
             </Button>
           </div>
         </div>
