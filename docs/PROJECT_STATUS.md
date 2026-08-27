@@ -1,6 +1,6 @@
 # Estado real del proyecto — OSShirtEcommers
 
-> **Documento vivo.** Refleja el estado **observable del código** al **2026-08-26**, no el estado
+> **Documento vivo.** Refleja el estado **observable del código** al **2026-08-27**, no el estado
 > deseado.
 > Convención de evidencia: **[CÓDIGO]** verificado en el repo · **[DOC]** proviene de
 > documentación · **[HIPÓTESIS]** inferencia por validar. Cuando la documentación contradice
@@ -21,8 +21,9 @@ limpieza de bugs (E5) están completas: no quedan riesgos de seguridad abiertos 
 protegido por rol, sin datos de tarjeta reales, CORS con allowlist), ni bugs de UI o de manejo de
 errores conocidos sin cerrar. La restructuración `app.js`/`server.js` (`REF-01`) está cerrada y ya
 dio fruto: `T-04` (integración real de auth/cart/category/product con
-`supertest`+`mongodb-memory-server`, 105 tests totales) también está cerrado, y un hallazgo real
-que produjo (`B-10`, slug duplicado → 500) ya se corrigió.
+`supertest`+`mongodb-memory-server`, 105 tests) y `T-02` (suite de frontend con Testing Library +
+MSW, 301 tests) también están cerrados — **406 tests reales en todo el monorepo**. Los hallazgos
+que produjo ese trabajo (`B-10` a `B-14`) ya se corrigieron.
 
 ## Estado del backend [CÓDIGO]
 
@@ -313,6 +314,21 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   corrido de forma independiente (`46 passed, 280 passed`), y build de producción confirmado
   limpio. Con esto, Prioridad MEDIA de `T-02` queda completa — solo falta la Prioridad BAJA
   (componentes de presentación pura) para cerrar `T-02` del todo.
+- **2026-08-27 — T-02 CERRADO por completo: Prioridad BAJA, 301 tests de frontend en total.**
+  Última tanda: `Button` (incluye regresión de `B-14`), `Input`, `Badge`, `Loading`,
+  `ErrorMessage`, `Icon`, `AddressItem`, `PaymentItem`, `Footer` y `Layout` — 21 tests en 10
+  archivos (un intento anterior se cortó por un límite de sesión tras escribir solo
+  `Button.test.jsx`; se verificó que ese archivo quedó completo y en verde antes de relanzar el
+  resto). **Discrepancia real encontrada vs. el texto del plan, documentada y no un bug:**
+  `Icon.jsx` no deja de renderizar nada ante un `name` desconocido — cae al ícono `user` por
+  defecto (comportamiento defensivo intencional, no un bug). `List.jsx`/`BannerCarousel.jsx`
+  quedaron deferred, fuera del alcance cerrado. **Verificado de forma independiente:** diff
+  revisado (10 archivos `*.test.jsx` nuevos entre ambos intentos, cero producción tocada),
+  hallazgo de `Icon.jsx` confirmado leyendo el código fuente real, `CI=true npm test` corrido de
+  forma independiente (`56 passed, 301 passed`), y build de producción confirmado limpio. Con
+  esto, **`T-02` queda cerrado por completo** — 301 tests de frontend + 105 de backend (`T-04`) =
+  406 tests reales en todo el monorepo. Solo `T-01` (cobertura de `db.conf.js`, objetivo de
+  cobertura, `docs/testing.md`) queda abierto dentro de `E6`.
 
 ## Supuestos pendientes de validar
 

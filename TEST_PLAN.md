@@ -277,16 +277,26 @@ a 20000ms en `vitest.config.js`; confirmado estable en corridas repetidas de `np
 > Plan producido por el agente `test-planner` el 2026-08-26 (`T-02` de `docs/backlog.md`),
 > read-only — no escribió ni ejecutó nada. `frontend-tester` (Testing Library + `user-event`,
 > API interceptada con MSW, nunca mocks manuales de `fetch`/`axios`) es quien escribe y corre los
-> tests a partir de este plan. **Estado: Prioridad ALTA `Hecho` (111 tests) — MEDIA `Hecho`
-> completa (169 tests: flujo de compra + cuenta/navegación/checkout sub-forms/routing) — solo
-> BAJA `No iniciado`.**
+> tests a partir de este plan. **Estado: `T-02` CERRADO 2026-08-27 — ALTA/MEDIA/BAJA completas,
+> 301 tests.** (`List.jsx`/`BannerCarousel.jsx` quedaron deferred, fuera del alcance cerrado de
+> `T-02` — ver nota al final de esta sección.)
 
-**Corrida real acumulada** (`CI=true npm test` en `ecommerce-app/`, 2026-08-26, tras la tercera
-tanda de `T-02`):
+**Corrida real final** (`CI=true npm test` en `ecommerce-app/`, 2026-08-27, tras la cuarta y
+última tanda de `T-02`):
 ```
-Test Suites: 46 passed, 46 total
-Tests:       280 passed, 280 total
+Test Suites: 56 passed, 56 total
+Tests:       301 passed, 301 total
 ```
+
+**Cuarta tanda, Prioridad BAJA (componentes de presentación):** `Button` (3 tests, incluye
+regresión de `B-14`), `Input`, `Badge`, `Loading`, `ErrorMessage`, `Icon`, `AddressItem`,
+`PaymentItem`, `Footer` y `Layout` — 21 tests en 10 archivos. La mayoría no necesitó MSW
+(componentes sin llamadas a la API); `Layout.test.jsx` sí, porque `Header`→`Navigation` dispara
+`GET /api/categories` al montar. **Discrepancia real vs. el texto de este plan, documentada y no
+un bug:** `Icon.jsx` (`icons[name] || icons.user`) no deja de renderizar nada ante un `name`
+desconocido como decía este documento — cae al ícono `user` por defecto (comportamiento
+defensivo intencional). El test se escribió contra el comportamiento real observado.
+`List.jsx`/`BannerCarousel.jsx` quedaron fuera de esta tanda (deferred).
 (111 ALTA + 80 MEDIA/flujo-de-compra + 89 MEDIA/cuenta-navegación-routing.)
 
 **Tercera tanda (cuenta, navegación, checkout sub-forms, routing) — 18 archivos, 89 tests:**

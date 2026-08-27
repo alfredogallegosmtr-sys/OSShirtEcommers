@@ -27,7 +27,7 @@
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
 | E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-14, sin items pendientes | _(pendiente)_ |
-| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04 cerrados, T-01/T-02 en progreso (T-02: ALTA hecha, MEDIA/BAJA pendientes) | _(pendiente)_ |
+| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04/T-02 cerrados (301 tests frontend + 105 backend), solo queda **T-01** (cobertura de `db.conf.js`, objetivo de cobertura, `docs/testing.md`) | _(pendiente)_ |
 | E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
 | E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
@@ -65,7 +65,7 @@
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
 | DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
-| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | En progreso — ALTA (111) y MEDIA completa (169: flujo de compra + cuenta/navegación/routing) hechas, 280 tests; solo BAJA pendiente |
+| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — ALTA/MEDIA/BAJA completas, 301 tests |
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | Pendiente |
 | CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | Pendiente |
 | B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
@@ -458,6 +458,26 @@ re-descubrir el mismo terreno.
   corrido de forma independiente: `46 passed, 280 passed`, y build de producción confirmado
   limpio. Con esto, Prioridad MEDIA de `T-02` queda completa — solo falta BAJA (componentes de
   presentación pura) para cerrar `T-02` del todo.
+  **Cuarta y última tanda, Prioridad BAJA — CERRADA 2026-08-27, `T-02` completo:** delegada a
+  `frontend-tester` (se interrumpió una vez por límite de sesión tras escribir solo
+  `Button.test.jsx` — verificado que ese archivo quedó completo y en verde antes de relanzar el
+  resto). Cubre `Input`, `Badge`, `Loading`, `ErrorMessage`, `Icon`, `AddressItem`, `PaymentItem`,
+  `Footer` y `Layout` — 9 archivos nuevos, 18 tests, más los 3 de `Button.test.jsx` ya escritos =
+  21 tests de esta tanda. La mayoría no necesitó MSW (componentes sin llamadas a la API);
+  `Layout.test.jsx` sí, porque `Header`→`Navigation` dispara `GET /api/categories` al montar,
+  mismo patrón ya usado en `Header.test.jsx`/`Navigation.test.jsx`. **Discrepancia real
+  encontrada vs. el texto del plan, documentada y no un bug:** `Icon.jsx`
+  (`icons[name] || icons.user`) no deja de renderizar nada ante un `name` desconocido como decía
+  `TEST_PLAN.md` — cae al ícono `user` por defecto (comportamiento defensivo intencional, evita
+  un hueco visual en blanco). El test se escribió contra el comportamiento real observado, no
+  contra la redacción original del plan. `List.jsx`/`BannerCarousel.jsx` quedaron fuera de
+  alcance de esta tanda (deferred, no forman parte del cierre de `T-02`). **Verificado de forma
+  independiente al reporte del agente:** diff revisado (solo los 10 archivos `*.test.jsx` nuevos
+  entre ambos intentos, cero producción tocada), lectura del hallazgo de `Icon.jsx` confirmada
+  contra el código fuente real, `CI=true npm test` corrido de forma independiente:
+  `56 passed, 301 passed`, y build de producción (`react-scripts build`) confirmado limpio.
+  **`T-02` queda cerrado por completo** (301 tests de frontend + 105 de backend = 406 tests
+  reales en todo el monorepo).
   **Hallazgo real de `test-planner` (leyendo código, no corriendo tests) — verificado y cerrado
   el mismo día como `B-11`/`B-12`/`B-13`, antes de que se escriba ningún test:** tres bugs reales
   en el manejo de errores de auth y en la confirmación de orden. Ver el detalle completo a
@@ -553,9 +573,9 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
    por trabajo real (auditoría inicial, o al hacer `T-04`/`T-02`) y cerrados el mismo día. Épica
    completa: sin páginas huérfanas, mensajes de error/carga silenciados, ramas de error sin
    manejar, ni props perdidas en componentes compartidos.
-6. ~~**E6 (tests) — integración backend**~~ — `REF-01` (split `app.js`/`server.js`) y `T-04`
-   (integración auth/cart/category/product, 105 tests totales) cerrados 2026-08-26. Queda `T-02`
-   (frontend, independiente) para cerrar la épica completa.
+6. `E6 (tests)` — `REF-01`, `T-04` (105 tests backend) y `T-02` (301 tests frontend) cerrados
+   2026-08-26/27. Solo queda `T-01` (cobertura de `db.conf.js`, objetivo de cobertura,
+   `docs/testing.md`) para cerrar la épica del todo — no bloquea nada más.
 7. **E7 (E2E con Cypress)** — sin bloqueos técnicos (F-03 ya cerrado), ahora con integración real
    de backend (`T-04`) ya cerrada — no debería descubrir los mismos huecos dos veces.
 8. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada
