@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import productRoutes from './routes/product.routes.js';
@@ -25,6 +26,7 @@ function getAllowedOrigins() {
     .filter(Boolean);
 }
 
+app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || getAllowedOrigins().includes(origin)) {
@@ -46,7 +48,18 @@ app.get('/', (req, res) => {
 const docsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_DOCS === 'true';
 if (docsEnabled) {
   app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  // swagger-ui-express sirve HTML con estilos/scripts inline; el CSP de helmet ya
+  // quedó fijado por el middleware global de arriba, así que hay que quitarlo (no
+  // basta con "desactivarlo" en un helmet() nuevo, eso no borra un header ya puesto).
+  app.use(
+    '/api-docs',
+    (req, res, next) => {
+      res.removeHeader('Content-Security-Policy');
+      next();
+    },
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec),
+  );
 }
 
 app.use('/api/products', productRoutes);
