@@ -1,9 +1,9 @@
 name: CI
 
-# Este proyecto no tiene ESLint/Prettier con scripts npm ni despliegue configurado en Render
-# todavía, así que ese alcance sigue fuera de este workflow. Sí tiene suite de tests real en
-# ambos paquetes (Vitest en ecommerce-api, Jest+RTL en ecommerce-app) y specs E2E con Cypress
-# en ecommerce-app/cypress — corren en los jobs test-api, test-app y e2e de abajo.
+# Este proyecto no tiene despliegue configurado en Render todavía, así que ese alcance sigue
+# fuera de este workflow. Sí tiene lint (ESLint en ambos paquetes), suite de tests real
+# (Vitest en ecommerce-api, Jest+RTL en ecommerce-app) y specs E2E con Cypress en
+# ecommerce-app/cypress — corren en los jobs test-api, test-app y e2e de abajo.
 on:
   push:
     branches: [main]
@@ -33,6 +33,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
       # Vitest + mongodb-memory-server: no necesita un Mongo real ni MONGO_URI en CI,
       # cada test levanta su propia instancia en memoria (ver tests/integration/helpers/db.js).
       - name: Tests unitarios + integración con cobertura
@@ -54,6 +57,9 @@ jobs:
           cache-dependency-path: ecommerce-app/package-lock.json
 
       - run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       # CI=true hace que react-scripts corra Jest una sola vez (sin watch) y trate los
       # warnings de ESLint del build como errores.

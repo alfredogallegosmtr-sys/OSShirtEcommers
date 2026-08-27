@@ -27,9 +27,9 @@
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
 | E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-27)** — B-01 a B-16, sin items pendientes | _(pendiente)_ |
-| E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/T-04/T-05/REF-01 todos cerrados, 158 tests backend + 302 frontend = 460 tests reales | _(pendiente)_ |
+| E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/T-04/T-05/REF-01 todos cerrados, 158 tests backend + 303 frontend = 461 tests reales | _(pendiente)_ |
 | E7 | E2E con Cypress | **Cerrado (2026-08-27)** — corrido con el runner real de Cypress en GitHub Actions (Ubuntu, job `e2e`): **20/20 specs en verde** (login 8/8, register 6/6, checkout 6/6), confirmado en el run [33061741394](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33061741394). En el camino se corrigieron 3 bugs de CI (PORT filtrado, PORT del frontend faltante, 2 selectores ambiguos propios) y un bug real de la app (`B-16`) | _(pendiente)_ |
-| E8 | CI/CD completo | En progreso — CI-01 parcial: jobs de test+cobertura (backend/frontend) y E2E con Cypress agregados al workflow (2026-08-27); falta lint (ningún `package.json` tiene script `lint` todavía) | _(pendiente)_ |
+| E8 | CI/CD completo | En progreso — `CI-01`: se agregó ESLint (con `eslint.config.js` nuevo en `ecommerce-api`) a ambos paquetes, `npm run lint` limpio en los dos, y un paso `Lint` en `test-api`/`test-app`; pendiente confirmar la corrida real en CI | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
 | E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
 
@@ -65,7 +65,7 @@
 | B-09 | `ErrorMessage`/`Loading` solo aceptan `children`, no `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` y el texto nunca se renderiza | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
-| DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
+| DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | **Cerrado (2026-08-27)** |
 | T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — ALTA/MEDIA/BAJA completas, 301 tests |
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — 20/20 specs en verde con el runner real en GitHub Actions (bloqueo de Cypress en la máquina Windows de desarrollo sigue documentado, pero ya no bloquea nada: CI es el runner real) |
 | B-15 | `Checkout.jsx` (`handleCreateOrder`) no tenía ninguna bandera de "enviando" — un doble clic real en "Confirmar y Pagar" podía disparar dos `POST /api/orders` mientras la primera petición seguía en curso | E5 | Bug | **Alto** | **Cerrado (2026-08-27)** |

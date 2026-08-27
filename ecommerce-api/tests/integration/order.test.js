@@ -4,8 +4,6 @@ import app from "../../src/app.js";
 import Category from "../../src/models/Category.js";
 import Product from "../../src/models/Product.js";
 import Cart from "../../src/models/Cart.js";
-import Address from "../../src/models/Address.js";
-import PaymentMethod from "../../src/models/PaymentMethod.js";
 import { connectTestDB, clearTestDB, closeTestDB } from "./helpers/db.js";
 import { createUserAndToken } from "./helpers/auth.js";
 

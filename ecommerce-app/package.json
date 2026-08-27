@@ -23,7 +23,8 @@
     "cypress:run": "cypress run",
     "test:e2e": "cypress run",
     "test:e2e:headed": "cypress run --headed",
-    "test:e2e:ci": "start-server-and-test start http://localhost:3001 test:e2e"
+    "test:e2e:ci": "start-server-and-test start http://localhost:3001 test:e2e",
+    "lint": "eslint src --max-warnings=0"
   },
   "eslintConfig": {
     "extends": [
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@testing-library/cypress": "^10.1.3",
     "cypress": "^15.21.1",
+    "eslint": "^8.57.1",
     "msw": "^1.3.2",
     "react-scripts": "^5.0.1",
     "start-server-and-test": "^3.0.12"

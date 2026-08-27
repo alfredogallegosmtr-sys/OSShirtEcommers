@@ -49,7 +49,9 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/users', userRoutes);
 
-app.use((err, req, res, next) => {
+// Express solo reconoce un error handler por su arity de 4 parámetros;
+// "_next" debe existir aunque nunca se llame.
+app.use((err, req, res, _next) => {
   console.error(err);
   if (err.name === 'ValidationError') {
     return res.status(422).json({ message: err.message, errors: err.errors });

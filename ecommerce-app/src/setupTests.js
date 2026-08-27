@@ -9,12 +9,12 @@ import '@testing-library/jest-dom';
 // como global. Sin este polyfill, cualquier test que importe
 // "react-router-dom" falla al cargar el módulo.
 import { TextEncoder, TextDecoder } from 'util';
+import { server } from './mocks/server';
+
 if (typeof global.TextEncoder === 'undefined') {
   global.TextEncoder = TextEncoder;
   global.TextDecoder = TextDecoder;
 }
-
-import { server } from './mocks/server';
 
 // MSW intercepta las peticiones reales de axios (vía apiClient) en lugar de
 // mockear fetch/axios a mano. Cada archivo de test registra sus propios

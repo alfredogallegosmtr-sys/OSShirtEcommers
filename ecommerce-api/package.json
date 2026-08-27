@@ -11,7 +11,8 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:watch": "vitest tests/",
-    "test:coverage": "vitest run tests/ --coverage"
+    "test:coverage": "vitest run tests/ --coverage",
+    "lint": "eslint src tests server.js"
   },
   "keywords": [],
   "author": "",
@@ -27,7 +28,10 @@
     "mongoose": "^9.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
     "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2",

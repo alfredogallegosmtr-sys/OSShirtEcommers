@@ -102,7 +102,7 @@ describe("PaymentMethod integration (/api/payment-methods)", () => {
   describe("Validación de type", () => {
     it("[negativo] POST sin type → 422", async () => {
       const { token } = await createUserAndToken({ email: "pm3@test.com" });
-      const { type, ...payload } = validPayload();
+      const { type: _type, ...payload } = validPayload();
 
       const res = await request(app)
         .post("/api/payment-methods")

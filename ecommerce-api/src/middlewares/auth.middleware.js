@@ -12,7 +12,7 @@ export const requireAuth = (req, res, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = { id: payload.userId, name: payload.name, role: payload.role };
     next();
-  } catch (error) {
+  } catch (_error) {
     return res.status(401).json({ message: "Token inválido o expirado" });
   }
 };

@@ -86,7 +86,7 @@ describe("Address integration (/api/addresses)", () => {
 
     it("[negativo] POST sin 'address' (campo requerido) → 422", async () => {
       const { token } = await createUserAndToken({ email: "addr2@test.com" });
-      const { address, ...payload } = validPayload();
+      const { address: _address, ...payload } = validPayload();
 
       const res = await request(app)
         .post("/api/addresses")
