@@ -54,6 +54,15 @@ app.use((err, req, res, next) => {
   if (err.name === 'ValidationError') {
     return res.status(422).json({ message: err.message, errors: err.errors });
   }
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue || {})[0];
+    const value = field ? err.keyValue[field] : undefined;
+    return res.status(422).json({
+      message: field
+        ? `El valor de "${field}" ya está en uso: "${value}"`
+        : 'Valor duplicado',
+    });
+  }
   res.status(500).json({ message: 'Error interno del servidor' });
 });
 

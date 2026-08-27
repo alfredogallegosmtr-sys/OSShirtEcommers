@@ -89,6 +89,26 @@ describe("Category integration (/api/categories)", () => {
       expect(stored).not.toBeNull();
     });
 
+    it("[negativo] POST con slug duplicado → 422 manejado (mismo fix de B-10)", async () => {
+      const { token } = await createUserAndToken({ email: "admin2@test.com", role: "admin" });
+
+      const first = await request(app)
+        .post("/api/categories")
+        .set("Authorization", `Bearer ${token}`)
+        .send(payload);
+      expect(first.status).toBe(201);
+
+      const second = await request(app)
+        .post("/api/categories")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ ...payload, name: "Otra" });
+
+      expect(second.status).toBe(422);
+      expect(second.body).toEqual({
+        message: 'El valor de "slug" ya está en uso: "nueva"',
+      });
+    });
+
     it("[negativo] PUT sin token → 401", async () => {
       const category = await Category.create({
         name: "Anime",

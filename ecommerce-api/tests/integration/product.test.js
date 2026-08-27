@@ -229,8 +229,8 @@ describe("Product integration (/api/products)", () => {
     });
   });
 
-  describe("Slug duplicado en creación — comportamiento real (no se corrige aquí)", () => {
-    it("crea un producto, luego intenta crear otro con el mismo slug y reporta el status real", async () => {
+  describe("Slug duplicado en creación", () => {
+    it("[negativo] slug duplicado → 422 manejado (B-10, corregido en el error handler global)", async () => {
       const category = await createCategory();
       const { token } = await createUserAndToken({ email: "admin4@test.com", role: "admin" });
 
@@ -245,11 +245,10 @@ describe("Product integration (/api/products)", () => {
         .set("Authorization", `Bearer ${token}`)
         .send({ name: "Camiseta B", price: 150, slug: "camiseta-duplicada", category: category._id });
 
-      // TEST_PLAN.md documentaba la sospecha de que esto cae al 500 genérico del error
-      // handler (Mongo E11000 no es un ValidationError de Mongoose) en vez de un 422
-      // manejado. Este test deja registrado el status real observado, no lo corrige.
-      expect(second.status).toBe(500);
-      expect(second.body).toEqual({ message: "Error interno del servidor" });
+      expect(second.status).toBe(422);
+      expect(second.body).toEqual({
+        message: 'El valor de "slug" ya está en uso: "camiseta-duplicada"',
+      });
     });
   });
 });

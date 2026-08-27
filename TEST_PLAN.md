@@ -19,15 +19,16 @@
 | ALTA | 10 | 10 | — |
 | MEDIA | 25 | 25 | — |
 | BAJA | 25 | 25 | — |
-| **Integración** (`T-04`) | 44 | 44 | — |
+| **Integración** (`T-04`) | 45 | 45 | — |
 
-Corrida real completa (`npm test`, 2026-08-26, tras cerrar `T-04` — integración de
-auth/cart/category/product con `supertest` + `mongodb-memory-server`):
+Corrida real completa (`npm test`, 2026-08-26, tras cerrar `T-04`/`B-10` — integración de
+auth/cart/category/product con `supertest` + `mongodb-memory-server`, más el fix del error
+handler global para duplicados de índice `unique`):
 ```
 Test Files  15 passed (15)
-     Tests  104 passed (104)
+     Tests  105 passed (105)
 ```
-(60 unitarios preexistentes + 44 de integración nuevos, todo en verde.)
+(60 unitarios preexistentes + 45 de integración, todo en verde.)
 
 **Reporte de cobertura real** (`npm run test:coverage`, `coverage/coverage-summary.json`):
 
@@ -36,7 +37,7 @@ Test Files  15 passed (15)
 | `src/middlewares/*.js` (2) | 100% | 100% | 100% |
 | `src/models/*.js` (8) | 100% | 100% | 100% |
 | `src/routes/*.js` (9) | 100%\* | 100%\* | 100%\* |
-| `src/app.js` | 80.76% | 37.5% | 40% |
+| `src/app.js` | 80% | 43.75% | 40% |
 | `src/controllers/auth.controller.js` | 96.42% | 84.21% | 100% |
 | `src/controllers/cart.controller.js` | 93.44% | 77.77% | 100% |
 | `src/controllers/category.controller.js` | 82.6% | 54.54% | 100% |
@@ -47,7 +48,7 @@ Test Files  15 passed (15)
 | `src/controllers/wishlist.controller.js` | 13.33% | 0% | 0% |
 | `src/controllers/user.controller.js` | 9.67% | 0% | 0% |
 | `src/config/db.conf.js` | 0% | — | 0% |
-| **Total del proyecto** | **65.46%** | **45.55%** | **55.93%** |
+| **Total del proyecto** | **65.54%** | **45.74%** | **55.93%** |
 
 \* Los archivos de `routes/` marcan 100% solo porque registrar las rutas al importar el módulo ya
 ejecuta ese código — no implica que cada handler detrás se haya ejercitado (ver el % real de cada
@@ -154,9 +155,10 @@ nada; este documento es la fuente real). 12 puntos revisados:
    `address`/`paymentMethod`/`order`/`wishlist`/`user` siguen sin integración — fuera del alcance
    de `T-04`, no un olvido.
 2. **Ramas de error sin cubrir — CERRADO 2026-08-26:** el error handler global (`src/app.js`,
-   `ValidationError`→422 vs. resto→500) ya está cubierto por los tests de admin/auth (403/401) y
-   por el propio test de slug duplicado, que **confirma empíricamente** (no solo sospecha leída
-   del código) que un E11000 cae al 500 genérico — ver `T-04`, hallazgo `B-10`.
+   `ValidationError`→422, `code:11000`→422, resto→500) ya está cubierto por los tests de
+   admin/auth (403/401) y por los tests de slug duplicado en `product.test.js`/`category.test.js`
+   — el E11000 cayendo al 500 genérico era real (confirmado empíricamente, no solo sospecha leída
+   del código) y se corrigió el mismo día como `B-10`.
 3. **Endpoints sin integración — CERRADO parcialmente 2026-08-26:** de los 19 endpoints reales de
    `.claude/api-routes.md`, los de `auth`/`cart`/`category`/`product` (11) ya están probados por
    HTTP real (`T-04`). Los otros 8 (`address`/`paymentMethod`/`order`/`wishlist`/`user`) siguen
@@ -211,21 +213,24 @@ shape que `auth.controller.js`):
   (incluye hijo directo, no nieto).
 - `product.test.js` (13) — mismo patrón 401/403/pass en escritura; soft delete real (el documento
   sigue existiendo con `is_deleted:true`, desaparece de los listados); `GET /search` alcanzable y
-  no tapado por `GET /:id`; slug duplicado documentado como test de caracterización (ver hallazgo
-  abajo).
+  no tapado por `GET /:id`; slug duplicado → 422 (antes 500, ver `B-10` abajo — mismo test,
+  aserción actualizada al corregir el bug).
+- `category.test.js` — se le agregó un tercer caso de slug duplicado → 422 al cerrar `B-10`, para
+  confirmar que el fix generaliza más allá de `Product.slug` (14 casos en total).
 - `unique-constraints.test.js` (4) — `Product.slug`, `Category.slug`, `User.email`, `Cart.user`
   duplicados, cada uno rechazado por Mongo (`code: 11000`) contra la DB real en memoria.
 
-**Hallazgo confirmado con test real (documentado, no corregido — fuera de este alcance):** un
-`slug` duplicado en `POST /api/products` produce un **500 genérico** en vez de un 422 manejado.
+**Hallazgo confirmado con test real, cerrado como `B-10` el mismo día:** un `slug` duplicado en
+`POST /api/products` producía un **500 genérico** en vez de un 422 manejado.
 `product.controller.js` (`createProduct`) llama `Product.create(req.body)` sin capturar el error
 de índice duplicado de Mongo (`MongoServerError`, `code: 11000`); el error handler global
-(`src/app.js`) solo intercepta `err.name === 'ValidationError'` (Mongoose), así que un E11000 cae
-al `else` → 500. Antes era una sospecha leída del código (punto 2 del diagnóstico); ahora está
-confirmada empíricamente con `test/integration/product.test.js` contra `mongodb-memory-server`
-real. Trackeado como `B-10` en `docs/backlog.md`. El mismo patrón aplicaría a `Category.slug` y a
-`Cart.user` si algún flujo intentara crear un segundo carrito por fuera de `getOrCreateCart` —
-`User.email` no lo dispara porque `register` ya chequea duplicado manualmente antes de `create`.
+(`src/app.js`) solo interceptaba `err.name === 'ValidationError'` (Mongoose), así que un E11000
+caía al `else` → 500. Antes era una sospecha leída del código (punto 2 del diagnóstico); el test
+lo confirmó empíricamente, y el fix se hizo en el **error handler global** (no con `try/catch` en
+el controller, respetando la convención del repo): una rama nueva para `err.code === 11000` → 422
+con un mensaje que nombra el campo/valor duplicados. Por vivir en el handler global, cubre
+cualquier `unique` duplicado — se agregó un segundo test HTTP para `Category.slug` que confirma
+que generaliza, no solo `Product.slug`.
 
 **Detalle no obvio de la implementación:** `helpers/db.js` fija
 `process.env.JWT_SECRET`/`JWT_REFRESH_SECRET`/etc. a mano antes de conectar, porque `src/app.js`
@@ -259,5 +264,5 @@ a 20000ms en `vitest.config.js`; confirmado estable en corridas repetidas de `np
 - **Backlog relacionado:** `docs/backlog.md` items `T-01` (en progreso, esta es su evidencia),
   `T-03` (cerrado, script `npm test` agregado), `REF-01` (cerrado, split `app.js`/`server.js`),
   `T-04` (**cerrado 2026-08-26** — integración real de auth/cart/category/product vía supertest +
-  `mongodb-memory-server`, 44 tests), `B-10` (hallazgo nuevo: slug duplicado → 500 en vez de 422,
-  confirmado con test real, no corregido — fuera de este alcance).
+  `mongodb-memory-server`, 45 tests), `B-10` (**cerrado el mismo día** — slug duplicado ahora
+  responde 422, fix en el error handler global).
