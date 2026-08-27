@@ -27,6 +27,10 @@ explícita del usuario, ver `docs/backlog.md` — cada pendiente formal de esas 
 flujo completo: spec en esta carpeta antes de implementar, rama desde `develop`, PR, quality
 gates, cierre con `## Resultados` y `## Matriz de cierre` completos.
 
+Un primer spec de `E10` ya está redactado (FASE 2/3 de SSDLC) como preparación, a la espera de
+esa confirmación — no tiene FASE 4 (rama) ni implementación todavía, así que su estado real es
+`DRAFT`, no reconstruido: se escribió antes de tocar código, como exige la plantilla.
+
 | Spec | Épica | Prioridad | Estado |
 |---|---|---|---|
-| _(sin specs todavía — se escriben al arrancar E9/E10)_ | | | |
+| [2026-08-27-infra-env-vars-render.md](2026-08-27-infra-env-vars-render.md) | E10 | S (complejidad) | DRAFT |

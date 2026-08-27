@@ -37,9 +37,12 @@ Notas:
   todas las interfaces por default en Node).
 - `ASSET_BASE_URL` es necesaria en producción: si no se define, el seed construye las URLs de
   imágenes con `http://localhost:$PORT`, que no sirve fuera de tu máquina.
-- **No hay validación de `NODE_ENV`/CORS que aborte el arranque** — a diferencia de otros
-  proyectos de referencia, `server.js` usa `app.use(cors())` sin restricciones. Si se despliega
-  a producción, conviene restringir el origen antes (ver `.claude/code-patterns.md`).
+- **CORS ya tiene allowlist real** (`S-04`, `src/app.js`) vía `CORS_ALLOWED_ORIGINS` — hay que
+  agregar ahí la URL real del frontend en Render antes de desplegar (ver
+  [environment-variables.md](./environment-variables.md)), si no, el navegador bloqueará las
+  peticiones del frontend desplegado. No hay validación que aborte el arranque si falta esta
+  variable — sin definirla, cae al default de desarrollo (`http://localhost:3001`), lo que
+  rompería CORS en producción de forma silenciosa, no con un error visible.
 
 ## Servicio frontend — Static Site
 
@@ -72,7 +75,8 @@ Notas:
 ## Despliegue automatizado (GitHub Actions)
 
 **No configurado todavía.** El workflow actual ([.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml))
-es la versión reducida: solo `npm ci` + build, sin job de deploy. Cuando se quiera automatizar:
+ya corre lint + tests + cobertura + build + las 20 specs de Cypress (`CI-01`, cerrado), pero no
+tiene job de deploy. Cuando se quiera automatizar:
 
 1. Agregar un job `deploy` al workflow (seguir el patrón de
    `2026-2-ReactFS/.github/workflows/ci-cd.yml`: `needs` de los jobs de build/test, `if: github.ref == 'refs/heads/main'`,
