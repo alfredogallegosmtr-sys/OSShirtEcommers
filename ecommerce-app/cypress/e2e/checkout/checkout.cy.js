@@ -187,7 +187,9 @@ describe("Checkout de punta a punta", () => {
         "be.visible",
       );
       // No hay selector de método de envío -- el costo ya viene calculado en el resumen.
-      cy.findByText(/envío/i).should("be.visible");
+      // Scope a .order-costs: "envío" también aparece en el título de la sección "1. Dirección
+      // de envío" y en "Dirección de envío:" del resumen, findByText sin scope es ambiguo ahí.
+      cy.contains(".order-costs", /envío/i).should("be.visible");
       cy.findByRole("heading", { name: /resumen de la orden/i }).should("be.visible");
     });
 
@@ -220,7 +222,9 @@ describe("Checkout de punta a punta", () => {
       cy.findByRole("heading", { name: /resumen de la orden/i }).should("be.visible");
       cy.findByText(/subtotal:/i).should("be.visible");
       cy.findByText(/iva \(16%\):/i).should("be.visible");
-      cy.findByText(/envío:/i).should("be.visible");
+      // Scope a .order-costs: "Dirección de envío:" (del resumen) también matchea /envío:/i sin
+      // scope, causando ambigüedad real (falla confirmada en un run de CI, no solo teórica).
+      cy.contains(".order-costs", /envío:/i).should("be.visible");
       cy.findByText(/total:/i).should("be.visible");
       cy.contains(".selected-address", address.address).should("be.visible");
       cy.contains(".selected-payment", card.cardHolderName).should("be.visible");
