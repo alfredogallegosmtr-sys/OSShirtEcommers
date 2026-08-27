@@ -300,6 +300,19 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   build de producción (`react-scripts build`) confirmado limpio. Cierra `B-14` de
   [docs/backlog.md](./backlog.md) — `E5` queda otra vez sin items pendientes. Queda pendiente el
   resto de Prioridad MEDIA y toda BAJA para cerrar `T-02` por completo.
+- **2026-08-26 — T-02 completa Prioridad MEDIA: 89 tests más, 280 en total.** Tercera tanda
+  delegada a `frontend-tester`: `Setttings`, `Profile`, `ProfileCard`, `Navigation`, `Header`,
+  `Breadcrumb`, `AddressForm`, `PaymentForm`, `AddressList`, `PaymentList`, `SummarySection`,
+  `RegisterErrorMessage`, `App.jsx` (routing completo) y los 5 wrappers delgados — 18 archivos
+  nuevos, ningún archivo de producción tocado. **Hallazgo investigado y descartado como no-bug
+  reachable:** `ProfileCard.jsx` no guarda contra `currentUser` nulo sin `userProp`, pero
+  `AuthContext` deriva `isAuthenticated: !!user` y el único caller real está detrás de
+  `ProtectedRoute`, que nunca deja pasar un `contextUser` nulo — por construcción, el caso no
+  ocurre en producción; no se abrió un item de backlog nuevo. **Verificado de forma independiente
+  al reporte del agente:** diff revisado (solo los 18 `*.test.jsx` nuevos), `CI=true npm test`
+  corrido de forma independiente (`46 passed, 280 passed`), y build de producción confirmado
+  limpio. Con esto, Prioridad MEDIA de `T-02` queda completa — solo falta la Prioridad BAJA
+  (componentes de presentación pura) para cerrar `T-02` del todo.
 
 ## Supuestos pendientes de validar
 

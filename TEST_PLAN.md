@@ -277,18 +277,50 @@ a 20000ms en `vitest.config.js`; confirmado estable en corridas repetidas de `np
 > Plan producido por el agente `test-planner` el 2026-08-26 (`T-02` de `docs/backlog.md`),
 > read-only — no escribió ni ejecutó nada. `frontend-tester` (Testing Library + `user-event`,
 > API interceptada con MSW, nunca mocks manuales de `fetch`/`axios`) es quien escribe y corre los
-> tests a partir de este plan. **Estado: Prioridad ALTA `Hecho` (111 tests) — MEDIA parcial
-> `Hecho` (80 tests, flujo de compra: `ProductCard`/`ProductDetails`/`CategoryProducts`/`Home`/
-> `SearchResultsList`/`Cart`/`CartView`/`Checkout`/`Orders`/`WishList`/`OrderConfirmation`) —
-> resto de MEDIA y toda BAJA `No iniciado`.**
+> tests a partir de este plan. **Estado: Prioridad ALTA `Hecho` (111 tests) — MEDIA `Hecho`
+> completa (169 tests: flujo de compra + cuenta/navegación/checkout sub-forms/routing) — solo
+> BAJA `No iniciado`.**
 
-**Corrida real acumulada** (`CI=true npm test` en `ecommerce-app/`, 2026-08-26, tras la segunda
+**Corrida real acumulada** (`CI=true npm test` en `ecommerce-app/`, 2026-08-26, tras la tercera
 tanda de `T-02`):
 ```
-Test Suites: 28 passed, 28 total
-Tests:       191 passed, 191 total
+Test Suites: 46 passed, 46 total
+Tests:       280 passed, 280 total
 ```
-(111 de la tanda ALTA + 80 nuevos de esta tanda MEDIA.)
+(111 ALTA + 80 MEDIA/flujo-de-compra + 89 MEDIA/cuenta-navegación-routing.)
+
+**Tercera tanda (cuenta, navegación, checkout sub-forms, routing) — 18 archivos, 89 tests:**
+`Setttings`, `Profile`, `ProfileCard`, `Navigation`, `Header`, `Breadcrumb`, `AddressForm`,
+`PaymentForm`, `AddressList`, `PaymentList`, `SummarySection`, `RegisterErrorMessage`, `App.jsx`
+(routing completo: 8 rutas públicas, 4 protegidas paramétricas, rol no permitido, 404), y los 5
+wrappers delgados (`Login`/`Register`/`Product`/`CategoryPage`/`SearchResults`, un caso cada uno).
+`App.jsx` crea su propio `BrowserRouter` (no acepta uno inyectado), así que la ruta inicial se
+controla con `window.history.pushState` antes de cada render.
+
+**Hallazgo investigado, confirmado que NO es un bug reachable:** `ProfileCard.jsx` accede a
+`currentUser.role` (y otros campos) sin guardar contra `currentUser` nulo cuando no se pasa
+`userProp` — si `AuthContext` estuviera en su estado inicial (`user: null`, antes de resolver),
+montar `<ProfileCard/>` sin `userProp` lanzaría `TypeError`. Verificado que esto **no es
+alcanzable en producción**: `AuthContext` deriva `isAuthenticated: !!user`, y el único punto de
+entrada real (`Profile.jsx`, detrás de `ProtectedRoute`) nunca renderiza `children` mientras
+`loading` es `true` ni cuando `isAuthenticated` es falso — por construcción, si `ProfileCard` sin
+`userProp` llega a montar ahí, `contextUser` ya es no-nulo. El test usa un pequeño `AuthGate`
+(réplica exacta de la guarda de `ProtectedRoute`) para ejercitar el caso del plan de forma
+realista, sin tocar `ProfileCard.jsx`. No se abrió un item de backlog nuevo — no hay bug real que
+cerrar, solo ausencia de una guarda defensiva en un camino inalcanzable.
+
+**Dos casos no automatizables con este stack, documentados inline:** `AddressForm.jsx`/
+`PaymentForm.jsx`, casos "campos requeridos" — jsdom 16.7 (el de `react-scripts` 5) no implementa
+la API de validación de restricciones HTML (`required` no bloquea el evento `submit` en este
+entorno, confirmado empíricamente: el mock de `onSubmit` sí se llamaba). En un navegador real sí
+bloquea; observarlo aquí requeriría mockear `HTMLFormElement.prototype.reportValidity`, fuera de
+alcance.
+
+**Investigado pero no es un bug:** `PaymentForm.jsx` pasa `placeHolder` (mal escrito) en vez de
+`placeholder` a dos `<Input>` — dispara un warning de React en modo dev ("Invalid DOM property"),
+pero los nombres de atributos HTML no distinguen mayúsculas/minúsculas, así que el DOM sigue
+recibiendo `placeholder="..."` correctamente. Puramente un warning de lint, no un bug funcional
+— documentado con un test que lo confirma.
 
 **Hallazgo real nuevo en esta tanda, confirmado y cerrado el mismo día como `B-14`:**
 `components/common/Button/Button.jsx` no reenviaba props extra (`title`, etc.) al `<button>` real

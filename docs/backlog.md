@@ -65,7 +65,7 @@
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
 | DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
-| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | En progreso — ALTA hecha (111 tests) + parte de MEDIA hecha (80 tests, flujo de compra), resto de MEDIA/BAJA pendientes |
+| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | En progreso — ALTA (111) y MEDIA completa (169: flujo de compra + cuenta/navegación/routing) hechas, 280 tests; solo BAJA pendiente |
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | Pendiente |
 | CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | Pendiente |
 | B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
@@ -433,6 +433,31 @@ re-descubrir el mismo terreno.
   revisado (solo los 11 archivos `*.test.jsx`/`*.test.js` nuevos, cero producción tocada por el
   agente), y `CI=true npm test` corrido de forma independiente tras el fix de `B-14`:
   `28 passed, 191 passed`.
+  **Tercera tanda, resto de Prioridad MEDIA (cuenta, navegación, checkout sub-forms, routing) —
+  cerrada 2026-08-26:** delegada a `frontend-tester`, cubre `Setttings`, `Profile`,
+  `ProfileCard`, `Navigation`, `Header`, `Breadcrumb`, `AddressForm`, `PaymentForm`,
+  `AddressList`, `PaymentList`, `SummarySection`, `RegisterErrorMessage`, `App.jsx` (routing
+  completo) y los 5 wrappers delgados (`Login`/`Register`/`Product`/`CategoryPage`/
+  `SearchResults`) — 18 archivos nuevos, 89 tests, mismas convenciones que las tandas anteriores.
+  `App.jsx` crea su propio `BrowserRouter` (no acepta uno inyectado), así que sus tests controlan
+  la ruta inicial con `window.history.pushState` antes de cada render — patrón nuevo documentado
+  ahí mismo, no en `TEST_PLAN.md` porque es un detalle de implementación del test, no del
+  comportamiento probado. **Hallazgo investigado y descartado como no-bug reachable:**
+  `ProfileCard.jsx` accede a `currentUser.role` (y otros campos) sin guardar contra
+  `currentUser` nulo cuando no se pasa `userProp` — pero `AuthContext` deriva
+  `isAuthenticated: !!user`, y el único caller real (`Profile.jsx`, detrás de `ProtectedRoute`)
+  nunca renderiza `children` mientras `loading` es `true` ni si `isAuthenticated` es falso, así
+  que por construcción `contextUser` ya es no-nulo si `ProfileCard` sin `userProp` llega a
+  montar ahí. El test usa un `AuthGate` que replica exactamente esa guarda para ejercitar el
+  caso del plan de forma realista, sin tocar `ProfileCard.jsx` ni abrir un item de backlog nuevo
+  — no hay bug real, solo ausencia de una guarda defensiva en un camino inalcanzable. Dos casos
+  ("campos requeridos" en `AddressForm`/`PaymentForm`) quedaron documentados como no
+  automatizables: jsdom 16.7 no implementa la API de validación de restricciones HTML
+  (`required` no bloquea `submit` en este entorno). Verificado de forma independiente: diff
+  revisado (solo los 18 archivos `*.test.jsx` nuevos, cero producción tocada), `CI=true npm test`
+  corrido de forma independiente: `46 passed, 280 passed`, y build de producción confirmado
+  limpio. Con esto, Prioridad MEDIA de `T-02` queda completa — solo falta BAJA (componentes de
+  presentación pura) para cerrar `T-02` del todo.
   **Hallazgo real de `test-planner` (leyendo código, no corriendo tests) — verificado y cerrado
   el mismo día como `B-11`/`B-12`/`B-13`, antes de que se escriba ningún test:** tres bugs reales
   en el manejo de errores de auth y en la confirmación de orden. Ver el detalle completo a
