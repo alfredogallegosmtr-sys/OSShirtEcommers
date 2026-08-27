@@ -16,11 +16,13 @@ ya corren de punta a punta sobre el backend real, verificado con Playwright; `lo
 sigue usándose para `authToken`/`cart`/`app:theme`. Ya no quedan páginas enrutadas vacías.
 
 El núcleo (auth, catálogo, carrito, checkout, wishlist, perfil, settings) es sólido y fue
-verificado en vivo (curl + Playwright). Las épicas de limpieza de bugs (E5) y seguridad del
-catálogo/pagos (E4) están completas: ya no quedan páginas huérfanas, bugs de UI conocidos, ni
-riesgos de seguridad abiertos (catálogo protegido por rol, sin datos de tarjeta reales, CORS con
-allowlist). La restructuración `app.js`/`server.js` (`REF-01`) también está cerrada, desbloqueando
-`T-04`.
+verificado en vivo (curl + Playwright). La épica de seguridad del catálogo/pagos (E4) está
+completa: no quedan riesgos de seguridad abiertos (catálogo protegido por rol, sin datos de
+tarjeta reales, CORS con allowlist). E5 (limpieza de bugs) quedó sin páginas huérfanas pero se
+reabrió con un hallazgo nuevo (`B-10`, ver "Bugs verificados"). La restructuración
+`app.js`/`server.js` (`REF-01`) está cerrada y ya dio fruto: `T-04` (integración real de
+auth/cart/category/product con `supertest`+`mongodb-memory-server`, 104 tests totales) también
+está cerrado.
 
 ## Estado del backend [CÓDIGO]
 
@@ -100,6 +102,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | B4 | `WishList.jsx`/`Setttings.jsx` enrutadas pero vacías — pantalla en blanco | ✅ Cerrado 2026-08-26: `WishList.jsx` implementado (F-04); `Setttings.jsx` implementado (F-06) |
 | B8 | `ProfileCard.jsx` usaba `contextUser.role` en vez de `currentUser.role` (siempre "guest"); `currentUser.loginDate` (campo inexistente) en vez de `currentUser.last_login`; botones de acción eran stubs no-op (`() => {}`), incluido un "Panel de administración" sin ruta real | ✅ Cerrado 2026-08-26 (F-05) |
 | B9 | `ErrorMessage`/`Loading` (`components/common/`) solo aceptan `children`, no una prop `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` en vez de `{...}` como children, así que el texto nunca se renderiza (queda una caja vacía) | ✅ Cerrado 2026-08-26 — corregidos los 5 llamadores; de paso se encontró y corrigió un segundo bug en `CategoryProducts.jsx` (mostraba el `kind` interno crudo `"NOT_FOUND"` en vez del texto amigable) |
+| B10 | `POST /api/products` con `slug` duplicado responde 500 genérico en vez de 422 — `product.controller.js` (`createProduct`) no captura el `MongoServerError`/`code:11000` de Mongo, y el error handler global solo reconoce `ValidationError` de Mongoose | Pendiente — confirmado con test real (`T-04`, `tests/integration/product.test.js`), no corregido por quedar fuera del alcance de esa tarea |
 | B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
 | B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
 | B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
@@ -183,7 +186,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   `/category/<id-inexistente>` y `/product/<id-inexistente>` muestran el mensaje real; `/wishlist`,
   `/orders`, `/checkout` y una categoría real siguen sin regresiones. Cierra `B-09` de
   [docs/backlog.md](./backlog.md).
-- **2026-08-26 — B-02/B-03 (páginas huérfanas) cerrados, épica E5 completa.** Se borraron
+- **2026-08-26 — B-02/B-03 (páginas huérfanas) cerrados.** Se borraron
   `pages/ProductDetails.jsx` y `pages/PurchaseOrder.jsx` tras confirmar con grep que ninguna tenía
   importador real fuera de sí misma. `ProductDetails.jsx` importaba
   `components/ProductDetails/ProductDetailsCard`, un módulo inexistente en el repo — el producto
@@ -191,7 +194,8 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   datos hardcodeados usando las formas viejas del mock (`alias`/`placeHolder`/`cardNumber`/`cvv`),
   completamente superado por `Checkout.jsx`. Se borraron en vez de reescribirse: sin ruta que
   llegue a ellas, no había comportamiento real que preservar ni proteger con tests. Cierra
-  `B-02`/`B-03` de [docs/backlog.md](./backlog.md) — E5 queda sin items pendientes.
+  `B-02`/`B-03` de [docs/backlog.md](./backlog.md) (`E5` se reabrió después con `B-10`, ver
+  abajo).
 - **2026-08-26 — REF-01: split `app.js`/`server.js`, desbloquea `T-04`.** `server.js` (raíz)
   quedó como entrypoint delgado (`dotenv.config()` → `connectDB()` → `app.listen()`); toda la
   construcción de la app (middlewares, montaje de rutas, error handler) se movió a
@@ -219,6 +223,20 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   Verificado además con Playwright contra un navegador real: login y navegación normales, sin
   errores de CORS en consola. Cierra `S-04` de [docs/backlog.md](./backlog.md) — `E4` (seguridad
   del catálogo y de pagos) queda sin items pendientes.
+- **2026-08-26 — T-04: integración real de auth/cart/category/product, 104 tests totales.**
+  Delegado al agente `backend-tester` (tras corregir su definición, que seguía indicando montar
+  Jest con `--experimental-vm-modules`, desactualizada desde que `T-01` eligió Vitest). Se
+  instalaron `supertest` y `mongodb-memory-server`; se escribieron 44 tests en `ecommerce-api/
+  tests/integration/` importando `src/app.js` (nunca `server.js`) — detalle completo en
+  [TEST_PLAN.md](../TEST_PLAN.md#integración--t-04-hecho-2026-08-26). Verificado de forma
+  independiente al reporte del agente: se leyeron los 5 archivos de test, se corrió `npm test` dos
+  veces (104/104 ambas) y se regeneró el reporte de cobertura real. **Hallazgo confirmado con test
+  real (trackeado como `B-10`, no corregido):** `POST /api/products` con `slug` duplicado responde
+  500 genérico en vez de 422 — antes era una sospecha leída del código, ahora está probada
+  empíricamente contra `mongodb-memory-server`. De paso se encontró y arregló una inestabilidad
+  real en `npm run test:coverage` (timeout intermitente por overhead de instrumentación + 15
+  instancias de `MongoMemoryServer` en paralelo) subiendo `testTimeout`/`hookTimeout` a 20000ms en
+  `vitest.config.js`. Cierra `T-04` de [docs/backlog.md](./backlog.md); reabre `E5` con `B-10`.
 
 ## Supuestos pendientes de validar
 

@@ -43,13 +43,23 @@ Mongoose, ESM con `"type": "module"`). Escribes tests, los ejecutas y reportas e
   [.claude/code-patterns.md](.claude/code-patterns.md). Solo pruebas comportamiento **real**: no
   inventes endpoints, campos ni reglas.
 
-## Setup (las librerías de test NO están instaladas)
+## Setup
 
-`ecommerce-api/package.json` no tiene `jest`, `supertest` ni `mongodb-memory-server`, ni un
-script `"test"`. **Instálalas como devDependencies antes de correr** y añade el script de test.
-El backend es ESM (`"type": "module"`), así que Jest necesita config ESM
-(p. ej. `node --experimental-vm-modules` o `cross-env NODE_OPTIONS=--experimental-vm-modules jest`).
-No instales librerías que no sean estrictamente estas herramientas de test.
+El runner ya es **Vitest** (decisión de `T-01`, `docs/backlog.md` — soporte ESM nativo, no
+`Jest`: este backend es `"type": "module"` y Vitest no necesita el workaround
+`--experimental-vm-modules` que Jest sí requeriría). Ya existen `ecommerce-api/vitest.config.js`
+y los scripts `"test"`/`"test:watch"`/`"test:coverage"` en `package.json` (`T-03`, cerrado) — no
+los reinventes ni migres a Jest. `supertest` y `mongodb-memory-server` **no** están instalados
+todavía: agrégalos como devDependencies antes de escribir tests de integración. No instales
+librerías que no sean estrictamente estas dos.
+
+El backend ya tiene el split `app.js`/`server.js` (`REF-01`, cerrado): `ecommerce-api/src/app.js`
+exporta la app Express **sin efectos secundarios** (sin `dotenv.config()`, `connectDB()` ni
+`app.listen()`) — es lo que hay que importar con `supertest`, nunca `server.js` (que sí levanta
+un puerto real y conecta a Mongo). `vitest.config.js` ya incluye `tests/**/*.test.js` (no solo
+`tests/unit/`), así que un archivo nuevo en `tests/integration/` ya corre con `npm test` sin tocar
+la config — pero si mantienes esa convención de carpeta, confirma que el script de `package.json`
+no siga apuntando solo a `tests/unit/`.
 
 ## Reglas
 

@@ -26,8 +26,8 @@
 | E2 | Wishlist funcional | **Cerrado (2026-08-26)** — F-04 | _(pendiente)_ |
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
-| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-09, sin items pendientes | _(pendiente)_ |
-| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01 cerrados, T-01 en progreso, T-02/T-04 pendientes | _(pendiente)_ |
+| E5 | Limpieza de bugs y código muerto detectados en la auditoría | En progreso — B-01 a B-09 cerrados, queda **B-10** (nuevo, encontrado por `T-04`) | _(pendiente)_ |
+| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04 cerrados, T-01 en progreso, T-02 pendiente | _(pendiente)_ |
 | E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
 | E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
@@ -50,7 +50,8 @@
 | T-01 | Elegir runner de tests backend (Vitest/Jest) + `mongodb-memory-server`, correr `test-planner` | E6 | Deuda técnica | **Alto** | En progreso |
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
 | REF-01 | Split `app.js`/`server.js` en `ecommerce-api` — `server.js` no exportaba `app` sin efectos secundarios (dotenv/connectDB/listen se disparaban solo con importarlo), bloqueando cualquier test de integración con supertest | E6 | Refactor | **Alto** | **Cerrado (2026-08-26)** |
-| T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) — el split `app.js`/`server.js` que lo bloqueaba ya está cerrado (2026-08-26); falta instalar `mongodb-memory-server` y escribir los casos. Detalle completo del alcance en [TEST_PLAN.md](../TEST_PLAN.md#fuera-de-este-alcance--integración-bloqueado) | E6 | Deuda técnica | **Alto** | Pendiente |
+| T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
+| B-10 | `POST /api/products` con `slug` duplicado responde 500 genérico en vez de 422 — `Product.create()` no captura el error de índice duplicado de Mongo (`code: 11000`), y el error handler global solo reconoce `ValidationError` de Mongoose | E5 | Bug | **Medio** | Pendiente |
 | S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | **Cerrado (2026-08-26)** |
 | F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
@@ -337,17 +338,41 @@ re-descubrir el mismo terreno.
   (`T-04`, y en menor medida `E2E-01`/`CI-01` si en algún momento levantan el backend para probar
   contra él) dependían o se beneficiaban de este bootstrap ya limpio; hacerlo antes evita tener
   que rehacer esas configuraciones más adelante.
+- **T-04 (integración auth/cart/category/product) — CERRADO 2026-08-26, delegado al agente
+  `backend-tester`:** se instalaron `supertest` y `mongodb-memory-server` (únicas devDependencies
+  agregadas) y se escribieron 44 tests en `ecommerce-api/tests/integration/` — detalle completo
+  (qué cubre cada archivo, decisiones de helpers) en
+  [TEST_PLAN.md](../TEST_PLAN.md#integración--t-04-hecho-2026-08-26), no se duplica aquí.
+  Verificado de forma independiente (no solo se confió en el reporte del agente): se leyeron los
+  5 archivos de test completos, se corrió `npm test` dos veces por separado (104/104 ambas) y se
+  regeneró `npm run test:coverage` para confirmar los números reales de cobertura por archivo.
+  **Hallazgo real confirmado con test (no corregido, trackeado como `B-10`):** `POST
+  /api/products` con `slug` duplicado responde 500 genérico en vez de 422 —
+  `product.controller.js` (`createProduct`) no captura el `MongoServerError`/`code:11000` de
+  Mongo, y el error handler global (`src/app.js`) solo reconoce `ValidationError` de Mongoose.
+  Antes era una sospecha leída del código (documentada en `TEST_PLAN.md`); ahora está confirmada
+  empíricamente. **Detalle no obvio encontrado al verificar:** `npm run test:coverage` fallaba de
+  forma intermitente (3 tests con timeout de 5000ms) por el overhead de instrumentación V8 sumado
+  a levantar 15 instancias de `MongoMemoryServer` en paralelo — se subió `testTimeout`/
+  `hookTimeout` a 20000ms en `vitest.config.js`, confirmado estable en corridas repetidas después.
+  También se corrigió `ecommerce-api/package.json` (`test`/`test:watch`/`test:coverage` de
+  `tests/unit/` a `tests/`, ya anticipado en el cierre de `T-03`) y `.claude/agents/
+  backend-tester.md` (seguía diciendo que había que montar Jest con `--experimental-vm-modules`,
+  desactualizado desde que `T-01` eligió Vitest) **antes** de delegar, para que el agente no
+  reinventara infraestructura ya decidida.
 - **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
   ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
-  `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`. **Matriz completa y
-  estado real en [TEST_PLAN.md](../TEST_PLAN.md)** (raíz del repo) — no se duplica aquí. Resumen:
-  58 casos unitarios `Hecho` (2 middlewares + 6 modelos, sin DB real), corrida real
-  `10 passed (10 files) / 58 passed (58 tests)`. **Pendiente real, no completado:** todas las
-  pruebas de integración (controllers/rutas de auth/cart/category/product) — bloqueadas hasta
-  hacer el refactor `app.js`/`server.js` (hoy `server.js` no exporta `app` sin efectos
-  secundarios) e instalar `mongodb-memory-server`; cobertura de `db.conf.js` (aplazada, ver
-  TEST_PLAN.md); objetivo de cobertura; `docs/testing.md`. `vitest.config.js` y T-03
-  (`npm test`/`test:watch`/`test:coverage`) ya están, ver más abajo.
+  `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`, igual que
+  `mongodb-memory-server` (instalado al cerrar `T-04`). **Matriz completa y estado real en
+  [TEST_PLAN.md](../TEST_PLAN.md)** (raíz del repo) — no se duplica aquí. Resumen: 104 tests
+  `Hecho` (60 unitarios + 44 de integración, ver `T-04`), corrida real
+  `15 passed (15 files) / 104 passed (104 tests)`. Lo que bloqueaba avanzar (refactor
+  `app.js`/`server.js`, instalar `mongodb-memory-server`) ya se cerró como `REF-01`/`T-04`.
+  **Pendiente real de `T-01` específicamente, no completado:** cobertura de `db.conf.js`
+  (aplazada, ver TEST_PLAN.md — interceptar `mongoose.connect`/`process.exit` roza "mockear
+  Mongoose"); definir un objetivo de cobertura explícito; `docs/testing.md` (estrategia de
+  testing, no existe todavía). `vitest.config.js` y T-03 (`npm test`/`test:watch`/
+  `test:coverage`) ya están, ver más abajo.
 - **T-02 (tests frontend):** el agente `frontend-tester` (`.claude/agents/frontend-tester.md`) ya
   está listo; falta instalar `msw` como devDependency antes de que pueda correr.
 - **E2E-01 (Cypress):** el proyecto de referencia usa un seed dedicado vía *task* de Cypress para
@@ -392,12 +417,14 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
 3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26.
 4. ~~**E3 (cuenta: Profile y Settings)**~~ — F-05/F-06 cerrados 2026-08-26. `B-04` queda
    completamente cerrado (ambas páginas, `WishList.jsx` y `Setttings.jsx`, implementadas).
-5. ~~**E5 (bugs y limpieza restante)**~~ — `B-02`/`B-03`/`B-09` cerrados 2026-08-26. Épica
-   completa: sin páginas huérfanas ni mensajes de error/carga silenciados.
-6. **E6 (tests)** — `REF-01` (split `app.js`/`server.js`) ya cerrado, `T-04` (integración) queda
-   desbloqueado; siguiente paso natural dentro de esta épica. `T-02` (frontend) independiente.
-7. **E7 (E2E con Cypress)** — sin bloqueos técnicos (F-03 ya cerrado), mejor después de tener
-   integración real (`T-04`) para no descubrir los mismos huecos dos veces.
+5. **E5 (bugs y limpieza restante)** — `B-01`/`B-02`/`B-03`/`B-09` cerrados 2026-08-26; queda
+   **B-10** (nuevo, encontrado al cerrar `T-04`: slug duplicado → 500 en vez de 422), Medio,
+   sin páginas huérfanas ni mensajes de error/carga silenciados.
+6. ~~**E6 (tests) — integración backend**~~ — `REF-01` (split `app.js`/`server.js`) y `T-04`
+   (integración auth/cart/category/product, 104 tests totales) cerrados 2026-08-26. Queda `T-02`
+   (frontend, independiente) para cerrar la épica completa.
+7. **E7 (E2E con Cypress)** — sin bloqueos técnicos (F-03 ya cerrado), ahora con integración real
+   de backend (`T-04`) ya cerrada — no debería descubrir los mismos huecos dos veces.
 8. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada
    (CI-01 necesita ESLint/Prettier primero; DEP-01 depende de CI-01).
 
