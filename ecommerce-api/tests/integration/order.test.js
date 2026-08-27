@@ -18,6 +18,7 @@ const createProduct = async (overrides = {}) => {
   return Product.create({
     name: "Camiseta",
     price: 100,
+    stock: 100,
     slug: `camiseta-${Math.random().toString(36).slice(2)}`,
     category: category._id,
     ...overrides,
@@ -227,6 +228,71 @@ describe("Order integration (/api/orders)", () => {
         .get("/api/cart")
         .set("Authorization", `Bearer ${token}`);
       expect(cartRes.body).toEqual({ items: [], total: 0 });
+    });
+  });
+
+  describe("Control de stock (S-10)", () => {
+    it("[happy] al crear la orden, se descuenta el stock del producto comprado", async () => {
+      const { user, token } = await createUserAndToken({ email: "ord10@test.com" });
+      const address = await createAddress(token);
+      const paymentMethod = await createPaymentMethod(token);
+      const product = await createProduct({ price: 100, stock: 10 });
+      await buildCart(user._id, [{ product, quantity: 3 }]);
+
+      const res = await request(app)
+        .post("/api/orders")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ addressId: address._id, paymentMethodId: paymentMethod._id });
+
+      expect(res.status).toBe(201);
+
+      const stored = await Product.findById(product._id);
+      expect(stored.stock).toBe(7);
+    });
+
+    it("[negativo] stock insuficiente → 422, no crea la orden y no toca el stock", async () => {
+      const { user, token } = await createUserAndToken({ email: "ord11@test.com" });
+      const address = await createAddress(token);
+      const paymentMethod = await createPaymentMethod(token);
+      const product = await createProduct({ name: "Poster Raro", price: 100, stock: 2 });
+      await buildCart(user._id, [{ product, quantity: 5 }]);
+
+      const res = await request(app)
+        .post("/api/orders")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ addressId: address._id, paymentMethodId: paymentMethod._id });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({ message: 'Stock insuficiente para "Poster Raro"' });
+
+      const stored = await Product.findById(product._id);
+      expect(stored.stock).toBe(2);
+
+      const orders = await request(app).get("/api/orders").set("Authorization", `Bearer ${token}`);
+      expect(orders.body).toHaveLength(0);
+    });
+
+    it("[negativo] carrito con 2 productos y el segundo sin stock → revierte el descuento del primero", async () => {
+      const { user, token } = await createUserAndToken({ email: "ord12@test.com" });
+      const address = await createAddress(token);
+      const paymentMethod = await createPaymentMethod(token);
+      const productOk = await createProduct({ name: "Camiseta OK", price: 100, stock: 10 });
+      const productSinStock = await createProduct({ name: "Sin Stock", price: 100, stock: 1 });
+      await buildCart(user._id, [
+        { product: productOk, quantity: 3 },
+        { product: productSinStock, quantity: 5 },
+      ]);
+
+      const res = await request(app)
+        .post("/api/orders")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ addressId: address._id, paymentMethodId: paymentMethod._id });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({ message: 'Stock insuficiente para "Sin Stock"' });
+
+      const storedOk = await Product.findById(productOk._id);
+      expect(storedOk.stock).toBe(10);
     });
   });
 
