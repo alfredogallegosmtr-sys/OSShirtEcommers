@@ -266,8 +266,23 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   redirección corriera, así que entrar sin `state.order` lanzaba un `TypeError` en vez de
   redirigir (`B-13`). Verificado con Playwright los tres: login con password incorrecto muestra
   el mensaje correcto, registro con email ya existente muestra "Este email ya está registrado", y
-  navegar a `/order-confirmation` sin estado redirige a `/` sin errores de página. `frontend-tester`
-  todavía no ha escrito ningún test — sigue pendiente instalar `msw`.
+  navegar a `/order-confirmation` sin estado redirige a `/` sin errores de página.
+- **2026-08-26 — T-02 Prioridad ALTA: 111 tests de frontend, primera vez que
+  `ecommerce-app` tiene una suite real.** Delegado a `frontend-tester`, que instaló `msw@1.3.2`
+  (única devDependency nueva — se probó `msw@2.x` primero pero se descartó por
+  incompatibilidades reales entre `@mswjs/interceptors` y el toolchain fijo del repo, CRA5/
+  Jest 27/jsdom 16) y escribió tests para los 17 módulos de prioridad ALTA del plan:
+  `apiClient`, `utils/auth`, los 3 Context (`Auth`/`Cart`/`Theme`), `ProtectedRoute`,
+  `LoginForm`/`RegisterForm`, y los 9 servicios. Ningún archivo de producción tocado.
+  **Verificado de forma independiente al reporte del agente:** diff completo revisado, 5 archivos
+  de test leídos a fondo (`LoginForm`, `RegisterForm`, `CartContext`, `ProtectedRoute`,
+  `apiClient`), y `CI=true npm test` corrido de forma independiente: `17 passed, 111 passed`. Los
+  tests de `LoginForm`/`RegisterForm` ejercitan explícitamente el comportamiento ya corregido de
+  `B-11`/`B-12` y ambos pasan. Dos casos del plan (timeout en `apiClient`, estado de carga en
+  `ProtectedRoute`) quedaron documentados como no automatizables con este stack — límites reales
+  de la librería y de cómo Testing Library flushea efectos, no atajos; detalle técnico completo en
+  [TEST_PLAN.md](../TEST_PLAN.md#frontend--ecommerce-app). Queda pendiente Prioridad MEDIA/BAJA
+  del plan (páginas, componentes de UI) para cerrar `T-02` por completo.
 
 ## Supuestos pendientes de validar
 

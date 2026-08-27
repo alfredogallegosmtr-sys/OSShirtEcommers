@@ -27,7 +27,7 @@
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
 | E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-13, sin items pendientes | _(pendiente)_ |
-| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04 cerrados, T-01 en progreso, T-02 pendiente | _(pendiente)_ |
+| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04 cerrados, T-01/T-02 en progreso (T-02: ALTA hecha, MEDIA/BAJA pendientes) | _(pendiente)_ |
 | E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
 | E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
@@ -64,7 +64,7 @@
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
 | DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
-| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | Pendiente |
+| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | En progreso — Prioridad ALTA hecha (111 tests), MEDIA/BAJA pendientes |
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | Pendiente |
 | CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | Pendiente |
 | B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
@@ -393,14 +393,28 @@ re-descubrir el mismo terreno.
   Mongoose"); definir un objetivo de cobertura explícito; `docs/testing.md` (estrategia de
   testing, no existe todavía). `vitest.config.js` y T-03 (`npm test`/`test:watch`/
   `test:coverage`) ya están, ver más abajo.
-- **T-02 (tests frontend) — planificación hecha 2026-08-26, tests todavía sin escribir:**
-  delegado a `test-planner` (scope explícito: solo `ecommerce-app/src/`, sin tocar el plan de
-  backend ya existente) el plan completo de casos, agregado como sección "Frontend" de
-  [TEST_PLAN.md](../TEST_PLAN.md) (ALTA: `apiClient`, `AuthContext`/`CartContext`/`ThemeContext`,
-  `ProtectedRoute`, formularios de login/registro, servicios; MEDIA: páginas y componentes con
-  lógica real; BAJA: presentación pura). El agente `frontend-tester`
-  (`.claude/agents/frontend-tester.md`) ya está listo para escribir los tests a partir de ese
-  plan; falta instalar `msw` como devDependency antes de que pueda correr.
+- **T-02 (tests frontend) — EN PROGRESO desde 2026-08-26: planificación hecha, Prioridad ALTA
+  hecha, MEDIA/BAJA pendientes.** Plan completo delegado a `test-planner` (scope explícito: solo
+  `ecommerce-app/src/`, sin tocar el plan de backend ya existente), agregado como sección
+  "Frontend" de [TEST_PLAN.md](../TEST_PLAN.md) (ALTA: `apiClient`, `AuthContext`/`CartContext`/
+  `ThemeContext`, `ProtectedRoute`, formularios de login/registro, servicios; MEDIA: páginas y
+  componentes con lógica real; BAJA: presentación pura).
+  **Prioridad ALTA cerrada el mismo día, delegada a `frontend-tester`:** instaló `msw@1.3.2`
+  (única devDependency nueva — se descartó `msw@2.x` por incompatibilidades reales con el
+  toolchain fijo del repo, CRA5/Jest 27/jsdom 16, detalle completo en
+  [TEST_PLAN.md](../TEST_PLAN.md#frontend--ecommerce-app)) y escribió 111 tests en 17 archivos
+  (los 17 módulos ALTA: `apiClient`, `utils/auth`, los 3 Context, `ProtectedRoute`,
+  `LoginForm`/`RegisterForm`, y los 9 servicios). **Verificado de forma independiente al reporte
+  del agente:** se revisó el diff completo (`git status` — solo `package.json`/`package-lock.json`
+  con `msw` + un `moduleNameMapper` de Jest, `setupTests.js`, `src/mocks/server.js` y los 17
+  archivos `*.test.js(x)`, ningún archivo de producción tocado), se leyeron a fondo
+  `LoginForm.test.jsx`, `RegisterForm.test.jsx`, `CartContext.test.jsx`, `ProtectedRoute.test.jsx`
+  y `apiClient.test.js`, y se corrió `CI=true npm test` de forma independiente:
+  `17 passed, 111 passed`. Los tests de `LoginForm`/`RegisterForm` ejercitan explícitamente el
+  comportamiento ya corregido de `B-11`/`B-12` (password incorrecto → "Email o contraseña
+  incorrectos"; email duplicado → "Este email ya está registrado") y ambos pasan. Dos casos del
+  plan quedaron documentados como no automatizables con este stack (comentarios en el código
+  citando la causa técnica exacta, no omitidos en silencio) — detalle en TEST_PLAN.md.
   **Hallazgo real de `test-planner` (leyendo código, no corriendo tests) — verificado y cerrado
   el mismo día como `B-11`/`B-12`/`B-13`, antes de que se escriba ningún test:** tres bugs reales
   en el manejo de errores de auth y en la confirmación de orden. Ver el detalle completo a

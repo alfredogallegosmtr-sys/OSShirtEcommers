@@ -277,7 +277,39 @@ a 20000ms en `vitest.config.js`; confirmado estable en corridas repetidas de `np
 > Plan producido por el agente `test-planner` el 2026-08-26 (`T-02` de `docs/backlog.md`),
 > read-only — no escribió ni ejecutó nada. `frontend-tester` (Testing Library + `user-event`,
 > API interceptada con MSW, nunca mocks manuales de `fetch`/`axios`) es quien escribe y corre los
-> tests a partir de este plan. **Estado: `No iniciado`** — 0 tests de frontend escritos todavía.
+> tests a partir de este plan. **Estado: Prioridad ALTA `Hecho` (111 tests, 2026-08-26) — MEDIA y
+> BAJA `No iniciado`.**
+
+**Corrida real de la sección ALTA** (`CI=true npm test` en `ecommerce-app/`, 2026-08-26):
+```
+Test Suites: 17 passed, 17 total
+Tests:       111 passed, 111 total
+```
+`msw@1.3.2` fue la única devDependency nueva instalada — se probó `msw@2.x` primero pero se
+descartó por incompatibilidades reales entre `@mswjs/interceptors` (basado en sockets/Fetch) y el
+toolchain fijo de este repo (CRA5 → Jest 27.5.1 → jsdom 16.7.0): `responseText` vacío en la ruta
+XHR, `stream has been aborted` en la ruta `http`, y choques de `AbortSignal`/`ReadableStream`
+entre realms — `msw@1.3.2` (interceptor XHR) funciona limpio contra ese jsdom sin tocar código de
+producción. Infraestructura agregada, ningún archivo de producción tocado:
+`ecommerce-app/src/mocks/server.js` (`setupServer()` sin handlers por defecto, cada test registra
+los suyos con `server.use(...)`), `ecommerce-app/src/setupTests.js` (
+`beforeAll(server.listen)`/`afterEach(server.resetHandlers)`/`afterAll(server.close)`, más un
+polyfill de `TextEncoder`/`TextDecoder` — `react-router-dom` v7 lo necesita y jsdom 16 no lo
+expone, hallazgo previo no relacionado con MSW) y un `jest.moduleNameMapper` en `package.json`
+para `react-router/dom` (Jest 27 no resuelve el mapa `exports` de `package.json` que usa
+`react-router-dom` v7, también preexistente).
+
+**Dos casos del plan no se pudieron automatizar con este stack (documentados en el código, no
+omitidos en silencio, sin bugs de producción encontrados):**
+- `apiClient.js`, caso "timeout" (handler que excede 10000ms → `kind:"TIMEOUT"`):
+  `@mswjs/interceptors` (`XMLHttpRequestOverride`) solo reenvía `xhr.timeout` a la petición real
+  cuando la request no está interceptada (passthrough); para una respuesta mockeada nunca se
+  agenda un timer propio, así que `ontimeout` no se dispara sin importar `ctx.delay(...)`.
+  Verificado leyendo el código fuente de `@mswjs/interceptors`.
+- `ProtectedRoute.jsx`, caso "auth aún cargando": la resolución de `loading` en `AuthContext` es
+  100% síncrona y `render()` de Testing Library flushea los efectos vía `act()` antes de devolver
+  el control al test, así que el render intermedio con `loading:true` nunca es observable en este
+  stack sin mockear el propio `AuthContext` (fuera de alcance de "solo interceptar con MSW").
 
 Alcance: `ecommerce-app/src/` (services, context, pages, components). Todos los casos se apoyan
 en MSW interceptando los endpoints reales que consumen los servicios (`/api/auth/*`,
