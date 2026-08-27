@@ -27,7 +27,7 @@
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
 | E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-27)** — B-01 a B-15, sin items pendientes | _(pendiente)_ |
-| E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/REF-01/T-04 todos cerrados, 107 tests backend + 301 frontend = 408 tests reales | _(pendiente)_ |
+| E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/T-04/T-05/REF-01 todos cerrados, 158 tests backend + 302 frontend = 460 tests reales | _(pendiente)_ |
 | E7 | E2E con Cypress | En progreso — specs escritas y verificadas por método alternativo (Playwright), runner real de Cypress bloqueado en la máquina de desarrollo | _(pendiente)_ |
 | E8 | CI/CD completo | En progreso — CI-01 parcial: jobs de test+cobertura (backend/frontend) y E2E con Cypress agregados al workflow (2026-08-27); falta lint (ningún `package.json` tiene script `lint` todavía) | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
@@ -50,7 +50,8 @@
 | T-01 | Elegir runner de tests backend (Vitest/Jest) + `mongodb-memory-server`, correr `test-planner` | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-27)** |
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
 | REF-01 | Split `app.js`/`server.js` en `ecommerce-api` — `server.js` no exportaba `app` sin efectos secundarios (dotenv/connectDB/listen se disparaban solo con importarlo), bloqueando cualquier test de integración con supertest | E6 | Refactor | **Alto** | **Cerrado (2026-08-26)** |
-| T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
+| T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** — extendido por `T-05` |
+| T-05 | Extender integración de backend a los 5 recursos que quedaban fuera de `T-04` (address/paymentMethod/order/wishlist/user, 13 endpoints) + `requireAdmin` unitario + caso 422 de login — producto de la auditoría de la "Estrategia integral de pruebas" | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-27)** — 51 casos nuevos, 158/158 en verde |
 | B-10 | `POST /api/products` con `slug` duplicado respondía 500 genérico en vez de 422 — `Product.create()` no capturaba el error de índice duplicado de Mongo (`code: 11000`), y el error handler global solo reconocía `ValidationError` de Mongoose | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | B-11 | `LoginForm.jsx` (`handleLoginError`) solo trataba `CLIENT_ERROR`+400, pero login inválido responde 401 real — contraseña incorrecta mostraba el mensaje genérico de error en vez de "Email o contraseña incorrectos" | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
 | B-12 | `RegisterForm.jsx` (`handleRegisterError`) no capturaba email duplicado (422 `{message}` sin `errors` → `kind:"VALIDATION"` sin `fields`) ni errores de red/timeout/servidor — el registro fallaba en silencio total, sin ningún mensaje visible | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
@@ -422,6 +423,8 @@ re-descubrir el mismo terreno.
   `vitest.config.js` y `T-03` (`npm test`/`test:watch`/`test:coverage`) ya estaban, ver más abajo.
   **Con esto, `T-01` queda cerrado y la épica `E6` (suite de tests) queda completa: 107 tests de
   backend + 301 de frontend = 408 tests reales en todo el monorepo, arrancando desde cero.**
+  **Actualización 2026-08-27 (`T-05`):** se extendió la integración de backend a los 5 recursos
+  que quedaban fuera de `T-04` — total actual: 158 backend + 302 frontend = 460 tests reales.
 - **T-02 (tests frontend) — EN PROGRESO desde 2026-08-26: planificación hecha, Prioridad ALTA
   hecha, MEDIA/BAJA pendientes.** Plan completo delegado a `test-planner` (scope explícito: solo
   `ecommerce-app/src/`, sin tocar el plan de backend ya existente), agregado como sección
@@ -659,8 +662,9 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
    por trabajo real (auditoría inicial, o al hacer `T-04`/`T-02`) y cerrados el mismo día. Épica
    completa: sin páginas huérfanas, mensajes de error/carga silenciados, ramas de error sin
    manejar, ni props perdidas en componentes compartidos.
-6. ~~**E6 (tests)**~~ — `REF-01`, `T-01`, `T-04` (107 tests backend) y `T-02` (301 tests
-   frontend) cerrados 2026-08-26/27. Épica completa: 408 tests reales en todo el monorepo.
+6. ~~**E6 (tests)**~~ — `REF-01`, `T-01`, `T-04`+`T-05` (158 tests backend, 9/9 recursos con
+   integración) y `T-02` (302 tests frontend) cerrados 2026-08-26/27. Épica completa: 460 tests
+   reales en todo el monorepo.
 7. **E7 (E2E con Cypress)** — `E2E-01` especificado y verificado por método alternativo
    (Playwright) el 2026-08-27, incluyendo el fix de `B-15` que encontró. Solo falta correr el
    runner real de Cypress (bloqueado en la máquina de desarrollo actual, ver detalle en

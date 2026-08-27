@@ -1,6 +1,6 @@
 # TEST_PLAN — OSShirtEcommers
 
-> Monorepo: backend `ecommerce-api/` (este documento, sección de arriba, 107 tests) y frontend
+> Monorepo: backend `ecommerce-api/` (este documento, sección de arriba, 158 tests) y frontend
 > `ecommerce-app/` (sección "Frontend", al final, 302 tests — `T-02` cerrado 2026-08-27 con 301;
 > +1 el mismo día por la regresión de `B-15`, encontrado escribiendo `E2E-01`). Fuente de verdad
 > de ambas: los archivos reales en `src/`, verificados leyendo el código, no supuestos. Filosofía
@@ -26,17 +26,18 @@
 | ALTA | 10 | 10 | — |
 | MEDIA | 25 | 25 | — |
 | BAJA | 25 | 25 | — |
-| **Integración** (`T-04`) | 47 | 47 | — |
+| **Integración** (`T-04` + extensión 2026-08-27) | 98 | 98 | — |
 
-Corrida real completa (`npm test`, 2026-08-27, tras cerrar `T-01` — `connectDB` probado con
-`mongodb-memory-server` real y `process.exit` espiado):
+Corrida real completa (`npm test`, 2026-08-27, tras extender la integración a los 5 recursos que
+faltaban — ver "Estrategia integral de pruebas" en `docs/testing/test-matrix.md`):
 ```
-Test Files  16 passed (16)
-     Tests  107 passed (107)
+Test Files  21 passed (21)
+     Tests  158 passed (158)
 ```
-(60 unitarios preexistentes + 47 de integración, todo en verde.)
+(63 unitarios + 95 de integración, todo en verde.)
 
-**Reporte de cobertura real** (`npm run test:coverage`, `coverage/coverage-summary.json`):
+**Reporte de cobertura real** (`npm run test:coverage`, `coverage/coverage-summary.json`,
+2026-08-27):
 
 | Archivo | Stmts | Branch | Funcs |
 |---|---|---|---|
@@ -45,31 +46,39 @@ Test Files  16 passed (16)
 | `src/routes/*.js` (9) | 100%\* | 100%\* | 100%\* |
 | `src/config/db.conf.js` | 100% | 100% | 100% |
 | `src/app.js` | 80% | 43.75% | 40% |
-| `src/controllers/auth.controller.js` | 96.42% | 84.21% | 100% |
+| `src/controllers/auth.controller.js` | 100% | 89.47% | 100% |
 | `src/controllers/cart.controller.js` | 93.44% | 77.77% | 100% |
 | `src/controllers/category.controller.js` | 82.6% | 54.54% | 100% |
 | `src/controllers/product.controller.js` | 74.5% | 52.63% | 100% |
-| `src/controllers/address.controller.js` | 17.85% | 0% | 0% |
-| `src/controllers/paymentMethod.controller.js` | 17.85% | 0% | 0% |
-| `src/controllers/order.controller.js` | 17.24% | 0% | 0% |
-| `src/controllers/wishlist.controller.js` | 13.33% | 0% | 0% |
-| `src/controllers/user.controller.js` | 9.67% | 0% | 0% |
-| **Total del proyecto** | **67.22%** | **45.74%** | **57.62%** |
+| `src/controllers/address.controller.js` | 82.14% | 58.33% | 100% |
+| `src/controllers/paymentMethod.controller.js` | 78.57% | 50% | 100% |
+| `src/controllers/order.controller.js` | 100% | 100% | 100% |
+| `src/controllers/wishlist.controller.js` | 93.33% | 75% | 100% |
+| `src/controllers/user.controller.js` | 87.09% | 71.42% | 100% |
+| **Total del proyecto** | **89.91%** | **67.02%** | **94.91%** |
 
 \* Los archivos de `routes/` marcan 100% solo porque registrar las rutas al importar el módulo ya
 ejecuta ese código — no implica que cada handler detrás se haya ejercitado (ver el % real de cada
 `controller.js`).
 
-**Los controllers de `address`/`paymentMethod`/`order`/`wishlist`/`user` siguen sin integración**
-— `T-04` cubrió explícitamente auth/cart/category/product (el alcance original bloqueado por
-`REF-01`); los otros 5 recursos quedan fuera de este alcance, no son un olvido. Con lo cubierto
-hoy quedan verificados: el 100% de las reglas `required`/enum/`min` de los 8 modelos, el 100% de
-`requireAuth`/`validate`, y por integración real (HTTP + Mongo real vía `mongodb-memory-server`):
-register/login completos, el CRUD de `cart` con aislamiento cross-user, `requireAuth`+`requireAdmin`
-en la escritura de `category`/`product` (401/403/pass), hard delete real de `category`, soft
-delete real de `product`, la recursión de un nivel en `/:id/products`, el orden de rutas
-`/search` vs `/:id`, y las 4 constraints `unique` de índice (`Product.slug`, `Category.slug`,
-`User.email`, `Cart.user`) contra una DB real.
+**Los 9 recursos reales del backend ya tienen integración** (extendido 2026-08-27 a `address`,
+`paymentMethod`, `order`, `wishlist`, `user`, que hasta entonces solo se habían verificado con
+`curl` en vivo). Quedan verificados: el 100% de las reglas `required`/enum/`min` de los 8 modelos,
+el 100% de `requireAuth` y el 100% de `requireAdmin` (unitario nuevo), y por integración real
+(HTTP + Mongo real vía `mongodb-memory-server`): register/login completos, el CRUD de `cart` con
+aislamiento cross-user, `requireAuth`+`requireAdmin` en la escritura de `category`/`product`
+(401/403/pass), hard delete real de `category`, soft delete real de `product`, la recursión de un
+nivel en `/:id/products`, el orden de rutas, el CRUD completo de `address`/`paymentMethod` con la
+exclusividad de `isDefault` y el rechazo de `cardNumber`/`cvv` (S-03), el cálculo real de totales
+de `order` (IVA 16%, envío $350/gratis ≥$1000) con el vaciado del carrito post-orden, la
+deduplicación de `wishlist`, y el flujo de `user` (perfil sin exponer password, email duplicado,
+cambio de contraseña con verificación real), el orden de rutas `/search` vs `/:id`, y las 4
+constraints `unique` de índice (`Product.slug`, `Category.slug`, `User.email`, `Cart.user`) contra
+una DB real. Detalle fila por fila en
+[docs/testing/test-matrix.md](docs/testing/test-matrix.md). El branch coverage restante
+(67.02%, sobre todo en `category`/`product`/`paymentMethod`) corresponde a ramas de validación de
+`express-validator` ya cubiertas indirectamente por el middleware `validate` unitario, no a lógica
+de negocio sin probar.
 
 ## Prioridad ALTA
 
@@ -159,7 +168,8 @@ nada; este documento es la fuente real). 12 puntos revisados:
    `category`, `product` ahora tienen integración real (74–96% de statements cada uno, ver tabla
    de cobertura). `connectDB` sigue en 0% — decisión aplazada, ver "Pendientes Abiertos".
    `address`/`paymentMethod`/`order`/`wishlist`/`user` siguen sin integración — fuera del alcance
-   de `T-04`, no un olvido.
+   de `T-04`, no un olvido. **Actualización 2026-08-27: resuelto** — los 5 recursos tienen
+   integración real ahora, ver la nota de arriba y `docs/testing/test-matrix.md`.
 2. **Ramas de error sin cubrir — CERRADO 2026-08-26:** el error handler global (`src/app.js`,
    `ValidationError`→422, `code:11000`→422, resto→500) ya está cubierto por los tests de
    admin/auth (403/401) y por los tests de slug duplicado en `product.test.js`/`category.test.js`
@@ -167,8 +177,9 @@ nada; este documento es la fuente real). 12 puntos revisados:
    del código) y se corrigió el mismo día como `B-10`.
 3. **Endpoints sin integración — CERRADO parcialmente 2026-08-26:** de los 19 endpoints reales de
    `.claude/api-routes.md`, los de `auth`/`cart`/`category`/`product` (11) ya están probados por
-   HTTP real (`T-04`). Los otros 8 (`address`/`paymentMethod`/`order`/`wishlist`/`user`) siguen
+   HTTP real (`T-04`). Los otros 8 (`address`/`paymentMethod`/`order`/`wishlist`/`user`) seguían
    sin integración, solo verificados manualmente con curl al cerrar cada `F-0X`.
+   **Actualización 2026-08-27: resuelto** — los 13 endpoints restantes ya tienen integración real.
 4. **Permisos sin comprobar — CERRADO 2026-08-26:** `T-04` confirma con test real que
    `requireAuth` está enganchado en las 5 rutas de `cart.routes.js` (401 sin token en cada una), y
    que `requireAdmin` en `category`/`product` (escritura) sí produce 403 con rol `customer` —
@@ -255,10 +266,9 @@ a 20000ms en `vitest.config.js`; confirmado estable en corridas repetidas de `np
 
 ## Pendientes Abiertos y Gaps Detectados
 
-- **Fuera de este alcance (`T-04` cubrió explícitamente auth/cart/category/product):**
-  integración de `address`/`paymentMethod`/`order`/`wishlist`/`user` — no están cubiertos por
-  `supertest`, solo por curl manual (documentado en `docs/backlog.md`, cada F-0X). No es un
-  olvido, es alcance.
+- ~~**Fuera de este alcance** (`T-04` cubrió explícitamente auth/cart/category/product):
+  integración de `address`/`paymentMethod`/`order`/`wishlist`/`user`~~ — **resuelto 2026-08-27**:
+  los 5 recursos ya tienen integración real vía `supertest`, ver `docs/testing/test-matrix.md`.
 - **Decisión resuelta 2026-08-27 (`T-01`):** cobertura de `src/config/db.conf.js` (`connectDB`)
   — `tests/integration/db.conf.test.js`, 2 casos, sin mockear Mongoose: happy path contra un
   `mongodb-memory-server` real llamando a `connectDB()` (no `mongoose.connect` directo), y

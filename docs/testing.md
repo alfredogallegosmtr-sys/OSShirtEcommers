@@ -5,6 +5,11 @@
 > los archivos de test mismos) — no un plan aspiracional. El detalle caso por caso (qué prueba
 > cada archivo) vive en [TEST_PLAN.md](../TEST_PLAN.md) (raíz del repo); este documento es la
 > capa de arriba — filosofía, convenciones, cómo correr todo, y dónde está cada cosa.
+>
+> **La vista integral que cruza backend+frontend+E2E por escenario de negocio** (matriz de
+> trazabilidad, estrategia unificada de datos de prueba, comandos consolidados, bloqueos
+> conocidos) vive en [docs/testing/](testing/strategy.md) — no se duplica aquí, ese es el punto de
+> entrada de más alto nivel.
 
 ## Backend (`ecommerce-api/`)
 
@@ -14,9 +19,12 @@
 - **Estructura:** `tests/unit/` (middlewares y modelos, sin DB real — `Document.validate()`
   puro) y `tests/integration/` (HTTP real vía `supertest` contra `src/app.js`, DB real vía
   `mongodb-memory-server`).
-- **Estado real (2026-08-27):** 107 tests — 60 unitarios (2 middlewares + 8 modelos) + 47 de
-  integración (`auth`/`cart`/`category`/`product`, las 4 constraints `unique` de índice, y
-  `connectDB`). Detalle completo en [TEST_PLAN.md](../TEST_PLAN.md).
+- **Estado real (2026-08-27):** 158 tests — 63 unitarios (`requireAuth`+`requireAdmin`,
+  `validate`, 8 modelos) + 95 de integración (`auth`/`cart`/`category`/`product`/`address`/
+  `paymentMethod`/`order`/`wishlist`/`user`, las 4 constraints `unique` de índice, y `connectDB`).
+  Los 9 recursos reales del backend tienen integración completa. Detalle completo en
+  [TEST_PLAN.md](../TEST_PLAN.md) y en la matriz de trazabilidad
+  [docs/testing/test-matrix.md](testing/test-matrix.md).
 - **Convención innegociable: nunca mockear Mongoose a mano.** Nada de `vi.mock('mongoose')` ni
   stubs de `Model.find`/`Model.create`. Los tests de integración conectan a un
   `mongodb-memory-server` real y ejercitan el ODM real. La única excepción legítima es espiar
@@ -300,12 +308,12 @@ consistente en todo el trabajo de `T-04`/`T-02`, es:
 - **Modelos y middlewares (backend):** 100% de las reglas reales (`required`/`enum`/`min`,
   cada rama de `requireAuth`/`requireAdmin`/`validate`) — ya logrado, y es el único caso donde
   "100%" es literalmente el objetivo, porque son unidades pequeñas y cerradas.
-- **Controllers/routes con suite de integración** (`auth`/`cart`/`category`/`product`): cada
-  rama de estado/error real y documentada en [.claude/api-routes.md](../.claude/api-routes.md) —
-  no un `%` de statements, sino "¿está probado cada 401/403/404/422/2xx real de esta ruta?".
-- **Recursos sin integración todavía** (`address`/`paymentMethod`/`order`/`wishlist`/`user`):
-  verificados solo con `curl` en vivo al cerrar cada `F-0X` — una brecha real y consciente, no un
-  olvido. Extenderles integración real es trabajo futuro de `E6`, no bloquea nada hoy.
+- **Controllers/routes con suite de integración** (los 9 recursos reales: `auth`/`cart`/
+  `category`/`product`/`address`/`paymentMethod`/`order`/`wishlist`/`user`): cada rama de
+  estado/error real y documentada en [.claude/api-routes.md](../.claude/api-routes.md) — no un `%`
+  de statements, sino "¿está probado cada 401/403/404/422/2xx real de esta ruta?". Extendido
+  (2026-08-27) a los 5 recursos que solo se habían verificado con `curl` en vivo al cerrar cada
+  `F-0X` — ver [docs/testing/test-matrix.md](testing/test-matrix.md).
 - **Frontend con lógica real** (servicios, Context, páginas/componentes con condicionales o
   llamadas a API): happy path + un negativo por cada regla real, mismo criterio que
   `test-planner` usa para priorizar ALTA/MEDIA.
@@ -322,8 +330,6 @@ si las ramas reales siguen cubiertas.
 
 ## Fuera de alcance de este documento (trackeado aparte en `backlog.md`)
 
-- **Tests de integración para `address`/`paymentMethod`/`order`/`wishlist`/`user`** — extensión
-  futura de `T-04`, no autorizada todavía.
 - **Lint como gate de CI** (`CI-01`/`E8`) — el workflow ya corre `npm test`/coverage y Cypress
   como requisito de merge (2026-08-27), pero no lint: ningún `package.json` tiene script
   `lint`/`format:check` todavía.

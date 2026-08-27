@@ -118,5 +118,14 @@ describe("Auth integration (/api/auth)", () => {
       expect(res.status).toBe(401);
       expect(res.body).toEqual({ message: "Credenciales inválidas" });
     });
+
+    it("[negativo] sin password en el body → 422 'Email y password son requeridos'", async () => {
+      const res = await request(app).post("/api/auth/login").send({
+        email: "sinpass-login@test.com",
+      });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({ message: "Email y password son requeridos" });
+    });
   });
 });

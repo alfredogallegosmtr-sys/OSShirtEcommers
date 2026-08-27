@@ -8,6 +8,8 @@
     "start": "node server.js",
     "seed": "node src/seed/seed.js",
     "test": "vitest run tests/",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
     "test:watch": "vitest tests/",
     "test:coverage": "vitest run tests/ --coverage"
   },

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import jwt from "jsonwebtoken";
-import { requireAuth } from "../../../src/middlewares/auth.middleware.js";
+import { requireAuth, requireAdmin } from "../../../src/middlewares/auth.middleware.js";
 
 const SECRET = "test-jwt-secret";
 
@@ -90,6 +90,43 @@ describe("requireAuth", () => {
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: "Token inválido o expirado" });
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("requireAdmin", () => {
+  it("[negativo] req.user.role === 'customer' → 403, no llama next()", () => {
+    const req = { user: { id: "u1", name: "Ana", role: "customer" } };
+    const res = buildRes();
+    const next = vi.fn();
+
+    requireAdmin(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: "Requiere rol de administrador" });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("[happy] req.user.role === 'admin' → llama next(), sin responder", () => {
+    const req = { user: { id: "u1", name: "Ana", role: "admin" } };
+    const res = buildRes();
+    const next = vi.fn();
+
+    requireAdmin(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).not.toHaveBeenCalled();
+  });
+
+  it("[negativo] req.user es undefined (requireAuth nunca corrió) → 403, no lanza", () => {
+    const req = {};
+    const res = buildRes();
+    const next = vi.fn();
+
+    expect(() => requireAdmin(req, res, next)).not.toThrow();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: "Requiere rol de administrador" });
     expect(next).not.toHaveBeenCalled();
   });
 });
