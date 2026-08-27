@@ -1,0 +1,64 @@
+config:
+  target: "http://localhost:4001"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Calentamiento"
+    - duration: 60
+      arrivalRate: 20
+      name: "Carga sostenida"
+  plugins:
+    publish-metrics:
+      - type: prometheus
+        pushgateway: "http://localhost:9091"
+        prefix: "artillery_"
+
+# Login una sola vez antes de arrancar el test (no por cada usuario virtual): S-05 limita
+# POST /auth/login a 10 intentos/15min por IP, y todos los VUs de Artillery salen de la misma
+# IP local. El token capturado aquí queda disponible como {{ authToken }} en todos los flows.
+before:
+  flow:
+    - post:
+        url: "/api/auth/login"
+        json:
+          email: "user2@test.com"
+          password: "123456"
+        capture:
+          - json: "$.token"
+            as: "authToken"
+
+scenarios:
+  - name: "Explorar catálogo (público, sin auth)"
+    weight: 60
+    flow:
+      - get:
+          url: "/api/products"
+      - get:
+          url: "/api/products/search"
+          qs:
+            q: "camiseta"
+      - get:
+          url: "/api/categories"
+
+  - name: "Ver detalle de producto y su categoría"
+    weight: 30
+    flow:
+      - get:
+          url: "/api/products"
+          capture:
+            - json: "$.products[0]._id"
+              as: "productId"
+            - json: "$.products[0].category._id"
+              as: "categoryId"
+      - get:
+          url: "/api/products/{{ productId }}"
+      - get:
+          url: "/api/categories/{{ categoryId }}/products"
+
+  - name: "Usuario logueado revisa su carrito"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/cart"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
