@@ -292,9 +292,17 @@ rol/texto razonable.
   `ecommerce-app/.env` está en `.gitignore` y no existe en el checkout de CI; y `wait-on`/
   `CYPRESS_BASE_URL`/`CYPRESS_API_URL`/`CORS_ALLOWED_ORIGINS` se cambiaron a `127.0.0.1` en vez de
   `localhost` (precaución adicional, no la causa raíz de esos fallos).
-- **Todavía fuera de este workflow**: lint — ningún `package.json` (`ecommerce-api` ni
-  `ecommerce-app`) tiene hoy script `lint`/`format:check`; agregarlo requiere primero configurar
-  ESLint/Prettier en ambos paquetes, fuera del alcance de este cambio.
+- **Lint agregado y confirmado (2026-08-27)**: paso `Lint` (`npm run lint`) en `test-api` y
+  `test-app`, antes de los tests — confirmado en verde en
+  [run 33068441727](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33068441727).
+  `ecommerce-app` ya tenía `eslint-config-react-app` disponible transitivamente vía `react-scripts`
+  (usa el `eslintConfig` que ya existía en `package.json`), solo faltaba fijar `eslint` como
+  devDependency directa y el script. `ecommerce-api` no tenía nada — se agregó
+  `eslint.config.js` (flat config, ESM) con `@eslint/js` recommended + globals de node/vitest, y
+  una convención propia: un parámetro/binding de catch prefijado con `_` es intencionalmente no
+  usado (ej. el `next` obligatorio por la arity de un error handler de Express). Prettier no se
+  agregó — no hacía falta para que el lint gatee el CI, y no se introduce una herramienta nueva
+  sin necesidad real.
 
 ## Filosofía de cobertura (no es un número)
 
@@ -327,9 +335,6 @@ si las ramas reales siguen cubiertas.
 
 ## Fuera de alcance de este documento (trackeado aparte en `backlog.md`)
 
-- **Lint como gate de CI** (`CI-01`/`E8`) — el workflow ya corre `npm test`/coverage y Cypress
-  como requisito de merge (2026-08-27), pero no lint: ningún `package.json` tiene script
-  `lint`/`format:check` todavía.
 - **Pruebas de carga** (`OBS-01`/`E9`) — Artillery no instalado todavía.
 - **Ejecutar `npm run test:e2e` en esta máquina de desarrollo específica** — sigue bloqueado (ver
   "Errores conocidos" en la sección de E2E arriba), pero ya no importa: el runner real de Cypress

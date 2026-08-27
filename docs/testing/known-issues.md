@@ -41,6 +41,23 @@ corrigieron, en orden:
 4. **`B-16`** (bug real de la app, no de CI): condición de carrera en `CartContext.updateItem` —
    ver `docs/backlog.md`.
 
+## Gotcha recurrente: `ecommerce-app/package-lock.json` y versiones de npm
+
+Reproducido dos veces (agregando Cypress y de nuevo agregando ESLint): el npm local de esta
+máquina (v11) resuelve `node_modules/tailwindcss/node_modules/yaml` sin quejarse, pero npm 10.8.2
+(el que trae `actions/setup-node` con `node-version: "20"` en GitHub Actions) falla `npm ci` con
+`Missing: yaml@2.9.0 from lock file`. **Cada vez que se agregue/actualice una dependencia en
+`ecommerce-app/package.json`**, regenerar el lockfile con la misma versión de npm que usa CI en
+vez de `npm install` normal:
+
+```bash
+cd ecommerce-app
+rm -rf node_modules
+npx --yes npm@10.8.2 install
+npx --yes npm@10.8.2 ci   # confirma que el resultado es válido para npm 10
+npm ci                     # confirma que también lo es para la versión local
+```
+
 ## Deuda técnica de la suite
 
 - **Sin `coverageThreshold`/`thresholds`** en ningún runner (ni `vitest.config.js` ni la config de

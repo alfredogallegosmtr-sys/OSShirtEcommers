@@ -29,7 +29,7 @@
 | E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-27)** — B-01 a B-16, sin items pendientes | _(pendiente)_ |
 | E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/T-04/T-05/REF-01 todos cerrados, 158 tests backend + 303 frontend = 461 tests reales | _(pendiente)_ |
 | E7 | E2E con Cypress | **Cerrado (2026-08-27)** — corrido con el runner real de Cypress en GitHub Actions (Ubuntu, job `e2e`): **20/20 specs en verde** (login 8/8, register 6/6, checkout 6/6), confirmado en el run [33061741394](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33061741394). En el camino se corrigieron 3 bugs de CI (PORT filtrado, PORT del frontend faltante, 2 selectores ambiguos propios) y un bug real de la app (`B-16`) | _(pendiente)_ |
-| E8 | CI/CD completo | En progreso — `CI-01`: se agregó ESLint (con `eslint.config.js` nuevo en `ecommerce-api`) a ambos paquetes, `npm run lint` limpio en los dos, y un paso `Lint` en `test-api`/`test-app`; pendiente confirmar la corrida real en CI | _(pendiente)_ |
+| E8 | CI/CD completo | **Cerrado (2026-08-27)** — `CI-01` completo: lint + tests+cobertura + E2E con Cypress en los 3 jobs (`test-api`, `test-app`, `e2e`), confirmado en verde en un run real de GitHub Actions ([33068441727](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33068441727)) | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
 | E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
 
@@ -615,16 +615,17 @@ re-descubrir el mismo terreno.
   recomendaciones de CI, en [docs/testing.md](../docs/testing.md#e2e-con-cypress-ecommerce-appcypress).
   **Próximo paso:** correr `npm run test:e2e` en una máquina donde el binario de Cypress sí
   inicie.
-- **CI-01 (CI/CD completo):** `.github/workflows/ci-cd.yml` ya no es la versión reducida —
-  (2026-08-27) tiene tres jobs: `test-api` (`npm run test:coverage`, sin Mongo real porque usa
-  `mongodb-memory-server`), `test-app` (`npm test -- --coverage --watchAll=false` + build) y `e2e`
-  (Mongo real como *service container*, `npm run seed`, API en background, y
-  `cypress-io/github-action@v6` levantando el frontend y corriendo las 3 specs, con
-  video/screenshots subidos como artifact solo si falla). Sigue faltando: (1) lint — antes hace
-  falta configurar ESLint + Prettier en ambos paquetes, ningún `package.json` tiene hoy scripts
-  `lint`/`format:check`; (2) confirmar que el job `e2e` corre verde en un runner real — se escribió
-  y se justificó cada paso, pero no se ha podido disparar GitHub Actions desde este entorno para
-  verlo ejecutar. Detalle completo en
+- **CI-01 (CI/CD completo): cerrado (2026-08-27).** `.github/workflows/ci-cd.yml` tiene tres jobs,
+  los tres confirmados en verde en un run real de GitHub Actions
+  ([33068441727](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33068441727)):
+  `test-api` (lint + `npm run test:coverage`, sin Mongo real porque usa `mongodb-memory-server`),
+  `test-app` (lint + `npm test -- --coverage --watchAll=false` + build) y `e2e` (Mongo real como
+  *service container*, `npm run seed`, API en background, y `cypress-io/github-action@v6`
+  corriendo las 20 specs reales, con video/screenshots subidos como artifact solo si falla). El
+  lint se agregó con ESLint en ambos paquetes: `ecommerce-app` ya tenía `eslint-config-react-app`
+  disponible vía `react-scripts`, solo faltaba fijarlo como devDependency directa y el script;
+  `ecommerce-api` no tenía nada, se armó `eslint.config.js` (flat config, ESM) desde cero. Prettier
+  no se agregó — no hacía falta para que el lint gatee el CI. Detalle completo en
   [docs/testing.md](../docs/testing.md#recomendaciones-para-cicd).
 - **OBS-01 (Artillery):** el stack de Docker (Prometheus + Grafana + Pushgateway,
   `observability/`) ya está listo y funcional — falta instalar `artillery` + el plugin
