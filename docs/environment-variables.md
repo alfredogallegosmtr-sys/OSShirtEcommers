@@ -13,6 +13,7 @@
 | `ASSET_BASE_URL` | No (default `http://localhost:$PORT`) | — | Base usada por `src/seed/seed.js` para construir las URLs de imágenes de producto. |
 | `SEED_ALLOW_RESET` | No (default `false`) | `true` | Solo la lee `src/seed/seed.js`. En `false`/sin definir, el seed es **no destructivo** (upsert por slug/email, nunca borra). En `true`, borra las 7 colecciones antes de sembrar. |
 | `CORS_ALLOWED_ORIGINS` | No (default `http://localhost:3001`) | `http://localhost:3001` | Lista de orígenes permitidos para CORS, separados por coma (se hace `trim()` a cada uno). Antes de desplegar a un dominio real (`DEP-01`), agregar aquí la URL real del frontend. |
+| `ENABLE_DOCS` | No (default `false`) | `true` | Solo importa si `NODE_ENV=production`. Swagger UI (`/api-docs`) siempre está montado fuera de producción; en producción queda apagado salvo que se ponga `ENABLE_DOCS=true` explícitamente — evita exponer la forma de la API a cualquiera en un despliegue real por defecto. |
 
 No hay módulo de validación de entorno (a diferencia de otros proyectos de referencia con un
 `config/env.js` que aborta el arranque si falta algo): las variables se leen donde se usan
