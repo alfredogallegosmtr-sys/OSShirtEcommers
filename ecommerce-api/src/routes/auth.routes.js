@@ -21,7 +21,7 @@ const router = Router();
  *             properties:
  *               name: { type: string }
  *               email: { type: string, format: email }
- *               password: { type: string, format: password }
+ *               password: { type: string, format: password, minLength: 6 }
  *     responses:
  *       201:
  *         description: Usuario creado
@@ -29,7 +29,9 @@ const router = Router();
  *           application/json:
  *             schema: { $ref: '#/components/schemas/RegisterResponse' }
  *       422:
- *         description: Faltan campos requeridos, o el email ya existe ("User already exist")
+ *         description: >-
+ *           Faltan campos requeridos, password de menos de 6 caracteres (S-06),
+ *           o el email ya existe ("User already exist")
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorMessage' }

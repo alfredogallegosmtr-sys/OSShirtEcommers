@@ -68,6 +68,22 @@ describe("Auth integration (/api/auth)", () => {
         message: "Nombre, email y password son requeridos",
       });
     });
+
+    it("[negativo] password de menos de 6 caracteres (S-06) → 422, y no crea el usuario", async () => {
+      const res = await request(app).post("/api/auth/register").send({
+        name: "Ana",
+        email: "cortita@test.com",
+        password: "abc12",
+      });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({
+        message: "La contraseña debe tener al menos 6 caracteres",
+      });
+
+      const stored = await User.findOne({ email: "cortita@test.com" });
+      expect(stored).toBeNull();
+    });
   });
 
   describe("POST /api/auth/login", () => {
