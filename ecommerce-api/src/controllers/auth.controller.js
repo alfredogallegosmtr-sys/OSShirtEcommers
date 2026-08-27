@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { logSecurityEvent } from "../utils/securityLog.js";
 
 const signTokens = (user) => {
   const payload = { userId: user._id, name: user.name, role: user.role };
@@ -62,13 +63,16 @@ export const login = async (req, res) => {
       .json({ message: "Email y password son requeridos" });
   }
 
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const normalizedEmail = email.toLowerCase();
+  const user = await User.findOne({ email: normalizedEmail });
   if (!user) {
+    await logSecurityEvent("login_failed", { ip: req.ip, email: normalizedEmail });
     return res.status(401).json({ message: "Credenciales inválidas" });
   }
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
+    await logSecurityEvent("login_failed", { ip: req.ip, email: normalizedEmail });
     return res.status(401).json({ message: "Credenciales inválidas" });
   }
 
