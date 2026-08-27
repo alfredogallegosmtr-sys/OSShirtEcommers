@@ -13,6 +13,8 @@ const buildRes = () => {
 
 const buildReq = (authorizationHeader) => ({
   headers: authorizationHeader !== undefined ? { authorization: authorizationHeader } : {},
+  ip: "127.0.0.1",
+  originalUrl: "/api/test",
 });
 
 describe("requireAuth", () => {
@@ -20,7 +22,7 @@ describe("requireAuth", () => {
     process.env.JWT_SECRET = SECRET;
   });
 
-  it("[happy] Bearer válido → llama next() y puebla req.user", () => {
+  it("[happy] Bearer válido → llama next() y puebla req.user", async () => {
     const token = jwt.sign({ userId: "u1", name: "Ana", role: "customer" }, SECRET, {
       expiresIn: "1h",
     });
@@ -28,26 +30,26 @@ describe("requireAuth", () => {
     const res = buildRes();
     const next = vi.fn();
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(req.user).toEqual({ id: "u1", name: "Ana", role: "customer" });
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  it("[negativo] sin header Authorization → 401, no llama next()", () => {
+  it("[negativo] sin header Authorization → 401, no llama next()", async () => {
     const req = buildReq(undefined);
     const res = buildRes();
     const next = vi.fn();
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: "No autorizado" });
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("[negativo] prefijo mal formado (bearer minúscula) → 401, no llama next()", () => {
+  it("[negativo] prefijo mal formado (bearer minúscula) → 401, no llama next()", async () => {
     const token = jwt.sign({ userId: "u1", name: "Ana", role: "customer" }, SECRET, {
       expiresIn: "1h",
     });
@@ -55,14 +57,14 @@ describe("requireAuth", () => {
     const res = buildRes();
     const next = vi.fn();
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: "No autorizado" });
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("[negativo] firma inválida/corrupta → 401 'Token inválido o expirado'", () => {
+  it("[negativo] firma inválida/corrupta → 401 'Token inválido o expirado'", async () => {
     const token = jwt.sign({ userId: "u1", name: "Ana", role: "customer" }, SECRET, {
       expiresIn: "1h",
     });
@@ -71,14 +73,14 @@ describe("requireAuth", () => {
     const res = buildRes();
     const next = vi.fn();
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: "Token inválido o expirado" });
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("[negativo] token expirado → 401, no llama next()", () => {
+  it("[negativo] token expirado → 401, no llama next()", async () => {
     const token = jwt.sign({ userId: "u1", name: "Ana", role: "customer" }, SECRET, {
       expiresIn: -1,
     });
@@ -86,7 +88,7 @@ describe("requireAuth", () => {
     const res = buildRes();
     const next = vi.fn();
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: "Token inválido o expirado" });
@@ -95,36 +97,36 @@ describe("requireAuth", () => {
 });
 
 describe("requireAdmin", () => {
-  it("[negativo] req.user.role === 'customer' → 403, no llama next()", () => {
-    const req = { user: { id: "u1", name: "Ana", role: "customer" } };
+  it("[negativo] req.user.role === 'customer' → 403, no llama next()", async () => {
+    const req = { user: { id: "u1", name: "Ana", role: "customer" }, ip: "127.0.0.1", originalUrl: "/api/test" };
     const res = buildRes();
     const next = vi.fn();
 
-    requireAdmin(req, res, next);
+    await requireAdmin(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({ message: "Requiere rol de administrador" });
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("[happy] req.user.role === 'admin' → llama next(), sin responder", () => {
-    const req = { user: { id: "u1", name: "Ana", role: "admin" } };
+  it("[happy] req.user.role === 'admin' → llama next(), sin responder", async () => {
+    const req = { user: { id: "u1", name: "Ana", role: "admin" }, ip: "127.0.0.1", originalUrl: "/api/test" };
     const res = buildRes();
     const next = vi.fn();
 
-    requireAdmin(req, res, next);
+    await requireAdmin(req, res, next);
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
   });
 
-  it("[negativo] req.user es undefined (requireAuth nunca corrió) → 403, no lanza", () => {
-    const req = {};
+  it("[negativo] req.user es undefined (requireAuth nunca corrió) → 403, no lanza", async () => {
+    const req = { ip: "127.0.0.1", originalUrl: "/api/test" };
     const res = buildRes();
     const next = vi.fn();
 
-    expect(() => requireAdmin(req, res, next)).not.toThrow();
+    await expect(requireAdmin(req, res, next)).resolves.not.toThrow();
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({ message: "Requiere rol de administrador" });
     expect(next).not.toHaveBeenCalled();
