@@ -1,7 +1,7 @@
 # TEST_PLAN — OSShirtEcommers
 
 > Monorepo: backend `ecommerce-api/` (este documento, sección de arriba, 158 tests) y frontend
-> `ecommerce-app/` (sección "Frontend", al final, 302 tests — `T-02` cerrado 2026-08-27 con 301;
+> `ecommerce-app/` (sección "Frontend", al final, 303 tests — `T-02` cerrado 2026-08-27 con 301;
 > +1 el mismo día por la regresión de `B-15`, encontrado escribiendo `E2E-01`). Fuente de verdad
 > de ambas: los archivos reales en `src/`, verificados leyendo el código, no supuestos. Filosofía
 > de cobertura y convenciones de testing: [docs/testing.md](./docs/testing.md). El plan y estado
@@ -997,5 +997,15 @@ Al escribir `E2E-01` (Cypress, ver `docs/testing.md`) se encontró que `Checkout
 ninguna bandera de "enviando" — el botón "Confirmar y Pagar" seguía habilitado mientras la
 petición estaba en curso, así que un doble clic real podía disparar dos `POST /api/orders`. Se
 corrigió con un estado `isSubmittingOrder` y se agregó una prueba de regresión en
-`Checkout.test.jsx` (302 tests de frontend en total ahora, no 301). Detalle completo en
+`Checkout.test.jsx` (302 tests de frontend en total, no 301). Detalle completo en
 `docs/backlog.md`.
+
+## Nota post-cierre: `B-16` (2026-08-27)
+
+La primera corrida real del runner de Cypress en CI (`checkout.cy.js`, Fase 1) encontró una
+condición de carrera real en `CartContext.updateItem`: dos cambios de cantidad rápidos sobre el
+mismo ítem (+/- en sucesión) disparan dos `PATCH /api/cart/:itemId` en paralelo, y si la respuesta
+de la petición vieja llega después que la de la más reciente, pisaba el estado con una cantidad
+obsoleta. Corregido con un contador de secuencia por ítem que descarta respuestas obsoletas, más
+una prueba de regresión en `CartContext.test.jsx` (303 tests de frontend en total ahora, no 302) —
+confirmada fallando sin el fix antes de commitear. Detalle completo en `docs/backlog.md`.

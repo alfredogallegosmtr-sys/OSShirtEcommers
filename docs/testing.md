@@ -241,34 +241,29 @@ rol/texto razonable.
 
 ### Errores conocidos / limitaciones de este entorno
 
-- **Cypress no pudo ejecutarse en esta máquina de desarrollo.** El binario de Cypress
-  (`Cypress.exe`, instalado y reinstalado limpio, firma Authenticode válida, `resources/app`
-  completo) falla su propio smoke test interno (`Cypress.exe --smoke-test --ping=N`) con
-  `bad option: --smoke-test` — un formato de error atípico para Electron, que sugiere una
-  restricción de seguridad a nivel de sistema operativo en esta máquina, no un problema del
-  proyecto ni de las specs. Se agotaron los pasos de diagnóstico seguros (reinstalación limpia,
-  `cypress verify`, verificación de firma digital, `Unblock-File`) sin resolverlo — no se intentó
-  nada más invasivo (deshabilitar antivirus, cambiar políticas del sistema) sin autorización
-  explícita. **Las specs nunca se corrieron con el runner real de Cypress.**
-- **Verificación alternativa realizada en su lugar:** cada flujo que cubren `register.cy.js`,
-  `login.cy.js` y `checkout.cy.js` se ejecutó de punta a punta contra el backend/frontend reales
-  usando Playwright (ya usado en este proyecto para verificación manual, ver el resto de este
-  documento y `docs/backlog.md`) replicando exactamente las mismas aserciones. Esto encontró y
-  corrigió 3 problemas reales antes de darlas por buenas: (1) el carrito híbrido necesita
-  limpiarse también en el servidor, no solo en `localStorage`; (2) las secciones de
-  dirección/pago pueden cargar ya colapsadas si el usuario tiene datos previos, y hay que
-  expandirlas con "Cambiar" antes de poder crear uno nuevo; (3) la nota original de `B-13`
-  mencionaba "recargar la página" como disparador del bug — verificado en vivo que es falso, el
-  History API conserva `location.state` a través de un reload real, se corrigió la documentación
-  y la aserción de la prueba. **No sustituye correr las specs reales** — es la mejor evidencia
-  posible sin el runner de Cypress disponible, no una garantía de que Cypress las ejecutará sin
-  fricciones (sintaxis específica de comandos, timeouts, comportamiento de `cy.session()`, etc.
-  quedan sin confirmar con el runner real).
-- **Próximo paso recomendado:** correr `npm run test:e2e` en una máquina donde el binario de
-  Cypress sí inicie (otra máquina de desarrollo, un contenedor Linux, o resolviendo la restricción
-  de esta máquina con quien administre sus políticas de seguridad) y corregir cualquier ajuste de
-  sintaxis que surja — la lógica y las aserciones ya están verificadas contra el comportamiento
-  real de la app.
+- **Cypress no puede ejecutarse en esta máquina de desarrollo (Windows), pero sí en CI.** El
+  binario de Cypress (`Cypress.exe`, instalado y reinstalado limpio, firma Authenticode válida,
+  `resources/app` completo) falla su propio smoke test interno (`Cypress.exe --smoke-test
+  --ping=N`) con `bad option: --smoke-test` — un formato de error atípico para Electron, que
+  sugiere una restricción de seguridad a nivel de sistema operativo en esta máquina, no un
+  problema del proyecto ni de las specs. Se agotaron los pasos de diagnóstico seguros
+  (reinstalación limpia, `cypress verify`, verificación de firma digital, `Unblock-File`) sin
+  resolverlo. **Confirmado (2026-08-27) que el bloqueo es específico de esta máquina**: el job
+  `e2e` de `.github/workflows/ci-cd.yml` corrió las 20 specs con el runner real de Cypress en
+  Ubuntu (GitHub Actions) y las 20 pasaron —
+  [run 33061741394](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33061741394).
+- **Verificación previa con Playwright (histórica, antes de tener CI funcionando):** cada flujo se
+  había ejecutado de punta a punta contra el backend/frontend reales usando Playwright, replicando
+  las mismas aserciones. Encontró y corrigió 3 problemas reales antes de la primera corrida real:
+  (1) el carrito híbrido necesita limpiarse también en el servidor, no solo en `localStorage`;
+  (2) las secciones de dirección/pago pueden cargar ya colapsadas si el usuario tiene datos
+  previos; (3) la nota original de `B-13` mencionaba "recargar la página" como disparador del
+  bug — verificado en vivo que es falso, el History API conserva `location.state` a través de un
+  reload real. Esa verificación resultó ser evidencia útil pero incompleta: la primera corrida real
+  en CI encontró 2 selectores propios ambiguos (`/envío/i`, `/total:/i` sin anclar, matcheaban
+  también "Dirección de envío"/"Subtotal:") y un bug real de la app (`B-16`, condición de carrera
+  en `CartContext.updateItem`) que Playwright no había detectado — confirma que ningún método
+  alternativo sustituye correr las specs reales con su runner.
 
 ### Recomendaciones para CI/CD
 
@@ -288,13 +283,15 @@ rol/texto razonable.
   `ecommerce-app` (`npm start`) y correr las specs contra ambos (`wait-on` sobre los dos puertos).
   Sube `cypress/videos`/`cypress/screenshots` como artifact solo si el job falla.
 - Ningún paso usa `|| true` — cualquier test o spec rota rompe el pipeline.
-- **Sin confirmar todavía**: este job no se ha visto correr en un runner real de GitHub Actions
-  desde este entorno (no hay forma de disparar Actions aquí) — la lógica y cada variable de
-  entorno se justificaron contra el código real (`db.conf.js`, `seed.js`, `cypress.config.js`),
-  pero falta la primera ejecución real en CI para confirmarlo. Ubuntu (el runner de
-  `cypress-io/github-action`) es un entorno distinto al bloqueo de `Cypress.exe` documentado
-  arriba, que es específico de esta máquina Windows — es razonable esperar que sí funcione ahí,
-  pero es una expectativa, no un hecho verificado.
+- **Confirmado (2026-08-27)**: `test-api`, `test-app` y `e2e` corren en verde en un runner real de
+  GitHub Actions (Ubuntu) —
+  [run 33061741394](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33061741394),
+  20/20 specs de Cypress pasando. Llegar a esa primera corrida verde requirió 3 fixes reales al
+  propio workflow: `PORT: 4001` (pensado solo para la API) vivía en el `env` a nivel de job y se
+  filtraba al `npm start` del frontend; al frontend le faltaba `PORT: 3001` explícito porque
+  `ecommerce-app/.env` está en `.gitignore` y no existe en el checkout de CI; y `wait-on`/
+  `CYPRESS_BASE_URL`/`CYPRESS_API_URL`/`CORS_ALLOWED_ORIGINS` se cambiaron a `127.0.0.1` en vez de
+  `localhost` (precaución adicional, no la causa raíz de esos fallos).
 - **Todavía fuera de este workflow**: lint — ningún `package.json` (`ecommerce-api` ni
   `ecommerce-app`) tiene hoy script `lint`/`format:check`; agregarlo requiere primero configurar
   ESLint/Prettier en ambos paquetes, fuera del alcance de este cambio.
@@ -334,9 +331,9 @@ si las ramas reales siguen cubiertas.
   como requisito de merge (2026-08-27), pero no lint: ningún `package.json` tiene script
   `lint`/`format:check` todavía.
 - **Pruebas de carga** (`OBS-01`/`E9`) — Artillery no instalado todavía.
-- **Ejecutar `npm run test:e2e` con el runner real de Cypress** — bloqueado en esta máquina de
-  desarrollo específica (ver "Errores conocidos" en la sección de E2E arriba); las specs están
-  escritas y verificadas por un método alternativo, pero no confirmadas con el runner real.
+- **Ejecutar `npm run test:e2e` en esta máquina de desarrollo específica** — sigue bloqueado (ver
+  "Errores conocidos" en la sección de E2E arriba), pero ya no importa: el runner real de Cypress
+  corre y confirma las 20 specs en verde vía el job `e2e` de CI.
 
 ## Nota sobre `docs/test-plans/`
 

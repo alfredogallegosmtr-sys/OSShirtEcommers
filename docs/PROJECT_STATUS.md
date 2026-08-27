@@ -19,21 +19,21 @@ El núcleo (auth, catálogo, carrito, checkout, wishlist, perfil, settings) es s
 verificado en vivo (curl + Playwright). Las épicas de seguridad del catálogo/pagos (E4) y de
 limpieza de bugs (E5) están completas: no quedan riesgos de seguridad abiertos (catálogo
 protegido por rol, sin datos de tarjeta reales, CORS con allowlist), ni bugs de UI o de manejo de
-errores conocidos sin cerrar. La épica de suite de tests (E6) también está completa: **460 tests
+errores conocidos sin cerrar. La épica de suite de tests (E6) también está completa: **461 tests
 reales en todo el monorepo** (158 backend — unitarios + integración real de los 9 recursos
 (`auth`/`cart`/`category`/`product`/`address`/`paymentMethod`/`order`/`wishlist`/`user`) +
-`connectDB` — y 302 frontend, arrancando ambos desde cero). La restructuración `app.js`/`server.js`
-(`REF-01`) fue la pieza que lo desbloqueó; los hallazgos que produjo ese trabajo (`B-10` a `B-15`)
+`connectDB` — y 303 frontend, arrancando ambos desde cero). La restructuración `app.js`/`server.js`
+(`REF-01`) fue la pieza que lo desbloqueó; los hallazgos que produjo ese trabajo (`B-10` a `B-16`)
 ya se corrigieron; la filosofía de cobertura y las convenciones quedaron documentadas en
 [docs/testing.md](../docs/testing.md). Una auditoría integral (2026-08-27, `T-05`) cruzó
 backend+frontend+E2E por escenario real en una matriz de trazabilidad
 ([docs/testing/test-matrix.md](../docs/testing/test-matrix.md)) y cerró la brecha que quedaba: los
 5 recursos que solo se habían verificado con `curl` (address/paymentMethod/order/wishlist/user, 13
 endpoints, incluida toda la matemática de totales de la orden) ahora tienen integración real
-(51 casos nuevos, cobertura de statements del backend subió de 67% a 89.91%). `E7` (E2E con
-Cypress) tiene las 3 specs completas escritas y verificadas por método alternativo — solo falta
-poder correr el runner real de Cypress, bloqueado en la máquina de desarrollo actual (ver
-`E2E-01`).
+(51 casos nuevos, cobertura de statements del backend subió de 67% a 89.91%). **`E7` (E2E con
+Cypress) está completa**: las 20 specs corrieron con el runner real de Cypress en GitHub Actions
+(Ubuntu) y las 20 pasaron — el bloqueo del binario de Cypress en esta máquina de desarrollo sigue
+documentado pero ya no bloquea nada, CI es el runner real de referencia (ver `E2E-01`).
 
 ## Estado del backend [CÓDIGO]
 
@@ -379,6 +379,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   el runner de Cypress. Detalle completo, tabla de `data-testid`, y recomendaciones de CI en
   [docs/testing.md](../docs/testing.md#e2e-con-cypress-ecommerce-appcypress). `E2E-01`/`E7`
   quedan en progreso — el bloqueo es de esta máquina específica, no del código ni de las specs.
+  **Actualización: ver la entrada de más abajo — se confirmó la corrida real en CI el mismo día.**
 - **2026-08-27 — T-05: estrategia integral de pruebas, auditoría cruzada backend+frontend+E2E y
   cierre de la última brecha real de integración.** A partir de un brief de "estrategia integral"
   se auditó el código real de ambos subproyectos (no un plan aspiracional) y se construyó
@@ -399,6 +400,23 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   riesgo de inconsistencia de contrato sin introducir una dependencia nueva (Zod/JSON
   Schema/OpenAPI) — se apoya en que los tests de integración de ambos lados ya afirman sobre la
   misma forma real de payload/respuesta.
+- **2026-08-27 — E7/E2E-01 cerrado: primera corrida real del runner de Cypress, 20/20 en verde,
+  encuentra y cierra B-16.** Se hizo push del trabajo pendiente (15 commits) a `origin/main` para
+  disparar el job `e2e` de `.github/workflows/ci-cd.yml` en GitHub Actions (Ubuntu) — el entorno
+  donde Cypress sí puede iniciar. Cuatro problemas reales encontrados y corregidos hasta llegar a
+  la corrida verde: (1) `PORT: 4001` (solo para la API) vivía en el `env` a nivel de job y se
+  filtraba al `npm start` del frontend; (2) al frontend le faltaba `PORT: 3001` explícito porque
+  `ecommerce-app/.env` está en `.gitignore` y no existe en CI; (3) dos selectores propios de
+  `checkout.cy.js` sin anclar (`/envío/i`, `/total:/i`) matcheaban también "Dirección de envío" y
+  "Subtotal:" — `Found multiple elements`; (4) **`B-16`**, bug real de la app: `CartContext.
+  updateItem` no ordena las respuestas de red — dos cambios de cantidad rápidos sobre el mismo
+  ítem (+/- en sucesión, exactamente lo que hace la Fase 1 del spec) disparan dos `PATCH` en
+  paralelo, y si la respuesta de la petición vieja llega después que la de la más reciente, pisa
+  el estado con una cantidad obsoleta — fix con un contador de secuencia por ítem, regresión en
+  `CartContext.test.jsx` (confirmada fallando sin el fix antes de commitear). Resultado final:
+  [run 33061741394](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33061741394),
+  **20/20 specs de Cypress en verde** (login 8/8, register 6/6, checkout 6/6) — 461 tests reales
+  en todo el monorepo (158 backend + 303 frontend + 20 E2E, todos ejecutados y confirmados).
 
 ## Supuestos pendientes de validar
 

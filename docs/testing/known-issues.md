@@ -23,13 +23,23 @@ Cypress, es evidencia de que la lógica y los selectores de las specs son correc
 **Próximo paso:** confirmar el job `e2e` de `.github/workflows/ci-cd.yml` en un runner real de
 GitHub Actions (Ubuntu), o correr `npm run test:e2e` en otra máquina de desarrollo.
 
-### Job `e2e` de CI nunca visto correr
+### ~~Job `e2e` de CI nunca visto correr~~ — resuelto (2026-08-27)
 
-El job fue diseñado y justificado línea por línea contra el código real (`seed.js`,
-`cypress.config.js`, `db.conf.js`), pero no hay forma de disparar GitHub Actions desde este
-entorno de trabajo — no se ha confirmado con una ejecución real. Ubuntu es un entorno distinto al
-bloqueo de Windows de arriba, así que es razonable esperar que sí funcione ahí, pero es una
-expectativa, no un hecho verificado.
+Confirmado con una ejecución real: [run 33061741394](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33061741394),
+**las 20 specs de Cypress pasaron en verde** (`login.cy.js` 8/8, `register.cy.js` 6/6,
+`checkout.cy.js` 6/6) en Ubuntu vía `cypress-io/github-action@v6`. El bloqueo de la máquina
+Windows de desarrollo (arriba) sigue sin resolverse, pero ya no bloquea nada — CI es ahora el
+runner real de referencia. En el camino de conseguir la primera corrida verde se encontraron y
+corrigieron, en orden:
+1. `PORT: 4001` (pensado solo para la API) vivía en el `env` a nivel de job y se filtraba al
+   `npm start` del frontend, haciéndolo intentar levantar en el puerto equivocado.
+2. Al frontend le faltaba `PORT: 3001` explícito — `ecommerce-app/.env` (que lo fija localmente)
+   está en `.gitignore` y no existe en el checkout de CI, así que arrancaba en el default de
+   `react-scripts` (3000) y `wait-on` nunca conectaba a :3001.
+3. Dos selectores de `checkout.cy.js` sin anclar (`/envío/i`, `/total:/i`) matcheaban también
+   "Dirección de envío" y "Subtotal:" respectivamente — `Found multiple elements`.
+4. **`B-16`** (bug real de la app, no de CI): condición de carrera en `CartContext.updateItem` —
+   ver `docs/backlog.md`.
 
 ## Deuda técnica de la suite
 
@@ -67,3 +77,9 @@ expectativa, no un hecho verificado.
 - **B-13** (descripción corregida, código ya era correcto): la causa real del crash de
   `OrderConfirmation.jsx` es una navegación fresca sin `location.state` (URL directa/bookmark), no
   un F5 — un reload real preserva el estado vía History API.
+- **B-16** (corregido, encontrado por `checkout.cy.js` corriendo de verdad en CI): dos cambios de
+  cantidad rápidos sobre el mismo ítem del carrito (+/- en sucesión) podían dejar la cantidad en
+  un valor obsoleto por una condición de carrera en `CartContext.updateItem` (la respuesta de la
+  petición vieja llegaba después que la de la más reciente y pisaba el estado). Fix: contador de
+  secuencia por ítem que descarta respuestas obsoletas. Test de regresión en `CartContext.test.jsx`
+  (confirmado que falla sin el fix, revirtiéndolo temporalmente antes de commitear).
