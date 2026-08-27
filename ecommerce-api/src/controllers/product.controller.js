@@ -10,6 +10,29 @@ const VISIBLE_FILTER = { is_active: true, is_deleted: false };
 const MAX_SEARCH_QUERY_LENGTH = 100;
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// S-11: createProduct/updateProduct pasaban req.body completo a Mongoose sin filtrar -- un
+// admin podía enviar campos que no controla la UI (ej. is_deleted, average_rating) y quedaban
+// guardados igual. Solo estos campos son asignables desde la API.
+const ASSIGNABLE_PRODUCT_FIELDS = [
+  "name",
+  "description",
+  "price",
+  "stock",
+  "imageURL",
+  "images",
+  "slug",
+  "sizes",
+  "tags",
+  "category",
+  "is_active",
+];
+
+const pickAssignableFields = (body) =>
+  ASSIGNABLE_PRODUCT_FIELDS.reduce((picked, field) => {
+    if (body[field] !== undefined) picked[field] = body[field];
+    return picked;
+  }, {});
+
 export const getAllProducts = async (req, res) => {
   const products = await Product.find(VISIBLE_FILTER)
     .populate("category")
@@ -94,7 +117,7 @@ export const getProductById = async (req, res) => {
 };
 
 export const createProduct = async (req, res) => {
-  const product = await Product.create(req.body);
+  const product = await Product.create(pickAssignableFields(req.body));
   res.status(201).json(product);
 };
 
@@ -104,7 +127,7 @@ export const updateProduct = async (req, res) => {
     return res.status(404).json({ message: "Producto no encontrado" });
   }
 
-  const product = await Product.findByIdAndUpdate(id, req.body, {
+  const product = await Product.findByIdAndUpdate(id, pickAssignableFields(req.body), {
     new: true,
     runValidators: true,
   });
