@@ -19,11 +19,12 @@ El núcleo (auth, catálogo, carrito, checkout, wishlist, perfil, settings) es s
 verificado en vivo (curl + Playwright). Las épicas de seguridad del catálogo/pagos (E4) y de
 limpieza de bugs (E5) están completas: no quedan riesgos de seguridad abiertos (catálogo
 protegido por rol, sin datos de tarjeta reales, CORS con allowlist), ni bugs de UI o de manejo de
-errores conocidos sin cerrar. La restructuración `app.js`/`server.js` (`REF-01`) está cerrada y ya
-dio fruto: `T-04` (integración real de auth/cart/category/product con
-`supertest`+`mongodb-memory-server`, 105 tests) y `T-02` (suite de frontend con Testing Library +
-MSW, 301 tests) también están cerrados — **406 tests reales en todo el monorepo**. Los hallazgos
-que produjo ese trabajo (`B-10` a `B-14`) ya se corrigieron.
+errores conocidos sin cerrar. La épica de suite de tests (E6) también está completa: **408 tests
+reales en todo el monorepo** (107 backend — unitarios + integración de
+auth/cart/category/product/`connectDB` — y 301 frontend, arrancando ambos desde cero). La
+restructuración `app.js`/`server.js` (`REF-01`) fue la pieza que lo desbloqueó; los hallazgos que
+produjo ese trabajo (`B-10` a `B-14`) ya se corrigieron; la filosofía de cobertura y las
+convenciones quedaron documentadas en [docs/testing.md](../docs/testing.md).
 
 ## Estado del backend [CÓDIGO]
 
@@ -329,6 +330,24 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   esto, **`T-02` queda cerrado por completo** — 301 tests de frontend + 105 de backend (`T-04`) =
   406 tests reales en todo el monorepo. Solo `T-01` (cobertura de `db.conf.js`, objetivo de
   cobertura, `docs/testing.md`) queda abierto dentro de `E6`.
+- **2026-08-27 — T-01 cerrado, épica E6 (suite de tests) completa.** Las tres piezas que quedaban
+  pendientes de `T-01`: **(1)** cobertura de `src/config/db.conf.js` — resuelta sin mockear
+  Mongoose en ningún momento: `tests/integration/db.conf.test.js` llama a la función real
+  `connectDB()` contra un `mongodb-memory-server` real (happy path) y contra una URI
+  sintácticamente inválida con solo `process.exit` espiado (negativo, técnica estándar para
+  probar código que termina el proceso, no un mock de Mongoose) — 100% de cobertura real en las 8
+  líneas del archivo. **(2)** Un objetivo de cobertura explícito, definido como filosofía y no
+  como número (este proyecto ya había demostrado que un `%` global no es el criterio correcto):
+  100% en modelos/middlewares, cada rama de estado/error real en controllers/routes con
+  integración, brechas conscientes documentadas donde no la hay. **(3)**
+  [docs/testing.md](../docs/testing.md) escrito — runners, convenciones, estado real de ambas
+  suites, y una nota aclarando que `docs/test-plans/README.md` describe un proceso nunca
+  adoptado (`TEST_PLAN.md` es la fuente de verdad real). **Verificado de forma independiente al
+  reporte del agente:** se leyó el test completo, se corrió `npm test` de forma independiente
+  (`107/107`) y se regeneró `npm run test:coverage` para confirmar el 100% real en `db.conf.js`.
+  Cierra `T-01` de [docs/backlog.md](./backlog.md) — **`E6` queda completa: 107 tests de backend +
+  301 de frontend = 408 tests reales en todo el monorepo**, arrancando desde cero al inicio de
+  este esfuerzo.
 
 ## Supuestos pendientes de validar
 

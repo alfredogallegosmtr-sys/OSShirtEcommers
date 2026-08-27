@@ -1,9 +1,9 @@
 # TEST_PLAN — OSShirtEcommers
 
-> Monorepo: backend `ecommerce-api/` (este documento, sección de arriba) y frontend
-> `ecommerce-app/` (sección "Frontend", al final — plan producido por `test-planner` el
-> 2026-08-26, `T-02`, todavía sin tests escritos). Fuente de verdad de ambas: los archivos reales
-> en `src/`, verificados leyendo el código, no supuestos.
+> Monorepo: backend `ecommerce-api/` (este documento, sección de arriba, 107 tests) y frontend
+> `ecommerce-app/` (sección "Frontend", al final, 301 tests — `T-02` cerrado 2026-08-27). Fuente
+> de verdad de ambas: los archivos reales en `src/`, verificados leyendo el código, no supuestos.
+> Filosofía de cobertura y convenciones de testing: [docs/testing.md](./docs/testing.md).
 
 # Backend — ecommerce-api
 
@@ -24,16 +24,15 @@
 | ALTA | 10 | 10 | — |
 | MEDIA | 25 | 25 | — |
 | BAJA | 25 | 25 | — |
-| **Integración** (`T-04`) | 45 | 45 | — |
+| **Integración** (`T-04`) | 47 | 47 | — |
 
-Corrida real completa (`npm test`, 2026-08-26, tras cerrar `T-04`/`B-10` — integración de
-auth/cart/category/product con `supertest` + `mongodb-memory-server`, más el fix del error
-handler global para duplicados de índice `unique`):
+Corrida real completa (`npm test`, 2026-08-27, tras cerrar `T-01` — `connectDB` probado con
+`mongodb-memory-server` real y `process.exit` espiado):
 ```
-Test Files  15 passed (15)
-     Tests  105 passed (105)
+Test Files  16 passed (16)
+     Tests  107 passed (107)
 ```
-(60 unitarios preexistentes + 45 de integración, todo en verde.)
+(60 unitarios preexistentes + 47 de integración, todo en verde.)
 
 **Reporte de cobertura real** (`npm run test:coverage`, `coverage/coverage-summary.json`):
 
@@ -42,6 +41,7 @@ Test Files  15 passed (15)
 | `src/middlewares/*.js` (2) | 100% | 100% | 100% |
 | `src/models/*.js` (8) | 100% | 100% | 100% |
 | `src/routes/*.js` (9) | 100%\* | 100%\* | 100%\* |
+| `src/config/db.conf.js` | 100% | 100% | 100% |
 | `src/app.js` | 80% | 43.75% | 40% |
 | `src/controllers/auth.controller.js` | 96.42% | 84.21% | 100% |
 | `src/controllers/cart.controller.js` | 93.44% | 77.77% | 100% |
@@ -52,8 +52,7 @@ Test Files  15 passed (15)
 | `src/controllers/order.controller.js` | 17.24% | 0% | 0% |
 | `src/controllers/wishlist.controller.js` | 13.33% | 0% | 0% |
 | `src/controllers/user.controller.js` | 9.67% | 0% | 0% |
-| `src/config/db.conf.js` | 0% | — | 0% |
-| **Total del proyecto** | **65.54%** | **45.74%** | **55.93%** |
+| **Total del proyecto** | **67.22%** | **45.74%** | **57.62%** |
 
 \* Los archivos de `routes/` marcan 100% solo porque registrar las rutas al importar el módulo ya
 ejecuta ese código — no implica que cada handler detrás se haya ejercitado (ver el % real de cada
@@ -258,19 +257,26 @@ a 20000ms en `vitest.config.js`; confirmado estable en corridas repetidas de `np
   integración de `address`/`paymentMethod`/`order`/`wishlist`/`user` — no están cubiertos por
   `supertest`, solo por curl manual (documentado en `docs/backlog.md`, cada F-0X). No es un
   olvido, es alcance.
-- **Decisión aplazada:** cobertura de `src/config/db.conf.js` (`connectDB`) — probarla
-  requeriría interceptar `mongoose.connect`/`process.exit`, lo cual roza "mockear Mongoose", algo
-  que la convención del proyecto evita; queda sin cubrir hasta decidir un enfoque.
+- **Decisión resuelta 2026-08-27 (`T-01`):** cobertura de `src/config/db.conf.js` (`connectDB`)
+  — `tests/integration/db.conf.test.js`, 2 casos, sin mockear Mongoose: happy path contra un
+  `mongodb-memory-server` real llamando a `connectDB()` (no `mongoose.connect` directo), y
+  negativo con una URI sintácticamente inválida (rechazo casi instantáneo por fallo de parseo,
+  no timeout de red) espiando solo `process.exit` — la única excepción legítima, porque no es
+  Mongoose, es la técnica estándar para probar código que termina el proceso. 100% de cobertura
+  real en las 8 líneas del archivo.
 - **Hallazgo real documentado como test, no como bug a corregir aquí:** `Address.postalCode`
   tiene `min`/`max` que no hacen nada por estar en un campo `String` — ya estaba registrado en
   `docs/backlog.md`, ahora además tiene un test que lo demuestra en vez de solo documentarlo en
   prosa. El mismo hallazgo en `PaymentMethod.cardNumber` quedó resuelto de raíz al cerrar S-03: el
   campo ya no existe (se reemplazó por `last4` con `maxlength`, que sí funciona).
-- **Backlog relacionado:** `docs/backlog.md` items `T-01` (en progreso, esta es su evidencia),
+- **Backlog relacionado:** `docs/backlog.md` items `T-01` (**cerrado 2026-08-27** — runner, matriz,
+  `mongodb-memory-server`, cobertura de `db.conf.js` y objetivo de cobertura, todo resuelto; ver
+  [docs/testing.md](./docs/testing.md) para la filosofía de cobertura y las convenciones),
   `T-03` (cerrado, script `npm test` agregado), `REF-01` (cerrado, split `app.js`/`server.js`),
   `T-04` (**cerrado 2026-08-26** — integración real de auth/cart/category/product vía supertest +
   `mongodb-memory-server`, 45 tests), `B-10` (**cerrado el mismo día** — slug duplicado ahora
-  responde 422, fix en el error handler global).
+  responde 422, fix en el error handler global), `T-02` (**cerrado 2026-08-27** — 301 tests de
+  frontend, ver sección "Frontend" más abajo).
 
 # Frontend — ecommerce-app
 

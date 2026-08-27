@@ -27,7 +27,7 @@
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
 | E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-14, sin items pendientes | _(pendiente)_ |
-| E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04/T-02 cerrados (301 tests frontend + 105 backend), solo queda **T-01** (cobertura de `db.conf.js`, objetivo de cobertura, `docs/testing.md`) | _(pendiente)_ |
+| E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/REF-01/T-04 todos cerrados, 107 tests backend + 301 frontend = 408 tests reales | _(pendiente)_ |
 | E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
 | E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
@@ -47,7 +47,7 @@
 | F-03 | `orderService` + endpoint `Order` — checkout crea pedido real, no `localStorage` | E1 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
 | A-01 | `Orders.jsx` lee `GET /orders` real en vez de `localStorage["orders"]` | E1 | Alineación FE-BE | **Alto** | **Cerrado (2026-08-26)** |
 | F-04 | Wishlist: UI + `wishlistService` + endpoint conectado | E2 | Feature faltante | **Alto** | **Cerrado (2026-08-26)** |
-| T-01 | Elegir runner de tests backend (Vitest/Jest) + `mongodb-memory-server`, correr `test-planner` | E6 | Deuda técnica | **Alto** | En progreso |
+| T-01 | Elegir runner de tests backend (Vitest/Jest) + `mongodb-memory-server`, correr `test-planner` | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-27)** |
 | T-03 | `npm test` no es invocable todavía: falta el script `"test": "vitest run"` en `ecommerce-api/package.json` (hoy solo se corre con `npx vitest run <archivo>`) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
 | REF-01 | Split `app.js`/`server.js` en `ecommerce-api` — `server.js` no exportaba `app` sin efectos secundarios (dotenv/connectDB/listen se disparaban solo con importarlo), bloqueando cualquier test de integración con supertest | E6 | Refactor | **Alto** | **Cerrado (2026-08-26)** |
 | T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
@@ -381,19 +381,46 @@ re-descubrir el mismo terreno.
   otro con el mismo slug → 422 con el mensaje esperado (antes 500), producto de prueba borrado
   (soft-delete) después. Cierra `B-10` de este backlog — `E5` queda otra vez sin items
   pendientes.
-- **T-01 (tests backend) — EN PROGRESO desde 2026-08-26:** runner elegido: **Vitest** (soporte
-  ESM nativo, sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
-  `"type":"module"`). Ya instalado como devDependency en `ecommerce-api`, igual que
+- **T-01 (tests backend) — CERRADO 2026-08-27:** runner elegido: **Vitest** (soporte ESM nativo,
+  sin flags de `--experimental-vm-modules` que sí necesitaría Jest en este repo
+  `"type":"module"`). Instalado como devDependency en `ecommerce-api`, igual que
   `mongodb-memory-server` (instalado al cerrar `T-04`). **Matriz completa y estado real en
-  [TEST_PLAN.md](../TEST_PLAN.md)** (raíz del repo) — no se duplica aquí. Resumen: 105 tests
-  `Hecho` (60 unitarios + 45 de integración, ver `T-04`/`B-10`), corrida real
-  `15 passed (15 files) / 105 passed (105 tests)`. Lo que bloqueaba avanzar (refactor
+  [TEST_PLAN.md](../TEST_PLAN.md)** (raíz del repo) — no se duplica aquí. Resumen: 107 tests
+  `Hecho` (60 unitarios + 47 de integración), corrida real
+  `16 passed (16 files) / 107 passed (107 tests)`. Lo que bloqueaba avanzar (refactor
   `app.js`/`server.js`, instalar `mongodb-memory-server`) ya se cerró como `REF-01`/`T-04`.
-  **Pendiente real de `T-01` específicamente, no completado:** cobertura de `db.conf.js`
-  (aplazada, ver TEST_PLAN.md — interceptar `mongoose.connect`/`process.exit` roza "mockear
-  Mongoose"); definir un objetivo de cobertura explícito; `docs/testing.md` (estrategia de
-  testing, no existe todavía). `vitest.config.js` y T-03 (`npm test`/`test:watch`/
-  `test:coverage`) ya están, ver más abajo.
+  **Las 3 piezas que quedaban pendientes de `T-01` específicamente, cerradas hoy:**
+  - **Cobertura de `db.conf.js`:** la decisión aplazada ("interceptar `mongoose.connect`/
+    `process.exit` roza mockear Mongoose") se resolvió con un enfoque que no mockea Mongoose en
+    ningún momento: `tests/integration/db.conf.test.js` (2 casos) llama a la función real
+    `connectDB()` — no a `mongoose.connect` directo como hace el helper de los demás tests de
+    integración — contra un `mongodb-memory-server` real en el happy path, y con una URI
+    sintácticamente inválida (rechazo casi instantáneo por fallo de parseo, no timeout de red) en
+    el negativo. Lo único espiado es `process.exit` (`vi.spyOn`), y solo para evitar que el
+    proceso del test runner termine — no es un mock de Mongoose, es la técnica estándar e
+    inevitable para probar código que llama a `process.exit`. Resultado: 100% de cobertura real
+    en las 8 líneas del archivo. Delegado a `backend-tester`, verificado de forma independiente
+    (se leyó el archivo completo, se corrió `npm test` de forma independiente: `107/107`, y se
+    regeneró `npm run test:coverage` para confirmar el 100% real).
+  - **Objetivo de cobertura explícito:** definido como filosofía, no como número — este proyecto
+    ya había demostrado en la práctica (`TEST_PLAN.md`: "el 12% no es el criterio de calidad") que
+    perseguir un `%` global no es el criterio correcto. El objetivo real, documentado en
+    [docs/testing.md](../docs/testing.md): 100% en modelos/middlewares (ya logrado, unidades
+    pequeñas y cerradas); cada rama de estado/error real en controllers/routes con suite de
+    integración (no un `%` de statements); recursos sin integración (`address`/`paymentMethod`/
+    `order`/`wishlist`/`user`) quedan verificados solo por curl, brecha consciente documentada,
+    no un olvido; frontend con lógica real, happy+negativo por regla; frontend de presentación
+    pura, solo happy.
+  - **`docs/testing.md` escrito:** documento nuevo, capa de arriba sobre `TEST_PLAN.md` — runners,
+    comandos, convenciones innegociables (nunca mockear Mongoose/axios), estado real de ambas
+    suites, la filosofía de cobertura de arriba, qué queda explícitamente fuera de alcance
+    (E2E, integración de los 5 recursos restantes, gate de CI, carga), y una nota aclarando que
+    `docs/test-plans/README.md` describe un proceso (un archivo de plan por spec) que en la
+    práctica nunca se adoptó — `TEST_PLAN.md` es la fuente de verdad real, igual que
+    `docs/backlog.md` reemplazó a `PENDIENTES.md`.
+  `vitest.config.js` y `T-03` (`npm test`/`test:watch`/`test:coverage`) ya estaban, ver más abajo.
+  **Con esto, `T-01` queda cerrado y la épica `E6` (suite de tests) queda completa: 107 tests de
+  backend + 301 de frontend = 408 tests reales en todo el monorepo, arrancando desde cero.**
 - **T-02 (tests frontend) — EN PROGRESO desde 2026-08-26: planificación hecha, Prioridad ALTA
   hecha, MEDIA/BAJA pendientes.** Plan completo delegado a `test-planner` (scope explícito: solo
   `ecommerce-app/src/`, sin tocar el plan de backend ya existente), agregado como sección
@@ -573,9 +600,8 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
    por trabajo real (auditoría inicial, o al hacer `T-04`/`T-02`) y cerrados el mismo día. Épica
    completa: sin páginas huérfanas, mensajes de error/carga silenciados, ramas de error sin
    manejar, ni props perdidas en componentes compartidos.
-6. `E6 (tests)` — `REF-01`, `T-04` (105 tests backend) y `T-02` (301 tests frontend) cerrados
-   2026-08-26/27. Solo queda `T-01` (cobertura de `db.conf.js`, objetivo de cobertura,
-   `docs/testing.md`) para cerrar la épica del todo — no bloquea nada más.
+6. ~~**E6 (tests)**~~ — `REF-01`, `T-01`, `T-04` (107 tests backend) y `T-02` (301 tests
+   frontend) cerrados 2026-08-26/27. Épica completa: 408 tests reales en todo el monorepo.
 7. **E7 (E2E con Cypress)** — sin bloqueos técnicos (F-03 ya cerrado), ahora con integración real
    de backend (`T-04`) ya cerrada — no debería descubrir los mismos huecos dos veces.
 8. **E8, E9, E10** — CI/CD, observabilidad y despliegue, en ese orden, sobre una base ya probada
