@@ -24,6 +24,15 @@ export const register = async (req, res) => {
       .json({ message: "Nombre, email y password son requeridos" });
   }
 
+  // S-06: antes no había ningún requisito de longitud aquí, a diferencia de
+  // changePassword (isLength({min:6})) — una cuenta nueva podía crearse con
+  // una contraseña de 1 carácter.
+  if (password.length < 6) {
+    return res
+      .status(422)
+      .json({ message: "La contraseña debe tener al menos 6 caracteres" });
+  }
+
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) {
     return res.status(422).json({ message: "User already exist" });
