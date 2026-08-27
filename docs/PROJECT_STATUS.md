@@ -106,6 +106,7 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | B11 | `LoginForm.jsx` solo trataba `CLIENT_ERROR`+400, pero login inválido responde 401 real — contraseña incorrecta mostraba el mensaje genérico de error en vez de "Email o contraseña incorrectos" | ✅ Cerrado 2026-08-26 — encontrado por `test-planner` leyendo código (`T-02`), verificado y corregido antes de escribir tests |
 | B12 | `RegisterForm.jsx` no capturaba email duplicado (422 sin `errors` → `kind:"VALIDATION"` sin `fields`) ni errores de red/timeout/servidor — el registro fallaba en silencio total, sin ningún mensaje visible | ✅ Cerrado 2026-08-26 — mismo hallazgo de `test-planner`, verificado y corregido |
 | B13 | `OrderConfirmation.jsx` leía `order.address` síncronamente durante el render, antes de que el `useEffect` de redirección corriera — entrar sin `state.order` lanzaba `TypeError` en vez de redirigir a `/` | ✅ Cerrado 2026-08-26 — mismo hallazgo de `test-planner`, verificado y corregido |
+| B14 | `Button.jsx` (`components/common/`) no reenviaba props extra (`title`, etc.) al `<button>` real — sin `{...rest}`, se perdían en silencio. Afectaba tooltips reales en `Cart.jsx`, `Checkout.jsx` y `CartView.jsx` | ✅ Cerrado 2026-08-26 — encontrado por `frontend-tester` al escribir tests de `T-02` (Prioridad MEDIA), fix con `{...rest}` (mismo patrón que `Input.jsx`) |
 | B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
 | B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
 | B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
@@ -283,6 +284,22 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   de la librería y de cómo Testing Library flushea efectos, no atajos; detalle técnico completo en
   [TEST_PLAN.md](../TEST_PLAN.md#frontend--ecommerce-app). Queda pendiente Prioridad MEDIA/BAJA
   del plan (páginas, componentes de UI) para cerrar `T-02` por completo.
+- **2026-08-26 — T-02 Prioridad MEDIA (flujo de compra): 80 tests más, 191 en total, encuentra y
+  cierra B-14.** Segunda tanda delegada a `frontend-tester`, mismas convenciones que la tanda
+  ALTA: `ProductCard`, `ProductDetails`, `CategoryProducts`, `Home`, `SearchResultsList`, `Cart`,
+  `CartView`, `Checkout`, `Orders`, `WishList` y `OrderConfirmation` — 11 archivos nuevos, ningún
+  archivo de producción tocado por el agente. **Hallazgo real nuevo, verificado y cerrado el
+  mismo día como `B-14`:** `Button.jsx` (`components/common/`) no reenviaba props extra al
+  `<button>` real — sin `{...rest}`, el `title` que le pasan `Cart.jsx`/`Checkout.jsx`/
+  `CartView.jsx` para explicar botones deshabilitados o la acción de eliminar se perdía en
+  silencio. Fix: se agregó `{...rest}`, el mismo patrón que ya usa el componente hermano
+  `Input.jsx` — no una convención nueva. Se actualizaron los dos tests que documentaban el
+  comportamiento roto para verificar ahora el correcto. **Verificado de forma independiente:**
+  diff revisado antes del fix (solo los 11 `*.test.jsx` nuevos, cero producción), y
+  `CI=true npm test` corrido de forma independiente después del fix: `28 passed, 191 passed`;
+  build de producción (`react-scripts build`) confirmado limpio. Cierra `B-14` de
+  [docs/backlog.md](./backlog.md) — `E5` queda otra vez sin items pendientes. Queda pendiente el
+  resto de Prioridad MEDIA y toda BAJA para cerrar `T-02` por completo.
 
 ## Supuestos pendientes de validar
 

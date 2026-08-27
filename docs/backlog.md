@@ -26,7 +26,7 @@
 | E2 | Wishlist funcional | **Cerrado (2026-08-26)** — F-04 | _(pendiente)_ |
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
-| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-13, sin items pendientes | _(pendiente)_ |
+| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-14, sin items pendientes | _(pendiente)_ |
 | E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04 cerrados, T-01/T-02 en progreso (T-02: ALTA hecha, MEDIA/BAJA pendientes) | _(pendiente)_ |
 | E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
 | E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
@@ -55,6 +55,7 @@
 | B-11 | `LoginForm.jsx` (`handleLoginError`) solo trataba `CLIENT_ERROR`+400, pero login inválido responde 401 real — contraseña incorrecta mostraba el mensaje genérico de error en vez de "Email o contraseña incorrectos" | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
 | B-12 | `RegisterForm.jsx` (`handleRegisterError`) no capturaba email duplicado (422 `{message}` sin `errors` → `kind:"VALIDATION"` sin `fields`) ni errores de red/timeout/servidor — el registro fallaba en silencio total, sin ningún mensaje visible | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
 | B-13 | `OrderConfirmation.jsx` leía `order.address` síncronamente durante el render, antes de que el `useEffect` de redirección corriera — entrar a `/order-confirmation` sin `state.order` (URL directa, recarga, link viejo) lanzaba `TypeError` en vez de redirigir a `/` | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
+| B-14 | `Button.jsx` (`components/common/`) no reenviaba props extra (`title`, etc.) al `<button>` real — sin `{...rest}` ni destructuring explícito, cualquier `title` pasado por un consumidor se perdía en silencio. Afectaba tooltips reales en `Cart.jsx`, `Checkout.jsx` y `CartView.jsx` (explican por qué un botón está deshabilitado, o qué hace) | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
 | S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | **Cerrado (2026-08-26)** |
 | F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
@@ -64,7 +65,7 @@
 | B-06 | Rol fantasma `"cliente"` en `ProtectedRoute` (`/profile`) — no existe en `User.role` | E5 | Deuda técnica | **Medio** | **Cerrado (2026-08-26)** |
 | DOC-01 | Escribir specs por épica en `docs/specs/` a medida que cada una arranque | E1–E10 | Documentación | **Medio** | Pendiente |
 | DOC-02 | Crear `README.md` raíz (y/o por subproyecto) con setup, stack y comandos — hoy solo existe `CLAUDE.md`, pensado para el agente, no para un humano nuevo en el proyecto | — | Documentación | **Medio** | Pendiente |
-| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | En progreso — Prioridad ALTA hecha (111 tests), MEDIA/BAJA pendientes |
+| T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | En progreso — ALTA hecha (111 tests) + parte de MEDIA hecha (80 tests, flujo de compra), resto de MEDIA/BAJA pendientes |
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | Pendiente |
 | CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | Pendiente |
 | B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
@@ -415,6 +416,23 @@ re-descubrir el mismo terreno.
   incorrectos"; email duplicado → "Este email ya está registrado") y ambos pasan. Dos casos del
   plan quedaron documentados como no automatizables con este stack (comentarios en el código
   citando la causa técnica exacta, no omitidos en silencio) — detalle en TEST_PLAN.md.
+  **Segunda tanda, Prioridad MEDIA (flujo de compra) — cerrada 2026-08-26:** delegada a
+  `frontend-tester`, cubre `ProductCard`, `ProductDetails`, `CategoryProducts`, `Home`,
+  `SearchResultsList`, `Cart`, `CartView`, `Checkout`, `Orders`, `WishList` y
+  `OrderConfirmation` — 80 tests nuevos en 11 archivos, siguiendo las convenciones ya
+  establecidas en la tanda ALTA (mismo helper `makeToken`, mismos handlers `rest.*` de
+  `msw@1.3.2`). **Hallazgo real nuevo, verificado y cerrado el mismo día como `B-14`:**
+  `Button.jsx` (`components/common/`) no reenviaba props extra al `<button>` real — sin
+  `{...rest}`, cualquier `title` pasado por un consumidor se perdía en silencio. Afecta tooltips
+  reales en `Cart.jsx` ("Agrega productos al carrito para continuar" / "Proceder al pago"),
+  `Checkout.jsx` ("Selecciona una dirección de envío" / "Selecciona un método de pago") y
+  `CartView.jsx` ("Eliminar artículo"). El agente escribió los tests de `Checkout`/`CartView`
+  documentando el comportamiento (entonces) real sin `title`, en vez de afirmar el atributo
+  inexistente — se corrigió el mismo día (ver entrada `B-14` abajo) y se actualizaron esos dos
+  tests para verificar el comportamiento correcto. Verificado de forma independiente: diff
+  revisado (solo los 11 archivos `*.test.jsx`/`*.test.js` nuevos, cero producción tocada por el
+  agente), y `CI=true npm test` corrido de forma independiente tras el fix de `B-14`:
+  `28 passed, 191 passed`.
   **Hallazgo real de `test-planner` (leyendo código, no corriendo tests) — verificado y cerrado
   el mismo día como `B-11`/`B-12`/`B-13`, antes de que se escriba ningún test:** tres bugs reales
   en el manejo de errores de auth y en la confirmación de orden. Ver el detalle completo a
@@ -447,6 +465,23 @@ re-descubrir el mismo terreno.
     registro con `user1@test.com` (ya existente) → "Este email ya está registrado" junto al campo
     email; navegar a `/order-confirmation` sin `state` → redirige a `/` sin ningún error de
     página (`page.on('pageerror')` sin eventos). Cierran `B-11`/`B-12`/`B-13` de este backlog.
+- **B-14 (`Button.jsx` no reenvía props extra) — CERRADO 2026-08-26, encontrado por
+  `frontend-tester` al escribir tests de `T-02`:** `components/common/Button/Button.jsx`
+  desestructuraba explícitamente `children`/`onClick`/`type`/`disabled`/`variant`/`size`/
+  `className` y renderizaba un `<button>` con exactamente esas props, sin `{...rest}` ni manejo
+  explícito de `title` — cualquier otra prop (`title`, `aria-*`, `data-*`) que un consumidor le
+  pasara se perdía en silencio, sin error ni warning. Confirmado con un test real
+  (`render(<Button title="x">...</Button>)` → `getAttribute("title")` daba `null`). Impacto real
+  verificado: `Cart.jsx` y `Checkout.jsx` usan `title` para explicar por qué el botón de pago está
+  deshabilitado ("Agrega productos al carrito para continuar", "Selecciona una dirección de
+  envío", "Selecciona un método de pago"), y `CartView.jsx` lo usa en el botón de eliminar
+  ("Eliminar artículo") — los tres tooltips nunca llegaban al DOM. Fix: se agregó `...rest` a la
+  desestructuración y al `<button>` renderizado, mismo patrón que ya usa el componente hermano
+  `Input.jsx` (`{...rest}` en el `<input>`) — no una convención nueva, sino aplicar la que ya
+  existía en el resto de `components/common/`. Se actualizaron los dos tests que documentaban el
+  comportamiento roto (`Checkout.test.jsx`, `CartView.test.jsx`) para verificar ahora el
+  comportamiento correcto. Verificado: `npm test` del frontend en 191/191 tras el fix, y build de
+  producción (`react-scripts build`) limpio. Cierra `B-14` de este backlog.
 - **E2E-01 (Cypress):** el proyecto de referencia usa un seed dedicado vía *task* de Cypress para
   datos de prueba, no el `npm run seed` normal — replicar ese patrón en vez de reusar el seed de
   producción. Escenario mínimo: login → agregar al carrito → checkout (depende de F-03 para
@@ -489,9 +524,10 @@ cerró S-02 (2026-08-26), este usuario admin **sí desbloquea** rutas reales: es
 3. ~~**E2 (Wishlist)**~~ — F-04 cerrado 2026-08-26.
 4. ~~**E3 (cuenta: Profile y Settings)**~~ — F-05/F-06 cerrados 2026-08-26. `B-04` queda
    completamente cerrado (ambas páginas, `WishList.jsx` y `Setttings.jsx`, implementadas).
-5. ~~**E5 (bugs y limpieza restante)**~~ — `B-01` a `B-10` cerrados 2026-08-26 (`B-10`, el último,
-   encontrado y cerrado al hacer `T-04`: slug duplicado → 422 en vez de 500). Épica completa: sin
-   páginas huérfanas, mensajes de error/carga silenciados, ni ramas de error sin manejar.
+5. ~~**E5 (bugs y limpieza restante)**~~ — `B-01` a `B-14` cerrados 2026-08-26, todos encontrados
+   por trabajo real (auditoría inicial, o al hacer `T-04`/`T-02`) y cerrados el mismo día. Épica
+   completa: sin páginas huérfanas, mensajes de error/carga silenciados, ramas de error sin
+   manejar, ni props perdidas en componentes compartidos.
 6. ~~**E6 (tests) — integración backend**~~ — `REF-01` (split `app.js`/`server.js`) y `T-04`
    (integración auth/cart/category/product, 105 tests totales) cerrados 2026-08-26. Queda `T-02`
    (frontend, independiente) para cerrar la épica completa.

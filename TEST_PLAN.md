@@ -277,14 +277,29 @@ a 20000ms en `vitest.config.js`; confirmado estable en corridas repetidas de `np
 > Plan producido por el agente `test-planner` el 2026-08-26 (`T-02` de `docs/backlog.md`),
 > read-only — no escribió ni ejecutó nada. `frontend-tester` (Testing Library + `user-event`,
 > API interceptada con MSW, nunca mocks manuales de `fetch`/`axios`) es quien escribe y corre los
-> tests a partir de este plan. **Estado: Prioridad ALTA `Hecho` (111 tests, 2026-08-26) — MEDIA y
-> BAJA `No iniciado`.**
+> tests a partir de este plan. **Estado: Prioridad ALTA `Hecho` (111 tests) — MEDIA parcial
+> `Hecho` (80 tests, flujo de compra: `ProductCard`/`ProductDetails`/`CategoryProducts`/`Home`/
+> `SearchResultsList`/`Cart`/`CartView`/`Checkout`/`Orders`/`WishList`/`OrderConfirmation`) —
+> resto de MEDIA y toda BAJA `No iniciado`.**
 
-**Corrida real de la sección ALTA** (`CI=true npm test` en `ecommerce-app/`, 2026-08-26):
+**Corrida real acumulada** (`CI=true npm test` en `ecommerce-app/`, 2026-08-26, tras la segunda
+tanda de `T-02`):
 ```
-Test Suites: 17 passed, 17 total
-Tests:       111 passed, 111 total
+Test Suites: 28 passed, 28 total
+Tests:       191 passed, 191 total
 ```
+(111 de la tanda ALTA + 80 nuevos de esta tanda MEDIA.)
+
+**Hallazgo real nuevo en esta tanda, confirmado y cerrado el mismo día como `B-14`:**
+`components/common/Button/Button.jsx` no reenviaba props extra (`title`, etc.) al `<button>` real
+— sin `{...rest}`, cualquier `title` pasado por un consumidor se perdía en silencio. Afectaba
+tooltips reales en `Cart.jsx`, `Checkout.jsx` y `CartView.jsx` (explican por qué un botón de pago
+está deshabilitado, o qué hace el botón de eliminar). Confirmado empíricamente
+(`getAttribute("title")` daba `null`). Fix: se agregó `{...rest}` al destructuring y al
+`<button>` renderizado — mismo patrón que ya usa `Input.jsx` en este mismo directorio, no una
+convención nueva. Los dos tests que documentaban el comportamiento roto (`Checkout.test.jsx`,
+`CartView.test.jsx`) se actualizaron para verificar ahora el comportamiento correcto. Ver `B-14`
+en `docs/backlog.md` para el detalle completo.
 `msw@1.3.2` fue la única devDependency nueva instalada — se probó `msw@2.x` primero pero se
 descartó por incompatibilidades reales entre `@mswjs/interceptors` (basado en sockets/Fetch) y el
 toolchain fijo de este repo (CRA5 → Jest 27.5.1 → jsdom 16.7.0): `responseText` vacío en la ruta
