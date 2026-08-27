@@ -47,3 +47,12 @@ proyecto de cero hay que crearlos a mano con las variables de arriba (ver
 
 No aplica. La autenticación es JWT stateless por header `Authorization: Bearer <token>` (token en
 `localStorage["authToken"]` del navegador). No se usan cookies.
+
+## MCP de MongoDB (tooling de desarrollo, 2026-08-27)
+
+`ecommerce-api/.mcp.json` configura un servidor MCP `mongodb` en modo `stdio` para que Claude Code
+pueda consultar la base de datos en **solo lectura** (`mongodb-mcp-server@latest --readOnly`). No
+contiene ningún secreto: usa `dotenv-cli` para cargar `MONGO_URI` desde `ecommerce-api/.env` en
+tiempo de ejecución, así que es seguro tenerlo versionado (mismo patrón ya usado en el repo de
+referencia del curso). No forma parte del runtime de la app — es exclusivamente una herramienta de
+desarrollo. Para activarlo: `claude mcp list` / `claude mcp get mongodb` y reiniciar Claude Code.

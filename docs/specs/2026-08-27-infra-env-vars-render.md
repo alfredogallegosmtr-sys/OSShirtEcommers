@@ -10,7 +10,10 @@
 Como desarrollador que va a desplegar `OSShirtEcommers` a Render, necesito que las variables de
 entorno obligatorias tengan una plantilla (`.env.example`) y que el servidor falle de forma
 visible si falta una variable crítica en producción, en vez de arrancar silenciosamente con un
-default de desarrollo que rompe CORS o construye URLs de imágenes con `localhost`.
+default de desarrollo que rompe CORS o construye URLs de imágenes con `localhost`. También
+necesito confirmar, antes de cualquier push a producción, que el frontend compila y funciona
+sobre su propio build (no solo sobre el dev server) y que no queda `console.log` de debug real en
+el código que se despliega.
 
 ## Contexto
 
@@ -28,9 +31,10 @@ Se auditó el monorepo completo buscando URLs hardcodeadas (`localhost`, `127.0.
   URLs de mocks de MSW, correctas e intencionalmente fijas).
 - `ecommerce-api/server.js`: ya usa `process.env.PORT || 4001` y `app.listen(port, ...)` sin fijar
   host — Node escucha en todas las interfaces por default, correcto para Render sin cambios.
-- No hay cookies, sesiones, WebSockets, Socket.IO, OAuth ni links de verificación por email en
-  este proyecto (JWT stateless en `localStorage`, confirmado en múltiples auditorías de esta
-  sesión) — las secciones 10 y 11 de la referencia de este spec **no aplican**.
+- No hay cookies, sesiones, WebSockets, Socket.IO, OAuth, webhooks ni links de verificación por
+  email en este proyecto (JWT stateless en `localStorage`, sin pasarela de pago externa por
+  diseño — `S-03` —, confirmado en múltiples auditorías de esta sesión) — las secciones 10 y 11
+  de la referencia de este spec **no aplican**.
 - No hay un `package.json` raíz ni workspaces — cada subproyecto se despliega como servicio
   independiente en Render (ya documentado en `docs/render-deployment.md`).
 - `.gitignore` de ambos paquetes ya excluye `.env`/`.env.*` correctamente.
@@ -49,6 +53,24 @@ Se auditó el monorepo completo buscando URLs hardcodeadas (`localhost`, `127.0.
 4. `server.js:12` loguea `Server running on https://localhost:${port}` — dice `https` pero el
    servidor corre en HTTP plano (Render termina TLS en su proxy, la app nunca ve HTTPS
    directamente). Inexactitud menor, confunde en desarrollo local.
+5. `console.log` de debug real en frontend (verificado con grep en todo `ecommerce-app/src/`,
+   excluyendo tests — el backend no tiene ninguno real, solo logging intencional ya cubierto
+   arriba en "Ya está hecho"):
+   - `ecommerce-app/src/components/BannerCarousel/BannerCarousel.jsx:112` y `:124`
+   - `ecommerce-app/src/context/ThemeContext.jsx:27`
+6. No hay una verificación local del build de producción del frontend antes de desplegar — el
+   error más común de un deploy es que algo funcione en `npm start` (dev) pero falle en
+   `npm run build`, y detectarlo localmente toma 2 minutos vs. ~20 en Render.
+7. `ecommerce-app/src/services/apiClient.js:6` cae en silencio a
+   `http://localhost:4001/api` si falta `REACT_APP_API_URL`. Como CRA incrusta las variables
+   `REACT_APP_*` **en tiempo de build**, un build de producción sin esa variable definida
+   generaría un frontend que apunta a `localhost` para siempre, sin ningún error visible — hay
+   que fallar el build, no degradar en silencio.
+8. No existe ningún test (unitario ni de integración) que verifique el comportamiento real de
+   CORS — que un origen de la allowlist pase y uno fuera de ella sea rechazado. Ya está
+   trackeado como `SEC-001` en
+   [docs/testing/test-matrix.md](../testing/test-matrix.md) (prioridad Media, estado Pendiente);
+   este spec lo adopta como criterio de aceptación propio porque es exactamente el área que toca.
 
 ## Criterios de Aceptación
 - [ ] CA-1: Existe `ecommerce-api/.env.example` con todas las variables de
@@ -65,6 +87,21 @@ Se auditó el monorepo completo buscando URLs hardcodeadas (`localhost`, `127.0.
       verde después de los cambios.
 - [ ] CA-7: Búsqueda final de `localhost`/`127.0.0.1`/URLs hardcodeadas en código de producción
       (no tests) confirma que no se introdujo ninguna nueva.
+- [ ] CA-8: Se eliminan los 3 `console.log` de debug listados en Contexto (`BannerCarousel.jsx`
+      x2, `ThemeContext.jsx`) — o se reemplazan por logging intencional si resulta que aportan
+      valor real de diagnóstico, decisión a tomar durante la implementación, no antes.
+- [ ] CA-9: `npm run build` (frontend) corre sin errores ni warnings críticos, y el resultado se
+      prueba localmente sirviendo `build/` (ej. `npx serve build`) antes de cualquier push —
+      confirmando que el flujo real de usuario (home, login, carrito, checkout) funciona sobre el
+      build de producción, no solo sobre el dev server.
+- [ ] CA-10: `apiClient.js` (o el proceso de build) falla explícitamente si
+      `REACT_APP_API_URL` no está definida en un build de producción (`NODE_ENV=production`,
+      que CRA fija automáticamente durante `npm run build`) — en desarrollo (`npm start`) el
+      default a `localhost:4001` se mantiene, mismo criterio que CA-4 en el backend.
+- [ ] CA-11 (`SEC-001`): existe al menos un test de integración real que confirma que un origen
+      presente en `CORS_ALLOWED_ORIGINS` recibe la respuesta normalmente y uno fuera de la
+      allowlist es rechazado por CORS — cierra `SEC-001` de
+      [docs/testing/test-matrix.md](../testing/test-matrix.md).
 
 ## Consideraciones de Seguridad
 - **Amenazas STRIDE identificadas:**
@@ -86,7 +123,10 @@ Se auditó el monorepo completo buscando URLs hardcodeadas (`localhost`, `127.0.
 ## Dependencias
 - **Internas:** `ecommerce-api/server.js`, `ecommerce-api/src/app.js` (lectura de
   `CORS_ALLOWED_ORIGINS`, sin modificar su lógica de allowlist ya correcta),
-  `docs/environment-variables.md`, `docs/render-deployment.md`.
+  `ecommerce-app/src/services/apiClient.js` (CA-10), un nuevo test de integración para `SEC-001`
+  (CA-11, probablemente en `tests/integration/` junto a los demás), `docs/environment-variables.md`,
+  `docs/render-deployment.md`, `docs/testing/test-matrix.md` (actualizar `SEC-001` a Implementado
+  al cerrar).
 - **Externas:** ninguna — no se agrega ninguna dependencia nueva (ni siquiera un validador tipo
   Zod/Joi: el volumen de variables —3 obligatorias— no lo justifica; un chequeo manual explícito
   al inicio de `server.js` es suficiente y no introduce una librería nueva sin necesidad real).
@@ -101,6 +141,13 @@ Se auditó el monorepo completo buscando URLs hardcodeadas (`localhost`, `127.0.
   completo — no romper `npm run dev` en máquinas nuevas.
 - **No tocar `src/app.js`.** La lógica de CORS/allowlist ya es correcta (`S-04`); este spec solo
   agrega la validación de que la variable exista, en `server.js`, antes de que `app.js` la use.
+- **Alternativa considerada para CA-3/CA-4: un módulo `src/config/env.js` dedicado**, en vez de
+  un `if` inline en `server.js`. El repo de referencia del curso (`2026-2-ReactFS`) resuelve esto
+  exactamente así — un módulo que centraliza la lectura/validación de env vars y además gatea si
+  Swagger se expone según `NODE_ENV`. No se decide todavía cuál de las dos opciones usar (`if`
+  inline vs. módulo dedicado) — queda para el momento de implementar, evaluando si para 3
+  variables un módulo aparte se justifica o es sobre-ingeniería para el tamaño real de este
+  proyecto.
 
 ## Riesgos y Deuda Técnica
 - Si Render no permite ver logs de arranque antes de que el health check falle, el mensaje de

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mongodb": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y", "dotenv-cli", "-e", ".env", "--",
+        "npx", "-y", "mongodb-mcp-server@latest", "--readOnly"
+      ]
+    }
+  }
+}
