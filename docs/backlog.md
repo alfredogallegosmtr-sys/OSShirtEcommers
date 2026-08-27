@@ -32,6 +32,8 @@
 | E8 | CI/CD completo | **Cerrado (2026-08-27)** — `CI-01` completo: lint + tests+cobertura + E2E con Cypress en los 3 jobs (`test-api`, `test-app`, `e2e`), confirmado en verde en un run real de GitHub Actions ([33068441727](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33068441727)) | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
 | E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
+| E11 | Documentación de API (OpenAPI/Swagger) | En progreso (2026-08-27) — `DOC-03`, [PR #1](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/pull/1) abierto contra `develop`, sin mergear | _(pendiente)_ |
+| E12 | Auditoría de seguridad OWASP Top 10:2025 | En progreso (2026-08-27) — `S-05` a `S-11`, informe de solo lectura completo, arrancando la corrección uno por uno | _(pendiente)_ |
 
 ## Tabla priorizada
 
@@ -70,18 +72,35 @@
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — 20/20 specs en verde con el runner real en GitHub Actions (bloqueo de Cypress en la máquina Windows de desarrollo sigue documentado, pero ya no bloquea nada: CI es el runner real) |
 | B-15 | `Checkout.jsx` (`handleCreateOrder`) no tenía ninguna bandera de "enviando" — un doble clic real en "Confirmar y Pagar" podía disparar dos `POST /api/orders` mientras la primera petición seguía en curso | E5 | Bug | **Alto** | **Cerrado (2026-08-27)** |
 | B-16 | `CartContext.jsx` (`updateItem`) sin ordenamiento de peticiones — dos cambios de cantidad rápidos sobre el mismo item (ej. +/- en sucesión) disparan dos `PATCH /api/cart/:itemId` en paralelo; si la respuesta de la petición vieja llega después que la de la más reciente, `setItems(data.items)` pisa el estado con una cantidad obsoleta | E5 | Bug | **Alto** | **Cerrado (2026-08-27)** |
-| CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | En progreso (2026-08-27) — `test-api`/`test-app`/`e2e` confirmados en verde en un run real de GitHub Actions (incluye Cypress 20/20); solo falta lint (sin scripts `lint`/`format:check` en ningún `package.json`) |
+| CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | **Cerrado (2026-08-27)** — lint + tests+cobertura + E2E con Cypress en los 3 jobs, confirmado en verde |
 | B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-05 | `data/categories.json` — código muerto, contenido de otro dominio | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-07 | Borrar `server_practice.js` / `db.config_practice.js` (0 bytes, scaffolding del curso) | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | OBS-01 | Instalar Artillery + escenario de carga contra endpoints reales | E9 | Deuda técnica | **Bajo** | Pendiente |
 | DEP-01 | Crear servicios en Render + Deploy Hooks como secrets de GitHub | E10 | Deuda técnica | **Bajo** | Pendiente |
+| DOC-03 | Documentación OpenAPI/Swagger de los 35 endpoints reales — `/api-docs`, gateado por `NODE_ENV`/`ENABLE_DOCS` | E11 | Documentación | **Medio** | En progreso (2026-08-27) — [PR #1](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/pull/1) abierto contra `develop`, verificado con el servidor real corriendo, sin mergear |
+| S-05 | Rate limiting en `POST /auth/login` y `POST /auth/register` — hoy sin ningún freno a fuerza bruta | E12 | Bug/Seguridad | **Alto** | Pendiente |
+| S-06 | Política de contraseña mínima en `register` (`auth.controller.js:21` solo valida truthy) — igualar a `changePassword` (`isLength({min:6})`) | E12 | Bug/Seguridad | **Alto** | Pendiente |
+| S-07 | Logging de eventos de seguridad — 401 de `requireAuth`, 403 de `requireAdmin`, login fallido, hoy no se registra nada | E12 | Deuda técnica | **Alto** | Pendiente |
+| S-08 | `GET /products/search` mete `q` sin escapar en un `$regex` de Mongo (`product.controller.js:28-33`) — riesgo de ReDoS en una ruta pública sin auth | E12 | Bug/Seguridad | **Medio** | Pendiente |
+| S-09 | Agregar `helmet` — sin headers de seguridad HTTP en ninguna respuesta | E12 | Deuda técnica | **Medio** | Pendiente |
+| S-10 | Definir y aplicar control de stock en `cart`/`order` — `Product.stock` existe pero nunca se valida ni se descuenta, sin control de sobreventa | E12 | Deuda de diseño | **Medio** | Pendiente |
+| S-11 | Whitelist de campos en `createProduct`/`updateProduct` (`product.controller.js:89,99`) — hoy pasan `req.body` completo a Mongoose sin filtrar | E12 | Deuda técnica | **Bajo** | Pendiente |
 
 ## Detalle de items
 
 Contexto adicional migrado desde `PENDIENTES.md`, necesario para arrancar cada item sin
 re-descubrir el mismo terreno.
 
+- **`S-05` a `S-11` (auditoría OWASP Top 10:2025, `E12`) — informe completo en
+  [docs/security/owasp-audit-2026-08-27.md](security/owasp-audit-2026-08-27.md)**: evidencia
+  archivo:línea, por qué es un riesgo y la mitigación recomendada para cada hallazgo. Auditoría de
+  solo lectura, código no modificado — cada item se corrige por separado a partir de aquí.
+- **`DOC-03` (Swagger/OpenAPI, `E11`):** `src/config/swagger.js` con la definición OpenAPI 3 y 14
+  schemas reales, `/api-docs`+`/api-docs.json` gateados por `NODE_ENV`/`ENABLE_DOCS`, 35 endpoints
+  anotados en los 9 archivos de rutas. [PR #1](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/pull/1)
+  abierto contra `develop`, verificado con el servidor real (lint + 158/158 tests + los 3
+  escenarios de `NODE_ENV`/`ENABLE_DOCS` probados en vivo), sin mergear todavía.
 - **S-01/S-02 (seguridad de catálogo) — CERRADO 2026-08-26:** `requireAdmin` agregado a
   `src/middlewares/auth.middleware.js` (exige `req.user.role === "admin"`, 403 si no; debe montarse
   después de `requireAuth`). Aplicado como `requireAuth, requireAdmin` antes del validador en
