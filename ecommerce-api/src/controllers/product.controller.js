@@ -3,6 +3,13 @@ import Product from "../models/Product.js";
 
 const VISIBLE_FILTER = { is_active: true, is_deleted: false };
 
+// S-08: "q" venía directo a un $regex de Mongo sin escapar -- un patrón con backtracking
+// catastrófico (ej. "(a+)+$") en una ruta pública sin auth podía consumir CPU del
+// servidor de forma desproporcionada (ReDoS). Se escapan los metacaracteres de regex
+// para que "q" siempre se trate como texto literal, y se limita su longitud.
+const MAX_SEARCH_QUERY_LENGTH = 100;
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const getAllProducts = async (req, res) => {
   const products = await Product.find(VISIBLE_FILTER)
     .populate("category")
@@ -26,10 +33,11 @@ export const searchProducts = async (req, res) => {
   const filter = { ...VISIBLE_FILTER };
 
   if (q) {
+    const safeQ = escapeRegExp(String(q).slice(0, MAX_SEARCH_QUERY_LENGTH));
     filter.$or = [
-      { name: { $regex: q, $options: "i" } },
-      { description: { $regex: q, $options: "i" } },
-      { tags: { $regex: q, $options: "i" } },
+      { name: { $regex: safeQ, $options: "i" } },
+      { description: { $regex: safeQ, $options: "i" } },
+      { tags: { $regex: safeQ, $options: "i" } },
     ];
   }
 

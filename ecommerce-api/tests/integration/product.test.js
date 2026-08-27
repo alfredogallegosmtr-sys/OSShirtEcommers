@@ -229,6 +229,64 @@ describe("Product integration (/api/products)", () => {
     });
   });
 
+  describe("Búsqueda segura (S-08): 'q' se trata como texto literal, no como regex", () => {
+    it("[negativo] regex inválido (paréntesis sin cerrar) no rompe la ruta → sigue en 200", async () => {
+      const category = await createCategory();
+      await Product.create({
+        name: "Camiseta Naruto",
+        price: 100,
+        slug: "camiseta-naruto-2",
+        category: category._id,
+      });
+
+      // Antes del fix, un regex de Mongo inválido (paréntesis sin cerrar) lanzaba un
+      // error no manejado -- ahora "(" se escapa y se busca como texto literal.
+      const res = await request(app).get("/api/products/search").query({ q: "(" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.products).toHaveLength(0);
+    });
+
+    it("[negativo] '.*' no matchea todos los productos (antes del fix, un wildcard sin escapar sí lo hacía)", async () => {
+      const category = await createCategory();
+      await Product.create({
+        name: "Camiseta Naruto",
+        price: 100,
+        slug: "camiseta-naruto-3",
+        category: category._id,
+      });
+      await Product.create({
+        name: "Camiseta One Piece",
+        price: 100,
+        slug: "camiseta-one-piece-2",
+        category: category._id,
+      });
+
+      const res = await request(app).get("/api/products/search").query({ q: ".*" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.products).toHaveLength(0);
+    });
+
+    it("[happy] caracteres especiales legítimos en 'q' siguen encontrando el producto real", async () => {
+      const category = await createCategory();
+      await Product.create({
+        name: "Poster (Edición Especial)",
+        price: 250,
+        slug: "poster-edicion-especial",
+        category: category._id,
+      });
+
+      const res = await request(app)
+        .get("/api/products/search")
+        .query({ q: "(Edición" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.products).toHaveLength(1);
+      expect(res.body.products[0].name).toBe("Poster (Edición Especial)");
+    });
+  });
+
   describe("Slug duplicado en creación", () => {
     it("[negativo] slug duplicado → 422 manejado (B-10, corregido en el error handler global)", async () => {
       const category = await createCategory();
