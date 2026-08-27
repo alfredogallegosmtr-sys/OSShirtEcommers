@@ -15,6 +15,8 @@ export default function OrderConfirmation() {
     }
   }, [order, navigate]);
 
+  if (!order) return null;
+
   const address = order.address || {};
   const subtotal = order.subtotalPrice || 0;
   const shipping = order.shippingCost || 0;

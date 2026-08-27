@@ -100,13 +100,14 @@ export default function RegisterForm() {
 
   const handleRegisterError = (err) => {
     const kind = err.kind || "UNKNOWN";
+    const backendMessage = err.original?.response?.data?.message;
+
+    if (backendMessage === "User already exist") {
+      setFieldErrors({ email: "Este email ya está registrado" });
+      return;
+    }
 
     if (kind === "CLIENT_ERROR" && err.status === 400) {
-      const backendMessage = err.original?.response?.data?.message;
-      if (backendMessage === "User already exist") {
-        setFieldErrors({ email: "Este email ya está registrado" });
-        return;
-      }
       setErrorKind("BAD_REQUEST");
       return;
     }
@@ -119,6 +120,8 @@ export default function RegisterForm() {
       setFieldErrors(fieldErrors);
       return;
     }
+
+    setErrorKind(kind);
   };
 
   return (

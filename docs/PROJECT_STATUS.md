@@ -103,6 +103,9 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
 | B8 | `ProfileCard.jsx` usaba `contextUser.role` en vez de `currentUser.role` (siempre "guest"); `currentUser.loginDate` (campo inexistente) en vez de `currentUser.last_login`; botones de acción eran stubs no-op (`() => {}`), incluido un "Panel de administración" sin ruta real | ✅ Cerrado 2026-08-26 (F-05) |
 | B9 | `ErrorMessage`/`Loading` (`components/common/`) solo aceptan `children`, no una prop `message` — varios llamadores (`Checkout.jsx`, `Orders.jsx`, `WishList.jsx`, `CategoryProducts.jsx`, `ProductDetails.jsx`) les pasan `message={...}` en vez de `{...}` como children, así que el texto nunca se renderiza (queda una caja vacía) | ✅ Cerrado 2026-08-26 — corregidos los 5 llamadores; de paso se encontró y corrigió un segundo bug en `CategoryProducts.jsx` (mostraba el `kind` interno crudo `"NOT_FOUND"` en vez del texto amigable) |
 | B10 | `POST /api/products` con `slug` duplicado respondía 500 genérico en vez de 422 — `product.controller.js` (`createProduct`) no capturaba el `MongoServerError`/`code:11000` de Mongo, y el error handler global solo reconocía `ValidationError` de Mongoose | ✅ Cerrado 2026-08-26 — fix en el error handler global (`src/app.js`), cubre cualquier `unique` duplicado, no solo `Product.slug` (confirmado con un segundo test para `Category.slug`) |
+| B11 | `LoginForm.jsx` solo trataba `CLIENT_ERROR`+400, pero login inválido responde 401 real — contraseña incorrecta mostraba el mensaje genérico de error en vez de "Email o contraseña incorrectos" | ✅ Cerrado 2026-08-26 — encontrado por `test-planner` leyendo código (`T-02`), verificado y corregido antes de escribir tests |
+| B12 | `RegisterForm.jsx` no capturaba email duplicado (422 sin `errors` → `kind:"VALIDATION"` sin `fields`) ni errores de red/timeout/servidor — el registro fallaba en silencio total, sin ningún mensaje visible | ✅ Cerrado 2026-08-26 — mismo hallazgo de `test-planner`, verificado y corregido |
+| B13 | `OrderConfirmation.jsx` leía `order.address` síncronamente durante el render, antes de que el `useEffect` de redirección corriera — entrar sin `state.order` lanzaba `TypeError` en vez de redirigir a `/` | ✅ Cerrado 2026-08-26 — mismo hallazgo de `test-planner`, verificado y corregido |
 | B5 | `data/categories.json` código muerto | ✅ Cerrado 2026-08-26 (borrado) |
 | B6 | Rol fantasma `"cliente"` en `ProtectedRoute` | ✅ Cerrado 2026-08-26 (quitado) |
 | B7 | `server_practice.js`/`db.config_practice.js` (0 bytes) | ✅ Cerrado 2026-08-26 (borrados) |
@@ -248,6 +251,23 @@ Ver la matriz detallada en [ARCHITECTURE.md](./ARCHITECTURE.md#matriz-de-fuente-
   levantado (crear producto → crear otro con el mismo slug → 422 con el mensaje esperado, antes
   500; producto de prueba borrado después). Cierra `B-10` de [docs/backlog.md](./backlog.md) — `E5`
   vuelve a quedar sin items pendientes.
+- **2026-08-26 — T-02: plan de tests de frontend, encuentra y cierra B-11/B-12/B-13.** Delegado a
+  `test-planner` (solo lectura, sin tocar el plan de backend ya existente) el plan completo de
+  `ecommerce-app/src/`, agregado como sección "Frontend" de
+  [TEST_PLAN.md](../TEST_PLAN.md). Al leer el código (sin correr nada todavía), `test-planner`
+  encontró y documentó tres bugs reales de manejo de errores en flujos centrales — se verificaron
+  leyendo el código fuente y se corrigieron el mismo día, **antes** de que `frontend-tester`
+  escriba ningún test, para que los casos prueben el comportamiento correcto: `LoginForm.jsx`
+  trataba login inválido (401 real, `kind:"UNAUTHORIZED"`) como si nunca pudiera pasar, mostrando
+  el mensaje de error genérico en vez de "Email o contraseña incorrectos" (`B-11`);
+  `RegisterForm.jsx` no capturaba email duplicado (422 sin `errors`) ni fallos de
+  red/timeout/servidor, así que el registro fallaba en **silencio total** sin ningún mensaje
+  (`B-12`); `OrderConfirmation.jsx` leía `order.address` antes de que el `useEffect` de
+  redirección corriera, así que entrar sin `state.order` lanzaba un `TypeError` en vez de
+  redirigir (`B-13`). Verificado con Playwright los tres: login con password incorrecto muestra
+  el mensaje correcto, registro con email ya existente muestra "Este email ya está registrado", y
+  navegar a `/order-confirmation` sin estado redirige a `/` sin errores de página. `frontend-tester`
+  todavía no ha escrito ningún test — sigue pendiente instalar `msw`.
 
 ## Supuestos pendientes de validar
 

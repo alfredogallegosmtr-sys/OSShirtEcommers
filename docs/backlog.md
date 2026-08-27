@@ -26,7 +26,7 @@
 | E2 | Wishlist funcional | **Cerrado (2026-08-26)** — F-04 | _(pendiente)_ |
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
-| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-10, sin items pendientes | _(pendiente)_ |
+| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-26)** — B-01 a B-13, sin items pendientes | _(pendiente)_ |
 | E6 | Suite de tests (backend + frontend) | En progreso — T-03/REF-01/T-04 cerrados, T-01 en progreso, T-02 pendiente | _(pendiente)_ |
 | E7 | E2E con Cypress | Pendiente — E2E-01 | _(pendiente)_ |
 | E8 | CI/CD completo | Pendiente — CI-01 | _(pendiente)_ |
@@ -52,6 +52,9 @@
 | REF-01 | Split `app.js`/`server.js` en `ecommerce-api` — `server.js` no exportaba `app` sin efectos secundarios (dotenv/connectDB/listen se disparaban solo con importarlo), bloqueando cualquier test de integración con supertest | E6 | Refactor | **Alto** | **Cerrado (2026-08-26)** |
 | T-04 | Pruebas de integración de `ecommerce-api` (auth/cart/category/product vía supertest contra rutas reales) | E6 | Deuda técnica | **Alto** | **Cerrado (2026-08-26)** |
 | B-10 | `POST /api/products` con `slug` duplicado respondía 500 genérico en vez de 422 — `Product.create()` no capturaba el error de índice duplicado de Mongo (`code: 11000`), y el error handler global solo reconocía `ValidationError` de Mongoose | E5 | Bug | **Medio** | **Cerrado (2026-08-26)** |
+| B-11 | `LoginForm.jsx` (`handleLoginError`) solo trataba `CLIENT_ERROR`+400, pero login inválido responde 401 real — contraseña incorrecta mostraba el mensaje genérico de error en vez de "Email o contraseña incorrectos" | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
+| B-12 | `RegisterForm.jsx` (`handleRegisterError`) no capturaba email duplicado (422 `{message}` sin `errors` → `kind:"VALIDATION"` sin `fields`) ni errores de red/timeout/servidor — el registro fallaba en silencio total, sin ningún mensaje visible | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
+| B-13 | `OrderConfirmation.jsx` leía `order.address` síncronamente durante el render, antes de que el `useEffect` de redirección corriera — entrar a `/order-confirmation` sin `state.order` (URL directa, recarga, link viejo) lanzaba `TypeError` en vez de redirigir a `/` | E5 | Bug | **Alto** | **Cerrado (2026-08-26)** |
 | S-04 | `cors()` sin allowlist — restringir orígenes antes de cualquier despliegue | E4 | Deuda/Seguridad | **Medio** | **Cerrado (2026-08-26)** |
 | F-05 | Profile: `GET` real al backend en vez de derivar todo del JWT decodificado | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
 | F-06 | Settings: definir alcance real (qué configura) e implementar UI | E3 | Feature faltante | **Medio** | **Cerrado (2026-08-26)** |
@@ -390,8 +393,46 @@ re-descubrir el mismo terreno.
   Mongoose"); definir un objetivo de cobertura explícito; `docs/testing.md` (estrategia de
   testing, no existe todavía). `vitest.config.js` y T-03 (`npm test`/`test:watch`/
   `test:coverage`) ya están, ver más abajo.
-- **T-02 (tests frontend):** el agente `frontend-tester` (`.claude/agents/frontend-tester.md`) ya
-  está listo; falta instalar `msw` como devDependency antes de que pueda correr.
+- **T-02 (tests frontend) — planificación hecha 2026-08-26, tests todavía sin escribir:**
+  delegado a `test-planner` (scope explícito: solo `ecommerce-app/src/`, sin tocar el plan de
+  backend ya existente) el plan completo de casos, agregado como sección "Frontend" de
+  [TEST_PLAN.md](../TEST_PLAN.md) (ALTA: `apiClient`, `AuthContext`/`CartContext`/`ThemeContext`,
+  `ProtectedRoute`, formularios de login/registro, servicios; MEDIA: páginas y componentes con
+  lógica real; BAJA: presentación pura). El agente `frontend-tester`
+  (`.claude/agents/frontend-tester.md`) ya está listo para escribir los tests a partir de ese
+  plan; falta instalar `msw` como devDependency antes de que pueda correr.
+  **Hallazgo real de `test-planner` (leyendo código, no corriendo tests) — verificado y cerrado
+  el mismo día como `B-11`/`B-12`/`B-13`, antes de que se escriba ningún test:** tres bugs reales
+  en el manejo de errores de auth y en la confirmación de orden. Ver el detalle completo a
+  continuación.
+- **B-11/B-12/B-13 (bugs de manejo de errores frontend) — CERRADOS 2026-08-26:**
+  - **B-11 (`LoginForm.jsx`):** `handleLoginError` solo reconocía `kind === 'CLIENT_ERROR' &&
+    status === 400`, pero el backend real responde **401** en credenciales inválidas
+    (`kind: 'UNAUTHORIZED'`, ver `.claude/api-routes.md`). Una contraseña incorrecta caía al
+    fallback genérico de `RegisterErrorMessage.jsx` ("Ocurrió un error inesperado... no es
+    necesario reportarlo") en vez de "Email o contraseña incorrectos" — el error más común de
+    login mostraba el mensaje menos útil posible. Fix: rama explícita para `kind === 'UNAUTHORIZED'`.
+  - **B-12 (`RegisterForm.jsx`):** el backend responde 422 `{message:"User already exist"}` (sin
+    array `errors`) en email duplicado; `apiClient`'s `classifyError` traduce eso a
+    `kind:"VALIDATION"` con `fields: undefined`. Ninguna de las dos ramas que tenía
+    `handleRegisterError` (`CLIENT_ERROR`+400, o `VALIDATION`+`fields` truthy) lo capturaba —
+    el registro fallaba **en silencio total**: el botón dejaba de cargar y no aparecía ningún
+    mensaje, dejando al usuario sin saber qué pasó. Lo mismo ocurría con errores de red/timeout/
+    servidor (ningún `kind` de esos seteaba `errorKind`). Fix: se movió el chequeo del mensaje del
+    backend (`"User already exist"`) al principio, independiente del `kind`, y se agregó
+    `setErrorKind(kind)` como fallback final para que cualquier error no capturado por las ramas
+    específicas sí muestre algo vía `RegisterErrorMessage`.
+  - **B-13 (`OrderConfirmation.jsx`):** el componente leía `order.address` (y varios campos más)
+    **síncronamente durante el render**, antes de que el `useEffect` que redirige a `/` cuando no
+    hay `order` llegara a ejecutarse. Entrar a `/order-confirmation` directamente — URL escrita a
+    mano, recarga de página, o un link viejo/compartido — lanzaba `TypeError: Cannot read
+    properties of undefined (reading 'address')` en vez de redirigir silenciosamente. Fix: guarda
+    `if (!order) return null;` inmediatamente después del `useEffect`.
+  - **Verificado con Playwright en los tres casos, contra un backend/frontend recién levantados:**
+    login con password incorrecto contra `user1@test.com` real → "Email o contraseña incorrectos";
+    registro con `user1@test.com` (ya existente) → "Este email ya está registrado" junto al campo
+    email; navegar a `/order-confirmation` sin `state` → redirige a `/` sin ningún error de
+    página (`page.on('pageerror')` sin eventos). Cierran `B-11`/`B-12`/`B-13` de este backlog.
 - **E2E-01 (Cypress):** el proyecto de referencia usa un seed dedicado vía *task* de Cypress para
   datos de prueba, no el `npm run seed` normal — replicar ese patrón en vez de reusar el seed de
   producción. Escenario mínimo: login → agregar al carrito → checkout (depende de F-03 para

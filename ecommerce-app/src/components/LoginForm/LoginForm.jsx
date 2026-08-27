@@ -40,6 +40,10 @@ export default function LoginForm() {
   
   const handleLoginError = (err) => {
     const kind = err.kind || 'UNKNOWN';
+    if (kind === 'UNAUTHORIZED') {
+      setErrorMessage('Email o contraseña incorrectos');
+      return;
+    }
     if(kind === 'CLIENT_ERROR' && err.status === 400) {
       const msg = err.original?.response?.data?.message;
       setErrorMessage(
