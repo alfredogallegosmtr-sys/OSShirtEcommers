@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { rest } from "msw";
 import { server } from "../mocks/server";
@@ -40,6 +40,7 @@ function Consumer() {
         <>
           <button onClick={() => updateItem(items[0].id, 0)}>quitar-a-0</button>
           <button onClick={() => updateItem(items[0].id, 5)}>bump-a-5</button>
+          <button onClick={() => updateItem(items[0].id, 2)}>baja-a-2</button>
           <button onClick={() => removeItem(items[0].id)}>remove</button>
         </>
       )}
@@ -164,6 +165,41 @@ test("negativo: rollback al actualizar - PATCH /api/cart/:itemId 500 vuelve la c
 
   await waitFor(() => expect(screen.getByTestId("error")).toHaveTextContent("SERVER_ERROR"));
   expect(await screen.findByText("Camiseta Naruto x1")).toBeInTheDocument();
+});
+
+test("negativo: dos cambios de cantidad rápidos sobre el mismo item - la respuesta de la petición vieja no pisa la más reciente (B-16, race condition)", async () => {
+  let calls = 0;
+  server.use(
+    rest.get("http://localhost:4001/api/cart", (req, res, ctx) =>
+      res(ctx.status(200), ctx.json({ items: [{ id: "srv1", quantity: 1, product: product() }] })),
+    ),
+    rest.patch("http://localhost:4001/api/cart/:itemId", async (req, res, ctx) => {
+      calls += 1;
+      const body = await req.json();
+      // La primera petición (bump-a-5) se demora más que la segunda (baja-a-2) -- reproduce
+      // que la respuesta vieja llegue después de la más reciente.
+      return res(
+        ctx.delay(calls === 1 ? 60 : 0),
+        ctx.status(200),
+        ctx.json({ items: [{ id: "srv1", quantity: body.quantity, product: product() }] }),
+      );
+    }),
+  );
+
+  renderCart({ authenticated: true });
+  await screen.findByText("Camiseta Naruto x1");
+
+  await userEvent.click(screen.getByText("bump-a-5"));
+  await userEvent.click(screen.getByText("baja-a-2"));
+
+  await waitFor(() => expect(screen.getByText("Camiseta Naruto x2")).toBeInTheDocument());
+
+  // Si updateItem no descartara la respuesta obsoleta de la primera petición, acá pisaría
+  // el estado de vuelta a x5 cuando esa respuesta demorada finalmente llega.
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 80));
+  });
+  expect(screen.getByText("Camiseta Naruto x2")).toBeInTheDocument();
 });
 
 test("negativo: rollback al eliminar - DELETE /api/cart/:itemId 500 hace que el ítem reaparezca", async () => {

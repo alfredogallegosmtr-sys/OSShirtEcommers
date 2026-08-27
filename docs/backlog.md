@@ -26,9 +26,9 @@
 | E2 | Wishlist funcional | **Cerrado (2026-08-26)** — F-04 | _(pendiente)_ |
 | E3 | Cuenta: Profile y Settings | **Cerrado (2026-08-26)** — F-05/F-06 | _(pendiente)_ |
 | E4 | Seguridad del catálogo y de pagos | **Cerrado (2026-08-26)** — S-01/S-02/S-03/S-04 | _(pendiente)_ |
-| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-27)** — B-01 a B-15, sin items pendientes | _(pendiente)_ |
+| E5 | Limpieza de bugs y código muerto detectados en la auditoría | **Cerrado (2026-08-27)** — B-01 a B-16, sin items pendientes | _(pendiente)_ |
 | E6 | Suite de tests (backend + frontend) | **Cerrado (2026-08-27)** — T-01/T-02/T-03/T-04/T-05/REF-01 todos cerrados, 158 tests backend + 302 frontend = 460 tests reales | _(pendiente)_ |
-| E7 | E2E con Cypress | En progreso — specs escritas y verificadas por método alternativo (Playwright), runner real de Cypress bloqueado en la máquina de desarrollo | _(pendiente)_ |
+| E7 | E2E con Cypress | En progreso — corrido por primera vez con el runner real de Cypress en GitHub Actions (Ubuntu, job `e2e`): login 8/8 y register 6/6 en verde; checkout encontró 2 selectores ambiguos propios (corregidos) y `B-16` (bug real de carrito, corregido) — pendiente confirmar una corrida 20/20 en verde tras estos fixes | _(pendiente)_ |
 | E8 | CI/CD completo | En progreso — CI-01 parcial: jobs de test+cobertura (backend/frontend) y E2E con Cypress agregados al workflow (2026-08-27); falta lint (ningún `package.json` tiene script `lint` todavía) | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | Pendiente — OBS-01 | _(pendiente)_ |
 | E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
@@ -69,6 +69,7 @@
 | T-02 | Suite de tests frontend con Testing Library + MSW (`frontend-tester` ya está listo) | E6 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — ALTA/MEDIA/BAJA completas, 301 tests |
 | E2E-01 | Instalar Cypress + flujo crítico login→carrito→checkout (requiere F-03 primero) | E7 | Deuda técnica | **Medio** | En progreso — Cypress instalado y configurado, 3 specs completas escritas (`register`/`login`/`checkout`), `cy.loginByApi`/`cy.addProductToCart` implementados; falta poder correr el runner real de Cypress en esta máquina (bloqueado, ver detalle) |
 | B-15 | `Checkout.jsx` (`handleCreateOrder`) no tenía ninguna bandera de "enviando" — un doble clic real en "Confirmar y Pagar" podía disparar dos `POST /api/orders` mientras la primera petición seguía en curso | E5 | Bug | **Alto** | **Cerrado (2026-08-27)** |
+| B-16 | `CartContext.jsx` (`updateItem`) sin ordenamiento de peticiones — dos cambios de cantidad rápidos sobre el mismo item (ej. +/- en sucesión) disparan dos `PATCH /api/cart/:itemId` en paralelo; si la respuesta de la petición vieja llega después que la de la más reciente, `setItems(data.items)` pisa el estado con una cantidad obsoleta | E5 | Bug | **Alto** | **Cerrado (2026-08-27)** |
 | CI-01 | Agregar lint + tests + gate de cobertura al workflow (hoy solo `npm ci` + build) | E8 | Deuda técnica | **Bajo** | En progreso (2026-08-27) — tests+cobertura (`test-api`/`test-app`) y E2E con Cypress (`e2e`, con Mongo real como service container) agregados; falta lint (sin scripts `lint`/`format:check` en ningún `package.json`) y confirmar que el job `e2e` corre verde en un runner real (no se ha disparado GitHub Actions todavía) |
 | B-03 | `pages/PurchaseOrder.jsx` — página huérfana con datos hardcodeados, sin ruta | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-05 | `data/categories.json` — código muerto, contenido de otro dominio | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |

@@ -225,7 +225,9 @@ describe("Checkout de punta a punta", () => {
       // Scope a .order-costs: "Dirección de envío:" (del resumen) también matchea /envío:/i sin
       // scope, causando ambigüedad real (falla confirmada en un run de CI, no solo teórica).
       cy.contains(".order-costs", /envío:/i).should("be.visible");
-      cy.findByText(/total:/i).should("be.visible");
+      // Anclado al inicio: sin ^, "Subtotal:" también matchea /total:/i (termina en esas
+      // mismas 6 letras) y produce el mismo tipo de ambigüedad que "envío" arriba.
+      cy.findByText(/^total:/i).should("be.visible");
       cy.contains(".selected-address", address.address).should("be.visible");
       cy.contains(".selected-payment", card.cardHolderName).should("be.visible");
 

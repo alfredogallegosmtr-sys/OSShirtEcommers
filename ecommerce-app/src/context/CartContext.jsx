@@ -45,6 +45,7 @@ export function CartProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const syncedRef = useRef(false);
+  const updateSeqRef = useRef({});
 
   useEffect(() => {
     writeLocalCart(items);
@@ -125,6 +126,11 @@ export function CartProvider({ children }) {
     if (quantity < 1) return removeItem(itemId);
 
     const previous = items;
+    // Dos cambios de cantidad rápidos sobre el mismo item (ej. +/- en sucesión) disparan dos
+    // peticiones en paralelo; si la respuesta de la más vieja llega después, pisaría el estado
+    // con una cantidad obsoleta. Se descarta cualquier respuesta que no sea de la última
+    // petición disparada para este itemId (bug real, encontrado por checkout.cy.js en CI).
+    const seq = (updateSeqRef.current[itemId] = (updateSeqRef.current[itemId] || 0) + 1);
 
     setItems((curr) =>
       curr.map((it) => it.id === itemId ? { ...it, quantity } : it));
@@ -133,10 +139,12 @@ export function CartProvider({ children }) {
 
     try {
       const data = await serviceUpdateQuantity(itemId, quantity);
-      setItems(data.items);
+      if (updateSeqRef.current[itemId] === seq) setItems(data.items);
     } catch (error) {
-      setItems(previous);
-      setError(error.kind ?? "SERVER_ERROR");
+      if (updateSeqRef.current[itemId] === seq) {
+        setItems(previous);
+        setError(error.kind ?? "SERVER_ERROR");
+      }
     }
   };
 
