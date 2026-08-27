@@ -84,7 +84,7 @@
 | S-07 | Logging de eventos de seguridad — 401 de `requireAuth`, 403 de `requireAdmin`, login fallido, hoy no se registra nada | E12 | Deuda técnica | **Alto** | **Cerrado (2026-08-27)** — log a archivo real (`logs/security.log`, gitignored), sin librería nueva |
 | S-08 | `GET /products/search` mete `q` sin escapar en un `$regex` de Mongo (`product.controller.js:28-33`) — riesgo de ReDoS en una ruta pública sin auth | E12 | Bug/Seguridad | **Medio** | **Cerrado (2026-08-27)** — `escapeRegExp` + límite de 100 caracteres en `q` antes de armar el `$regex` |
 | S-09 | Agregar `helmet` — sin headers de seguridad HTTP en ninguna respuesta | E12 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — `helmet()` global; CSP se quita solo en `/api-docs` porque bloqueaba los scripts/estilos inline de Swagger UI |
-| S-10 | Definir y aplicar control de stock en `cart`/`order` — `Product.stock` existe pero nunca se valida ni se descuenta, sin control de sobreventa | E12 | Deuda de diseño | **Medio** | Pendiente |
+| S-10 | Definir y aplicar control de stock en `cart`/`order` — `Product.stock` existe pero nunca se valida ni se descuenta, sin control de sobreventa | E12 | Deuda de diseño | **Medio** | **Cerrado (2026-08-27)** — decisión: se reserva stock al confirmar la orden (no al agregar al carrito); descuento atómico por producto con `$gte`, rollback si un producto de la orden no tiene stock suficiente |
 | S-11 | Whitelist de campos en `createProduct`/`updateProduct` (`product.controller.js:89,99`) — hoy pasan `req.body` completo a Mongoose sin filtrar | E12 | Deuda técnica | **Bajo** | Pendiente |
 
 ## Detalle de items
