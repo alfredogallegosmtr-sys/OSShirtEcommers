@@ -79,7 +79,7 @@
 | OBS-01 | Instalar Artillery + escenario de carga contra endpoints reales | E9 | Deuda técnica | **Bajo** | Pendiente |
 | DEP-01 | Crear servicios en Render + Deploy Hooks como secrets de GitHub | E10 | Deuda técnica | **Bajo** | Pendiente |
 | DOC-03 | Documentación OpenAPI/Swagger de los 35 endpoints reales — `/api-docs`, gateado por `NODE_ENV`/`ENABLE_DOCS` | E11 | Documentación | **Medio** | En progreso (2026-08-27) — [PR #1](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/pull/1) abierto contra `develop`, verificado con el servidor real corriendo, sin mergear |
-| S-05 | Rate limiting en `POST /auth/login` y `POST /auth/register` — hoy sin ningún freno a fuerza bruta | E12 | Bug/Seguridad | **Alto** | Pendiente |
+| S-05 | Rate limiting en `POST /auth/login` y `POST /auth/register` — hoy sin ningún freno a fuerza bruta | E12 | Bug/Seguridad | **Alto** | **Cerrado (2026-08-27)** — `express-rate-limit`, 10 intentos/15min por ruta, limitadores independientes |
 | S-06 | Política de contraseña mínima en `register` (`auth.controller.js:21` solo valida truthy) — igualar a `changePassword` (`isLength({min:6})`) | E12 | Bug/Seguridad | **Alto** | Pendiente |
 | S-07 | Logging de eventos de seguridad — 401 de `requireAuth`, 403 de `requireAdmin`, login fallido, hoy no se registra nada | E12 | Deuda técnica | **Alto** | Pendiente |
 | S-08 | `GET /products/search` mete `q` sin escapar en un `$regex` de Mongo (`product.controller.js:28-33`) — riesgo de ReDoS en una ruta pública sin auth | E12 | Bug/Seguridad | **Medio** | Pendiente |

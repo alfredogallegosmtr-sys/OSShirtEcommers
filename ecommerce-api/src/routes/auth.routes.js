@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { register, login } from "../controllers/auth.controller.js";
+import { loginRateLimit, registerRateLimit } from "../middlewares/rateLimit.middleware.js";
 
 const router = Router();
 
@@ -32,8 +33,13 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorMessage' }
+ *       429:
+ *         description: Demasiados intentos, intenta de nuevo en unos minutos
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorMessage' }
  */
-router.post("/register", register);
+router.post("/register", registerRateLimit, register);
 
 /**
  * @openapi
@@ -68,7 +74,12 @@ router.post("/register", register);
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorMessage' }
+ *       429:
+ *         description: Demasiados intentos, intenta de nuevo en unos minutos
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorMessage' }
  */
-router.post("/login", login);
+router.post("/login", loginRateLimit, login);
 
 export default router;
