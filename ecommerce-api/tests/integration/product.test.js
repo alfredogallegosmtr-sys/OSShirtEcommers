@@ -287,6 +287,55 @@ describe("Product integration (/api/products)", () => {
     });
   });
 
+  describe("Whitelist de campos (S-11): req.body no se pasa completo a Mongoose", () => {
+    it("[negativo] POST con is_deleted/average_rating en el body → se ignoran, no se guardan", async () => {
+      const category = await createCategory();
+      const { token } = await createUserAndToken({ email: "admin5@test.com", role: "admin" });
+
+      const res = await request(app)
+        .post("/api/products")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          name: "Camiseta",
+          price: 100,
+          slug: "camiseta-whitelist",
+          category: category._id,
+          is_deleted: true,
+          average_rating: 5,
+          review_count: 999,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.is_deleted).toBe(false);
+      expect(res.body.average_rating).toBe(0);
+      expect(res.body.review_count).toBe(0);
+    });
+
+    it("[negativo] PUT con is_deleted en el body → no lo modifica (solo DELETE puede hacerlo)", async () => {
+      const category = await createCategory();
+      const product = await Product.create({
+        name: "Camiseta",
+        price: 100,
+        slug: "camiseta-whitelist-2",
+        category: category._id,
+      });
+      const { token } = await createUserAndToken({ email: "admin6@test.com", role: "admin" });
+
+      const res = await request(app)
+        .put(`/api/products/${product._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ price: 200, is_deleted: true, average_rating: 5 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.price).toBe(200);
+      expect(res.body.is_deleted).toBe(false);
+      expect(res.body.average_rating).toBe(0);
+
+      const stored = await Product.findById(product._id);
+      expect(stored.is_deleted).toBe(false);
+    });
+  });
+
   describe("Slug duplicado en creación", () => {
     it("[negativo] slug duplicado → 422 manejado (B-10, corregido en el error handler global)", async () => {
       const category = await createCategory();
