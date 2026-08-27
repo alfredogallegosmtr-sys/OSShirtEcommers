@@ -116,12 +116,12 @@ jobs:
           PORT: 4001
           CORS_ALLOWED_ORIGINS: http://127.0.0.1:3001
 
-      # "localhost" en runners Ubuntu de GitHub Actions puede resolver primero a ::1 (IPv6),
-      # y tanto react-scripts (webpack-dev-server) como Express solo terminan escuchando en
-      # IPv4 — wait-on se queda esperando una conexión que nunca contesta aunque el server ya
-      # esté arriba (confirmado en un run real: "webpack compiled successfully" seguido de un
-      # timeout total esperando localhost:3001). Se usa 127.0.0.1 explícito para evitar la
-      # ambigüedad de resolución DNS.
+      # ecommerce-app/.env (que fija PORT=3001) está en .gitignore y no existe en el checkout
+      # de CI — sin PORT explícito, react-scripts arranca en su default (3000), y wait-on se
+      # queda esperando :3001 para siempre (confirmado en un run real: "webpack compiled
+      # successfully" en el puerto 3000, seguido de ECONNREFUSED en 127.0.0.1:3001). 127.0.0.1
+      # en vez de "localhost" evita además cualquier ambigüedad de resolución IPv4/IPv6 en
+      # runners Ubuntu, aunque el problema real era el puerto, no el host.
       - name: Instalar, levantar frontend y correr specs de Cypress
         uses: cypress-io/github-action@v6
         with:
@@ -132,6 +132,7 @@ jobs:
           wait-on-timeout: 120
         env:
           CI: true
+          PORT: 3001
           CYPRESS_BASE_URL: http://127.0.0.1:3001
           CYPRESS_API_URL: http://127.0.0.1:4001/api
 
