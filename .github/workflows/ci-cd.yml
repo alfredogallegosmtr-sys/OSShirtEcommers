@@ -6,9 +6,9 @@ name: CI
 # ecommerce-app/cypress — corren en los jobs test-api, test-app y e2e de abajo.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
 
 concurrency:
