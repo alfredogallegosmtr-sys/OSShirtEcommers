@@ -82,8 +82,112 @@ const updatePaymentMethodValidation = [
   body("isActive").optional().isBoolean().withMessage("isActive debe ser booleano"),
 ];
 
+/**
+ * @openapi
+ * /payment-methods:
+ *   get:
+ *     tags: [PaymentMethods]
+ *     summary: Lista los métodos de pago del usuario logueado
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Métodos de pago del usuario, más reciente primero
+ *         content:
+ *           application/json:
+ *             schema: { type: array, items: { $ref: '#/components/schemas/PaymentMethod' } }
+ *       401: { description: Sin token o token inválido }
+ *   post:
+ *     tags: [PaymentMethods]
+ *     summary: Crea un método de pago
+ *     description: >
+ *       Rechaza explícitamente cardNumber/cvv (422) — nunca se aceptan ni se descartan en
+ *       silencio (decisión S-03). isDefault=true desmarca los demás métodos del usuario.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [type]
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [credit_card, debit_card, paypal, bank_transfer, cash_on_delivery]
+ *               last4: { type: string, minLength: 4, maxLength: 4 }
+ *               brand: { type: string }
+ *               cardHolderName: { type: string }
+ *               paypalEmail: { type: string, format: email }
+ *               isDefault: { type: boolean }
+ *               isActive: { type: boolean }
+ *     responses:
+ *       201:
+ *         description: Método de pago creado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/PaymentMethod' }
+ *       401: { description: Sin token o token inválido }
+ *       422:
+ *         description: Validación fallida (incluye enviar cardNumber o cvv)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ValidationError' }
+ */
 router.get("/", getPaymentMethods);
 router.post("/", createPaymentMethodValidation, validate, createPaymentMethod);
+
+/**
+ * @openapi
+ * /payment-methods/{id}:
+ *   put:
+ *     tags: [PaymentMethods]
+ *     summary: Actualiza un método de pago propio
+ *     description: Mismo rechazo de cardNumber/cvv que en la creación.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [credit_card, debit_card, paypal, bank_transfer, cash_on_delivery]
+ *               last4: { type: string, minLength: 4, maxLength: 4 }
+ *               brand: { type: string }
+ *               cardHolderName: { type: string }
+ *               paypalEmail: { type: string, format: email }
+ *               isDefault: { type: boolean }
+ *               isActive: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Método de pago actualizado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/PaymentMethod' }
+ *       401: { description: Sin token o token inválido }
+ *       404:
+ *         description: No existe o no pertenece al usuario logueado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorMessage' }
+ *   delete:
+ *     tags: [PaymentMethods]
+ *     summary: Elimina un método de pago propio (hard delete)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       204: { description: Eliminado (sin contenido) }
+ *       401: { description: Sin token o token inválido }
+ *       404:
+ *         description: No existe o no pertenece al usuario logueado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorMessage' }
+ */
 router.put("/:id", updatePaymentMethodValidation, validate, updatePaymentMethod);
 router.delete("/:id", paymentMethodIdValidation, validate, deletePaymentMethod);
 
