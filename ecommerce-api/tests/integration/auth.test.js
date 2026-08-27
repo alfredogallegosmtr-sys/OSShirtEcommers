@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import request from "supertest";
 import jwt from "jsonwebtoken";
+import { readFile } from "fs/promises";
 import app from "../../src/app.js";
 import User from "../../src/models/User.js";
+import { SECURITY_LOG_FILE } from "../../src/utils/securityLog.js";
 import { connectTestDB, clearTestDB, closeTestDB } from "./helpers/db.js";
 
 describe("Auth integration (/api/auth)", () => {
@@ -142,6 +144,30 @@ describe("Auth integration (/api/auth)", () => {
 
       expect(res.status).toBe(422);
       expect(res.body).toEqual({ message: "Email y password son requeridos" });
+    });
+
+    it("[negativo] login fallido (S-07) → queda un evento real 'login_failed' en el log de seguridad", async () => {
+      // Email único por corrida: el archivo es un recurso compartido entre archivos de
+      // test que corren en paralelo, así que se busca por este valor en todo el
+      // archivo en vez de asumir "es la última línea".
+      const uniqueEmail = `nadie-registrado-${Date.now()}-${Math.random()}@test.com`;
+
+      const res = await request(app).post("/api/auth/login").send({
+        email: uniqueEmail,
+        password: "loquesea1",
+      });
+      expect(res.status).toBe(401);
+
+      const content = await readFile(SECURITY_LOG_FILE, "utf-8");
+      const entry = content
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line))
+        .find((e) => e.email === uniqueEmail);
+
+      expect(entry).toBeDefined();
+      expect(entry.event).toBe("login_failed");
+      expect(JSON.stringify(entry)).not.toMatch(/loquesea1/);
     });
   });
 });
