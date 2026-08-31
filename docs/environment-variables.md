@@ -28,22 +28,26 @@ de módulo nunca vería el valor real del `.env`. Un origen no listado no recibe
 sí se sigue procesando normalmente — es el comportamiento estándar de CORS, no un control de
 acceso de servidor. Peticiones sin header `Origin` (curl, servidor-a-servidor) siempre pasan.
 
-## Frontend (`ecommerce-app/.env`)
+## Frontend (`ecommerce-app`)
 
-| Variable | Obligatoria | Ejemplo local | Descripción |
+`ecommerce-app` **no usa ningún archivo `.env`** — no depende de ninguna variable de entorno para
+arrancar.
+
+| Variable | Obligatoria | Valor efectivo | Descripción |
 | --- | --- | --- | --- |
-| `PORT` | No | `3001` | Puerto del dev server de Create React App. Fijo en este proyecto para no chocar con otros repos que usan 3000. |
-| `REACT_APP_API_URL` | No (default `http://localhost:4001/api`) | `http://localhost:4001/api` | Base de la API, **incluye el sufijo `/api`**. Solo se lee en `apiClient.js`. |
+| `PORT` | No (fijo en `3001`) | `3001` | Puerto del dev server. Se fija en `scripts/start.js` (`process.env.PORT = process.env.PORT \|\| "3001"`, cargado por `npm start` en vez de `react-scripts start` directo) — evita chocar con otros repos del curso que usan 3000, sin depender de un `.env` ni de una dependencia extra como `cross-env`. |
+| `REACT_APP_API_URL` | No (default `http://localhost:4001/api`) | `http://localhost:4001/api` | Base de la API, **incluye el sufijo `/api`**. Solo se lee en `apiClient.js`; si se quiere fijar explícito hay que exportarla en el shell antes de `npm start`/`npm run build`, o vía un `.env.production` (CRA lo carga automático en `build`) cuando exista una URL real de backend. |
 
 Convención de Create React App: las variables públicas empiezan con `REACT_APP_`, se acceden con
 `process.env.REACT_APP_*` y quedan incrustadas en el build (un cambio exige reconstruir).
 
 ## Archivos `.env` locales
 
-`ecommerce-api/.env.example` existe y sí está versionado (solo `.env`/`.env.local` reales están en
-`.gitignore`) — copiarlo a `.env` y completar los secretos reales (`JWT_SECRET`/
-`JWT_REFRESH_SECRET`) para levantar el backend de cero. `ecommerce-app/` no tiene `.env.example`
-todavía; su único `.env` real sigue en `.gitignore` (ver [docs/runbooks/](./runbooks/)).
+`ecommerce-api/.env.example` existe y sí está versionado — el `.gitignore` usa `.env.*` +
+`!.env.example` (bloquea cualquier `.env`, `.env.local`, `.env.production`, etc. real, y deja
+pasar solo el ejemplo). Copiarlo a `.env` y completar los secretos reales (`JWT_SECRET`/
+`JWT_REFRESH_SECRET`) para levantar el backend de cero. `ecommerce-app/` no necesita ningún
+`.env` — ver la sección de arriba.
 
 ## Cookies
 

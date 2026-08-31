@@ -16,7 +16,7 @@ dotenv.config();
 // Las imágenes se sirven de forma estática desde el backend (server.js -> /img).
 // La base se deriva del PORT del backend para que las URLs siempre coincidan.
 const ASSET_BASE =
-  process.env.ASSET_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+  process.env.ASSET_BASE_URL || `http://localhost:${process.env.PORT || 4001}`;
 const img = (file) => `${ASSET_BASE}/img/products/${file}`;
 
 // Por defecto el seed es NO destructivo: upsert por clave única (slug/email), nunca borra
