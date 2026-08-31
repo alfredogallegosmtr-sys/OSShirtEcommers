@@ -3,15 +3,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { CartProvider } from "../../context/CartContext";
 import Layout from "../../layout/Layout";
 import Cart from "../../pages/Cart";
-import CategoryPage from "../../pages/CategoryPage";
 import Home from "../../pages/Home";
 import Login from "../../pages/Login";
-import Orders from "../../pages/Orders";
 import ProtectedRoute from "../../pages/ProtectedRoute";
 import Register from "../../pages/Register";
-import SearchResults from "../../pages/SearchResults";
-import Settings from "../../pages/Setttings";
-import WishList from "../../pages/WishList";
 import { AuthProvider } from "../../context/AuthContext";
 import Loading from "../common/Loading/Loading";
 import ErrorBoundary from "../common/ErrorBoundary/ErrorBoundary";
@@ -20,6 +15,11 @@ const Checkout = lazy(() => import("../../pages/Checkout"));
 const OrderConfirmation = lazy(() => import("../../pages/OrderConfirmation"));
 const Product = lazy(() => import("../../pages/Product"));
 const Profile = lazy(() => import("../../pages/Profile"));
+const CategoryPage = lazy(() => import("../../pages/CategoryPage"));
+const Orders = lazy(() => import("../../pages/Orders"));
+const SearchResults = lazy(() => import("../../pages/SearchResults"));
+const Settings = lazy(() => import("../../pages/Setttings"));
+const WishList = lazy(() => import("../../pages/WishList"));
 
 function App() {
   return (

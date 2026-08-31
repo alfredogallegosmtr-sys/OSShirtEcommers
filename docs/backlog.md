@@ -34,7 +34,7 @@
 | E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
 | E11 | Documentación de API (OpenAPI/Swagger) | **Cerrado (2026-08-27)** — `DOC-03`, [PR #1](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/pull/1) mergeado a `develop` | _(pendiente)_ |
 | E12 | Auditoría de seguridad OWASP Top 10:2025 | **Cerrado (2026-08-27)** — `S-05` a `S-11` corregidos uno por uno, cada uno con rama/PR propio | _(pendiente)_ |
-| E13 | Performance frontend: code-splitting de rutas | **Cerrado (2026-08-31)** — PERF-01 | _(pendiente)_ |
+| E13 | Performance frontend: code-splitting de rutas | **Cerrado (2026-08-31)** — PERF-01, PERF-02 | _(pendiente)_ |
 
 ## Tabla priorizada
 
@@ -90,22 +90,23 @@
 | S-11 | Whitelist de campos en `createProduct`/`updateProduct` (`product.controller.js:89,99`) — hoy pasan `req.body` completo a Mongoose sin filtrar | E12 | Deuda técnica | **Bajo** | **Cerrado (2026-08-27)** — `pickAssignableFields` filtra `req.body` a una lista explícita antes de `Product.create`/`findByIdAndUpdate` |
 | B-17 | Regresión de `S-09`: `helmet()` pone `Cross-Origin-Resource-Policy: same-origin` por defecto en `/img`, bloqueando que el frontend (`:3001`, otro origen) cargue las imágenes de producto servidas por la API (`:4001`) — ninguna imagen se veía en las tarjetas | E12 | Bug/Seguridad | **Alto** | **Cerrado (2026-08-31)** — `helmet.crossOriginResourcePolicy({policy:"cross-origin"})` solo en la ruta `/img`, el resto de la API mantiene `same-origin` |
 | PERF-01 | `React.lazy` + `Suspense` + `ErrorBoundary` para 4 rutas pesadas (`Checkout`, `OrderConfirmation`, `Product`, `Profile`) — reduce el bundle inicial separándolas en chunks cargados on-demand | E13 | Refactor | **Bajo** | **Cerrado (2026-08-31)** |
+| PERF-02 | Extiende `PERF-01`: `React.lazy` para el resto de rutas identificadas como mejora futura (`Orders`, `WishList`, `Settings`, `CategoryPage`, `SearchResults`) — solo quedan eager `Home`, `Cart`, `Login`, `Register` (rutas más visitadas / necesarias de entrada) | E13 | Refactor | **Bajo** | **Cerrado (2026-08-31)** |
 
 ## Detalle de items
 
 Contexto adicional migrado desde `PENDIENTES.md`, necesario para arrancar cada item sin
 re-descubrir el mismo terreno.
 
-- **`PERF-01` (code-splitting frontend, `E13`)**: `React.lazy`/`Suspense` aplicado solo a
-  `Checkout`, `OrderConfirmation`, `Product` y `Profile` (las 4 páginas más pesadas y menos
-  visitadas en el primer render). Nuevo `ErrorBoundary`
-  (`ecommerce-app/src/components/common/ErrorBoundary/`) envuelve el único `<Suspense>` sobre
-  `<Routes>` para mostrar un fallback amigable + botón "Recargar" ante un fallo de carga de chunk
-  (típico tras un deploy que invalida los hashes de chunk viejos). Verificado con
-  `npm run build`: el bundle principal bajó de tamaño y aparecieron 5 chunks nuevos separados
-  (4 páginas + 1 compartido). Mejoras futuras identificadas pero **no implementadas** en este
-  cambio: lazy-loading del resto de rutas (`Orders`, `WishList`, `Settings`, `CategoryPage`,
-  `SearchResults`), lazy-loading de imágenes de producto, prefetch de chunk en hover/intent sobre
+- **`PERF-01`/`PERF-02` (code-splitting frontend, `E13`)**: `React.lazy`/`Suspense` aplicado a
+  9 de las 13 rutas de `App.jsx` — `Checkout`, `OrderConfirmation`, `Product`, `Profile`
+  (`PERF-01`) y `Orders`, `WishList`, `Settings`, `CategoryPage`, `SearchResults` (`PERF-02`).
+  Solo quedan eager `Home`, `Cart`, `Login`, `Register` (las rutas más visitadas o necesarias de
+  entrada). Nuevo `ErrorBoundary` (`ecommerce-app/src/components/common/ErrorBoundary/`) envuelve
+  el único `<Suspense>` sobre `<Routes>` para mostrar un fallback amigable + botón "Recargar" ante
+  un fallo de carga de chunk (típico tras un deploy que invalida los hashes de chunk viejos).
+  Verificado con `npm run build` en ambos: bundle principal bajó ~6.4kB (gzip) en total, y el
+  número de chunks separados subió de 5 a 10. Mejoras futuras identificadas pero **no
+  implementadas**: lazy-loading de imágenes de producto, prefetch de chunk en hover/intent sobre
   los links de navegación, y un bundle analyzer (`source-map-explorer` o similar) para detectar
   próximos candidatos a separar.
 - **`S-05` a `S-11` (auditoría OWASP Top 10:2025, `E12`) — informe completo en
