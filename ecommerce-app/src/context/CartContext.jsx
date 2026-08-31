@@ -131,6 +131,10 @@ export function CartProvider({ children }) {
     // con una cantidad obsoleta. Se descarta cualquier respuesta que no sea de la última
     // petición disparada para este itemId (bug real, encontrado por checkout.cy.js en CI).
     const seq = (updateSeqRef.current[itemId] = (updateSeqRef.current[itemId] || 0) + 1);
+    // Date.now() capturado ahora (momento del clic), no cuando la petición llegue al backend --
+    // así el servidor puede saber cuál de dos PATCH concurrentes fue realmente el último clic
+    // del usuario, en vez de aplicar el que llegue último por la red (ver S-cart-race backend).
+    const clientTimestamp = Date.now();
 
     setItems((curr) =>
       curr.map((it) => it.id === itemId ? { ...it, quantity } : it));
@@ -138,7 +142,7 @@ export function CartProvider({ children }) {
     if (!isAuthenticated) return;
 
     try {
-      const data = await serviceUpdateQuantity(itemId, quantity);
+      const data = await serviceUpdateQuantity(itemId, quantity, clientTimestamp);
       if (updateSeqRef.current[itemId] === seq) setItems(data.items);
     } catch (error) {
       if (updateSeqRef.current[itemId] === seq) {

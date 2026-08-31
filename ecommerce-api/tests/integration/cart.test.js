@@ -219,4 +219,68 @@ describe("Cart integration (/api/cart)", () => {
       expect(getResA.body.items[0].id).toBe(itemId);
     });
   });
+
+  describe("Orden de actualización de cantidad por clientTimestamp (bug real detrás del flake de checkout.cy.js)", () => {
+    // Contexto: el mismo item puede recibir dos PATCH casi simultáneos (+/- en sucesión rápida).
+    // Si el PATCH del clic MÁS VIEJO (ej. el "+") tarda más en llegar al servidor que el del
+    // clic más nuevo (el "-"), "la última escritura gana" en Mongo aplicaría el valor del clic
+    // viejo, no el del último clic real del usuario -- eso es lo que hacía tanto el código
+    // original (findOne + mutar + save) como una versión atómica sin ordenamiento. Por eso el
+    // cliente manda clientTimestamp (capturado en el momento del clic) y el servidor descarta
+    // cualquier PATCH más viejo que el último ya aplicado.
+    it("[negativo] un PATCH con clientTimestamp más viejo que el último ya aplicado se descarta, no pisa el valor más reciente", async () => {
+      const { token } = await createUserAndToken({ email: "cartrace1@test.com" });
+      const product = await createProduct({ price: 10 });
+
+      const addRes = await request(app)
+        .post("/api/cart")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ productId: product._id.toString(), quantity: 2 });
+      const itemId = addRes.body.items[0].id;
+
+      const oldClick = Date.now();
+      const newClick = oldClick + 1000;
+
+      // El clic "nuevo" (quantity 2, el que el usuario realmente quería al final) llega
+      // PRIMERO al servidor...
+      const resNew = await request(app)
+        .patch(`/api/cart/${itemId}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ quantity: 2, clientTimestamp: newClick });
+      expect(resNew.status).toBe(200);
+      expect(resNew.body.items[0].quantity).toBe(2);
+
+      // ...y el clic "viejo" (quantity 3, un "+" que el usuario ya había descartado con el "-")
+      // llega DESPUÉS -- con el orden de red invertido respecto al orden real de los clics.
+      const resOld = await request(app)
+        .patch(`/api/cart/${itemId}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ quantity: 3, clientTimestamp: oldClick });
+      expect(resOld.status).toBe(200);
+      // No es un error: se responde 200 con el estado real (descartado, sigue en 2).
+      expect(resOld.body.items[0].quantity).toBe(2);
+
+      const stored = await request(app).get("/api/cart").set("Authorization", `Bearer ${token}`);
+      expect(stored.body.items[0].quantity).toBe(2);
+    });
+
+    it("[happy] sin clientTimestamp (compatibilidad hacia atrás) sigue aplicando la cantidad tal cual", async () => {
+      const { token } = await createUserAndToken({ email: "cartrace2@test.com" });
+      const product = await createProduct({ price: 10 });
+
+      const addRes = await request(app)
+        .post("/api/cart")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ productId: product._id.toString(), quantity: 1 });
+      const itemId = addRes.body.items[0].id;
+
+      const res = await request(app)
+        .patch(`/api/cart/${itemId}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ quantity: 5 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.items[0].quantity).toBe(5);
+    });
+  });
 });

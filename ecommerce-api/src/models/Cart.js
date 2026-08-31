@@ -26,6 +26,13 @@ const cartSchema = new mongoose.Schema(
           required: true,
           min: 1,
         },
+
+        // Marca de tiempo (Date.now() del cliente, no del servidor) del último cambio de
+        // cantidad aceptado -- permite descartar un PATCH que llega desordenado por la red
+        // (ver updateQuantity en cart.controller.js).
+        lastClientTimestamp: {
+          type: Number,
+        },
       },
     ],
 

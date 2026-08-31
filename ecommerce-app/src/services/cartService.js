@@ -10,8 +10,8 @@ const addItem = async (productId, quantity = 1) => {
   return response.data;
 };
 
-const updateQuantity = async (itemId, quantity) => {
-  const response = await apiClient.patch(`/cart/${itemId}`, { quantity });
+const updateQuantity = async (itemId, quantity, clientTimestamp) => {
+  const response = await apiClient.patch(`/cart/${itemId}`, { quantity, clientTimestamp });
   return response.data;
 };
 
