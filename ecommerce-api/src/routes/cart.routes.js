@@ -37,6 +37,10 @@ const updateQuantityValidation = [
     .withMessage("La cantidad es requerida")
     .isInt({ min: 1 })
     .withMessage("La cantidad debe ser un entero mayor o igual a 1"),
+  body("clientTimestamp")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("clientTimestamp debe ser un entero no negativo"),
 ];
 
 /**
@@ -114,6 +118,14 @@ router.delete("/", clearCart);
  *             required: [quantity]
  *             properties:
  *               quantity: { type: integer, minimum: 1 }
+ *               clientTimestamp:
+ *                 type: integer
+ *                 minimum: 0
+ *                 description: >-
+ *                   Opcional. Date.now() capturado por el cliente al momento del clic (no de
+ *                   la respuesta). Si se manda, el servidor descarta este PATCH cuando ya se
+ *                   aplicó uno más reciente para el mismo ítem, para que dos cambios rápidos
+ *                   de cantidad no puedan quedar en un orden distinto al que el usuario clickeó.
  *     responses:
  *       200:
  *         description: Carrito actualizado

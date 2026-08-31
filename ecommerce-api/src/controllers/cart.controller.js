@@ -60,6 +60,8 @@ export const addItem = async (req, res) => {
 export const updateQuantity = async (req, res) => {
   const { itemId } = req.params;
   const qty = Number(req.body.quantity);
+  const clientTimestamp = Number(req.body.clientTimestamp);
+  const hasClientTimestamp = Number.isFinite(clientTimestamp);
 
   if (!mongoose.isValidObjectId(itemId)) {
     return res.status(404).json({ message: "Item no encontrado" });
@@ -68,14 +70,52 @@ export const updateQuantity = async (req, res) => {
     return res.status(422).json({ message: "Cantidad inválida" });
   }
 
-  const cart = await Cart.findOne({ user: req.user.id });
-  const entry = cart?.products.id(itemId);
-  if (!cart || !entry) {
-    return res.status(404).json({ message: "Item no encontrado" });
+  // Dos PATCH al mismo item pueden llegar al servidor en un orden distinto al que el usuario
+  // los disparó (red real, no localhost) -- "última escritura gana" en el servidor no es lo
+  // mismo que "el último clic del usuario gana". Si el cliente manda clientTimestamp (Date.now()
+  // capturado en el momento del clic, no de la respuesta), se descarta cualquier PATCH más
+  // viejo que el último ya aplicado para ese item, en vez de dejar que gane el que llegue último.
+  const filter = hasClientTimestamp
+    ? {
+        user: req.user.id,
+        products: {
+          $elemMatch: {
+            _id: itemId,
+            $or: [
+              { lastClientTimestamp: { $exists: false } },
+              { lastClientTimestamp: { $lte: clientTimestamp } },
+            ],
+          },
+        },
+      }
+    : { user: req.user.id, "products._id": itemId };
+
+  const update = hasClientTimestamp
+    ? { $set: { "products.$.quantity": qty, "products.$.lastClientTimestamp": clientTimestamp } }
+    : { $set: { "products.$.quantity": qty } };
+
+  // Actualización atómica sobre el elemento exacto del array -- evita el read-modify-write
+  // (findOne + mutar + cart.save(), usado en el resto de este archivo) que abriría una ventana
+  // entre leer y guardar donde otra escritura concurrente podría perderse.
+  let cart = await Cart.findOneAndUpdate(filter, update, { new: true });
+
+  if (!cart) {
+    const stillExists = await Cart.exists({ user: req.user.id, "products._id": itemId });
+    if (!stillExists) {
+      return res.status(404).json({ message: "Item no encontrado" });
+    }
+    // El item existe, pero este PATCH quedó descartado por ser más viejo que uno ya aplicado
+    // (llegó desordenado) -- no es un error del cliente, se responde con el estado real actual.
+    cart = await Cart.findOne({ user: req.user.id });
   }
 
-  entry.quantity = qty;
-  await respondWithCart(cart, res);
+  // El total es un valor derivado que se recalcula en cada operación de carrito -- se persiste
+  // aparte con un $set puntual (no cart.save()) para no reescribir "products" con una copia
+  // en memoria que podría ya estar desactualizada frente a otra escritura concurrente.
+  await cart.populate("products.product");
+  recalcTotal(cart);
+  await Cart.updateOne({ _id: cart._id }, { $set: { total: cart.total } });
+  res.json({ items: toItems(cart), total: cart.total });
 };
 
 export const removeItem = async (req, res) => {
