@@ -40,9 +40,10 @@ Convención de Create React App: las variables públicas empiezan con `REACT_APP
 
 ## Archivos `.env` locales
 
-No hay `.env.example` en este repo todavía. Ambos `.env` están en `.gitignore`; para levantar el
-proyecto de cero hay que crearlos a mano con las variables de arriba (ver
-[docs/runbooks/](./runbooks/)).
+`ecommerce-api/.env.example` existe y sí está versionado (solo `.env`/`.env.local` reales están en
+`.gitignore`) — copiarlo a `.env` y completar los secretos reales (`JWT_SECRET`/
+`JWT_REFRESH_SECRET`) para levantar el backend de cero. `ecommerce-app/` no tiene `.env.example`
+todavía; su único `.env` real sigue en `.gitignore` (ver [docs/runbooks/](./runbooks/)).
 
 ## Cookies
 
