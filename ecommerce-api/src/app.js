@@ -36,7 +36,14 @@ app.use(cors({
   },
 }));
 app.use(express.json());
-app.use('/img', express.static(path.join(__dirname, '..', 'public', 'img')));
+// El Cross-Origin-Resource-Policy: same-origin que pone helmet por defecto bloquea que el
+// frontend (origen distinto, :3001) cargue estas imágenes en <img> -- son estáticos públicos,
+// pensados justamente para cargarse cross-origin.
+app.use(
+  '/img',
+  helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }),
+  express.static(path.join(__dirname, '..', 'public', 'img')),
+);
 
 app.get('/', (req, res) => {
     res.send('API Ecommerce with MongoDB');
