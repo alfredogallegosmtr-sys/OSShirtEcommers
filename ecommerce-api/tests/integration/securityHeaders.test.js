@@ -28,4 +28,11 @@ describe("Security headers (S-09): helmet", () => {
     expect(res.headers["content-security-policy"]).toBeUndefined();
     expect(res.text).toContain("swagger-ui");
   });
+
+  it("[happy] /img trae Cross-Origin-Resource-Policy: cross-origin (si no, el frontend en otro origen no puede cargar las imágenes)", async () => {
+    const res = await request(app).get("/img/products/tshirt-01.jpg");
+
+    expect(res.status).toBe(200);
+    expect(res.headers["cross-origin-resource-policy"]).toBe("cross-origin");
+  });
 });

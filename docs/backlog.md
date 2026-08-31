@@ -86,6 +86,7 @@
 | S-09 | Agregar `helmet` — sin headers de seguridad HTTP en ninguna respuesta | E12 | Deuda técnica | **Medio** | **Cerrado (2026-08-27)** — `helmet()` global; CSP se quita solo en `/api-docs` porque bloqueaba los scripts/estilos inline de Swagger UI |
 | S-10 | Definir y aplicar control de stock en `cart`/`order` — `Product.stock` existe pero nunca se valida ni se descuenta, sin control de sobreventa | E12 | Deuda de diseño | **Medio** | **Cerrado (2026-08-27)** — decisión: se reserva stock al confirmar la orden (no al agregar al carrito); descuento atómico por producto con `$gte`, rollback si un producto de la orden no tiene stock suficiente |
 | S-11 | Whitelist de campos en `createProduct`/`updateProduct` (`product.controller.js:89,99`) — hoy pasan `req.body` completo a Mongoose sin filtrar | E12 | Deuda técnica | **Bajo** | **Cerrado (2026-08-27)** — `pickAssignableFields` filtra `req.body` a una lista explícita antes de `Product.create`/`findByIdAndUpdate` |
+| B-17 | Regresión de `S-09`: `helmet()` pone `Cross-Origin-Resource-Policy: same-origin` por defecto en `/img`, bloqueando que el frontend (`:3001`, otro origen) cargue las imágenes de producto servidas por la API (`:4001`) — ninguna imagen se veía en las tarjetas | E12 | Bug/Seguridad | **Alto** | **Cerrado (2026-08-31)** — `helmet.crossOriginResourcePolicy({policy:"cross-origin"})` solo en la ruta `/img`, el resto de la API mantiene `same-origin` |
 
 ## Detalle de items
 
