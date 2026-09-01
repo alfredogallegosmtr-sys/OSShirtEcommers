@@ -4,7 +4,7 @@ import ErrorMessage from "../components/common/ErrorMessage/ErrorMessage";
 import Input from "../components/common/Input";
 import Loading from "../components/common/Loading/Loading";
 import { getMe, updateMe, changePassword } from "../services/userService";
-import "./Setttings.css";
+import "./Settings.css";
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);

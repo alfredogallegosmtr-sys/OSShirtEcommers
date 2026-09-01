@@ -18,7 +18,7 @@ const Profile = lazy(() => import("../../pages/Profile"));
 const CategoryPage = lazy(() => import("../../pages/CategoryPage"));
 const Orders = lazy(() => import("../../pages/Orders"));
 const SearchResults = lazy(() => import("../../pages/SearchResults"));
-const Settings = lazy(() => import("../../pages/Setttings"));
+const Settings = lazy(() => import("../../pages/Settings"));
 const WishList = lazy(() => import("../../pages/WishList"));
 
 function App() {
