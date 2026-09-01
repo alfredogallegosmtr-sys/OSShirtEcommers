@@ -1,11 +1,20 @@
 # Despliegue en Render
 
-> Este proyecto **todavía no está desplegado**. Esta guía documenta cómo hacerlo cuando se
-> necesite; nada de esto está configurado hoy.
+> **Desplegado (2026-08-31).** El monorepo corre como **dos servicios independientes** en Render:
+> backend (*Web Service*) y frontend (*Static Site*), cada uno con su propia carpeta como
+> *Root Directory*. URLs reales:
+>
+> | | URL |
+> | --- | --- |
+> | Backend (Web Service) | https://osshirtecommerceproject.onrender.com |
+> | Frontend (Static Site) | https://osshirtecommercefrontend.onrender.com |
+>
+> Verificado en vivo: el backend conecta a MongoDB Atlas real, responde `/api/products` con datos
+> reales, `helmet` está activo (headers de seguridad presentes), las imágenes de producto cargan
+> desde el propio backend (`ASSET_BASE_URL`), y CORS acepta el origen real del frontend.
 
-El monorepo se desplegaría como **dos servicios independientes** en Render: el backend como
-*Web Service* y el frontend como *Static Site*. Cada uno usa su propia carpeta como
-*Root Directory*.
+El resto de esta guía sigue siendo válida como referencia reproducible (útil si se recrean los
+servicios desde cero, o se documenta el proceso para otra persona).
 
 Referencia de variables: [environment-variables.md](./environment-variables.md).
 
@@ -72,24 +81,29 @@ Notas:
 3. Volver al backend y setear `ASSET_BASE_URL` a su propia URL, para que las imágenes de
    producto sembradas (`npm run seed`) apunten a la URL pública en vez de `localhost`.
 
-## Despliegue automatizado (GitHub Actions)
+## Despliegue automatizado
 
-**No configurado todavía.** El workflow actual ([.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml))
-ya corre lint + tests + cobertura + build + las 20 specs de Cypress (`CI-01`, cerrado), pero no
-tiene job de deploy. Cuando se quiera automatizar:
+**Lo que hay hoy:** cada servicio en Render tiene **Auto-Deploy: On Commit** sobre la rama
+`main` — cualquier push a `main` dispara un build+deploy real, directo desde Render, sin pasar
+por GitHub Actions. Es lo que se usó para el primer despliegue real.
 
-1. Agregar un job `deploy` al workflow (seguir el patrón de
-   `2026-2-ReactFS/.github/workflows/ci-cd.yml`: `needs` de los jobs de build/test, `if: github.ref == 'refs/heads/main'`,
-   `curl -fsS -X POST "$HOOK"` con el *Deploy Hook* de cada servicio).
+**Alternativa documentada pero no implementada** (la que originalmente planeaba `DEP-01`): gatear
+el deploy detrás del CI, para que un push a `main` con tests rotos no llegue a desplegarse solo.
+Si se quiere migrar a esto:
+
+1. Agregar un job `deploy` al workflow ([.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml),
+   que ya corre lint + tests + cobertura + build + las 20 specs de Cypress) — `needs` de los jobs
+   de build/test, `if: github.ref == 'refs/heads/main'`, `curl -fsS -X POST "$HOOK"` con el
+   *Deploy Hook* de cada servicio.
 2. En cada servicio de Render: *Settings → Deploy Hook* → copiar la URL.
 3. En GitHub: *Settings → Secrets and variables → Actions* → crear
    `RENDER_DEPLOY_HOOK_API` y `RENDER_DEPLOY_HOOK_APP`.
 4. En cada servicio de Render, desactivar **Auto-Deploy** (*Settings → Build & Deploy*) para que
    el gate de CI sea el único disparador real.
 
-## Ejemplos de URLs
+## URLs reales
 
 | | Frontend | Backend |
 | --- | --- | --- |
 | Local | `http://localhost:3001` | `http://localhost:4001` (API en `/api`) |
-| Render | `https://osshirts.onrender.com` (ejemplo) | `https://osshirts-api.onrender.com` (ejemplo) |
+| Render | https://osshirtecommercefrontend.onrender.com | https://osshirtecommerceproject.onrender.com |
