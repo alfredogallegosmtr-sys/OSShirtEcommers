@@ -24,8 +24,13 @@ Referencia de variables: [environment-variables.md](./environment-variables.md).
 | --- | --- |
 | Tipo | Web Service |
 | Root Directory | `ecommerce-api` |
-| Build Command | `npm install` |
+| Build Command | `npm install --omit=dev` |
 | Start Command | `npm start` |
+
+`--omit=dev` es importante: sin él, Render instala también `artillery`/`vitest`/`eslint`/etc.
+(nunca los usa `npm start`) y `npm audit` reporta vulnerabilidades de esas devDependencies (ej.
+`artillery-plugin-publish-metrics` → `@opentelemetry/*`) que no tocan la app real. Con
+`--omit=dev`, build más rápido y `npm audit` limpio.
 
 Variables de entorno a configurar en Render:
 
@@ -36,12 +41,16 @@ JWT_REFRESH_SECRET=<secreto>
 JWT_EXPIRES_IN=5h
 JWT_REFRESH_EXPIRES_IN=7d
 ASSET_BASE_URL=https://URL-DE-ESTE-SERVICIO
+CORS_ALLOWED_ORIGINS=<URL real del Static Site del frontend>
+ENABLE_DOCS=true
 ```
 
 Notas:
 
 - **`PORT` lo administra Render** — no hay que definirla; `server.js` ya usa
   `process.env.PORT || 4001`.
+- `ENABLE_DOCS` es opcional — sin ella, `/api-docs` queda apagado en producción (`NODE_ENV=production`
+  ya lo pone Render por defecto). Solo hace falta si se quiere Swagger navegable en el deploy real.
 - `server.js` usa `app.listen(port, ...)` sin fijar host, lo cual funciona en Render (escucha en
   todas las interfaces por default en Node).
 - `ASSET_BASE_URL` es necesaria en producción: si no se define, el seed construye las URLs de
