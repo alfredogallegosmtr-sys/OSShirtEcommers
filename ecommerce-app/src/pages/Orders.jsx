@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/common/Button";
 import Icon from "../components/common/Icon/Icon";
 import Loading from "../components/common/Loading/Loading";
 import { getOrders } from "../services/orderService";
+import useFetch from "../hooks/useFetch";
 import "./Orders.css";
 
 const formatMoney = (value = 0) =>
@@ -26,38 +27,19 @@ const formatDate = (isoString) => {
 };
 
 export default function Orders() {
-  const [orders, setOrders] = useState([]);
+  const { data: fetchedOrders, loading, error: fetchError } = useFetch(() => getOrders(), []);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const orders = fetchedOrders || [];
+  const error = fetchError ? "No se pudieron cargar tus pedidos." : null;
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadOrders() {
-      try {
-        setLoading(true);
-        setError(null);
-        const fetchedOrders = await getOrders();
-        if (cancelled) return;
-        setOrders(fetchedOrders || []);
-        setSelectedOrderId((current) => current ?? fetchedOrders?.[0]?._id ?? null);
-      } catch (err) {
-        if (!cancelled) setError("No se pudieron cargar tus pedidos.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    loadOrders();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Selección por defecto (la más reciente) calculada en el render, no en un efecto: así no
+  // hace falta un ciclo de render extra para que aparezca seleccionada la primera vez que los
+  // pedidos llegan -- `selectedOrderId` solo se usa una vez el usuario elige otra explícitamente.
+  const effectiveSelectedOrderId = selectedOrderId ?? orders[0]?._id ?? null;
 
   const selectedOrder = useMemo(
-    () => orders.find((order) => order._id === selectedOrderId) || null,
-    [orders, selectedOrderId]
+    () => orders.find((order) => order._id === effectiveSelectedOrderId) || null,
+    [orders, effectiveSelectedOrderId]
   );
 
   const detailStatusToken = selectedOrder
@@ -130,7 +112,7 @@ export default function Orders() {
             {orders.map((order) => {
               const itemCount = order.products?.length || 0;
               const statusToken = (order.status || "pending").toLowerCase();
-              const isActive = selectedOrderId === order._id;
+              const isActive = effectiveSelectedOrderId === order._id;
               return (
                 <button
                   key={order._id}

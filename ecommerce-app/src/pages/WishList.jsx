@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard/ProductCard";
 import Button from "../components/common/Button";
@@ -6,41 +6,23 @@ import Icon from "../components/common/Icon/Icon";
 import Loading from "../components/common/Loading/Loading";
 import ErrorMessage from "../components/common/ErrorMessage/ErrorMessage";
 import { getWishlist, removeFromWishlist } from "../services/wishlistService";
+import useFetch from "../hooks/useFetch";
 import "./WishList.css";
 
 export default function WishList() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const wishlist = await getWishlist();
-        if (!cancelled) setProducts(wishlist.products || []);
-      } catch (err) {
-        if (!cancelled) setError("No se pudo cargar tu lista de favoritos.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data, loading, error: fetchError, setData } = useFetch(() => getWishlist(), []);
+  const [removeError, setRemoveError] = useState(null);
+  const products = data?.products ?? [];
+  const error = fetchError
+    ? "No se pudo cargar tu lista de favoritos."
+    : removeError;
 
   const handleRemove = async (productId) => {
     try {
       const wishlist = await removeFromWishlist(productId);
-      setProducts(wishlist.products || []);
+      setData(wishlist);
     } catch (err) {
-      setError("No se pudo quitar el producto de favoritos.");
+      setRemoveError("No se pudo quitar el producto de favoritos.");
     }
   };
 
