@@ -31,7 +31,7 @@
 | E7 | E2E con Cypress | **Cerrado (2026-08-27)** — corrido con el runner real de Cypress en GitHub Actions (Ubuntu, job `e2e`): **20/20 specs en verde** (login 8/8, register 6/6, checkout 6/6), confirmado en el run [33061741394](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33061741394). En el camino se corrigieron 3 bugs de CI (PORT filtrado, PORT del frontend faltante, 2 selectores ambiguos propios) y un bug real de la app (`B-16`) | _(pendiente)_ |
 | E8 | CI/CD completo | **Cerrado (2026-08-27)** — `CI-01` completo: lint + tests+cobertura + E2E con Cypress en los 3 jobs (`test-api`, `test-app`, `e2e`), confirmado en verde en un run real de GitHub Actions ([33068441727](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/actions/runs/33068441727)) | _(pendiente)_ |
 | E9 | Observability: carga con Artillery | **Cerrado (2026-08-27)** — `OBS-01` | _(pendiente)_ |
-| E10 | Despliegue a Render | Pendiente — DEP-01 | _(pendiente)_ |
+| E10 | Despliegue a Render | **Cerrado (2026-08-31)** — DEP-01 | _(pendiente)_ |
 | E11 | Documentación de API (OpenAPI/Swagger) | **Cerrado (2026-08-27)** — `DOC-03`, [PR #1](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/pull/1) mergeado a `develop` | _(pendiente)_ |
 | E12 | Auditoría de seguridad OWASP Top 10:2025 | **Cerrado (2026-08-27)** — `S-05` a `S-11` corregidos uno por uno, cada uno con rama/PR propio | _(pendiente)_ |
 | E13 | Performance frontend: code-splitting de rutas | **Cerrado (2026-08-31)** — PERF-01, PERF-02 | _(pendiente)_ |
@@ -79,7 +79,7 @@
 | B-05 | `data/categories.json` — código muerto, contenido de otro dominio | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | B-07 | Borrar `server_practice.js` / `db.config_practice.js` (0 bytes, scaffolding del curso) | E5 | Deuda técnica | **Bajo** | **Cerrado (2026-08-26)** |
 | OBS-01 | Instalar Artillery + escenario de carga contra endpoints reales | E9 | Deuda técnica | **Bajo** | **Cerrado (2026-08-27)** — `ecommerce-api/loadtest/catalog.yml` + `npm run test:load`; verificado en vivo Artillery → Pushgateway → Prometheus |
-| DEP-01 | Crear servicios en Render + Deploy Hooks como secrets de GitHub | E10 | Deuda técnica | **Bajo** | Pendiente |
+| DEP-01 | Crear servicios en Render (Web Service + Static Site), migrar datos a Atlas y desplegar | E10 | Deuda técnica | **Bajo** | **Cerrado (2026-08-31)** — backend y frontend reales en Render, Atlas migrado (298 documentos), CORS/imágenes/headers de seguridad verificados en vivo. Auto-Deploy nativo de Render sobre `main` (no Deploy Hooks vía GitHub Actions — esa alternativa queda documentada en `docs/render-deployment.md` como mejora futura) |
 | DOC-03 | Documentación OpenAPI/Swagger de los 35 endpoints reales — `/api-docs`, gateado por `NODE_ENV`/`ENABLE_DOCS` | E11 | Documentación | **Medio** | **Cerrado (2026-08-27)** — [PR #1](https://github.com/alfredogallegosmtr-sys/OSShirtEcommers/pull/1) mergeado a `develop`, verificado con el servidor real corriendo |
 | S-05 | Rate limiting en `POST /auth/login` y `POST /auth/register` — hoy sin ningún freno a fuerza bruta | E12 | Bug/Seguridad | **Alto** | **Cerrado (2026-08-27)** — `express-rate-limit`, 10 intentos/15min por ruta, limitadores independientes |
 | S-06 | Política de contraseña mínima en `register` (`auth.controller.js:21` solo valida truthy) — igualar a `changePassword` (`isLength({min:6})`) | E12 | Bug/Seguridad | **Alto** | **Cerrado (2026-08-27)** — mínimo 6 caracteres, mismo umbral que `changePassword` |

@@ -49,6 +49,14 @@ pasar solo el ejemplo). Copiarlo a `.env` y completar los secretos reales (`JWT_
 `JWT_REFRESH_SECRET`) para levantar el backend de cero. `ecommerce-app/` no necesita ningún
 `.env` — ver la sección de arriba.
 
+**`.env.local` tiene prioridad sobre `.env`** (`server.js`/`seed.js` cargan
+`dotenv.config({ path: [".env.local", ".env"] })` — dotenv no sobreescribe una variable ya seteada
+por un archivo anterior en la lista, así que cualquier variable ausente en `.env.local` cae a
+`.env`). Convención de este repo: `.env.local` apunta a Mongo local
+(`mongodb://localhost:27017/ecommerceDB-dev`) para el día a día, y `.env` queda con la cadena de
+Atlas para cuando se necesite explícitamente (migraciones, probar contra datos reales) —
+evita que correr la app o el seed "en local" toque sin querer la base de producción.
+
 ## Cookies
 
 No aplica. La autenticación es JWT stateless por header `Authorization: Bearer <token>` (token en

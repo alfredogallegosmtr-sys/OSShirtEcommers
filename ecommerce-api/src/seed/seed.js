@@ -11,7 +11,9 @@ import PaymentMethod from "../models/PaymentMethod.js";
 import Cart from "../models/Cart.js";
 import Order from "../models/Order.js";
 
-dotenv.config();
+// .env.local (si existe) tiene prioridad -- ver server.js para el detalle de por qué. Las rutas
+// son relativas al cwd (ecommerce-api/, porque "npm run seed" siempre corre ahí), no al archivo.
+dotenv.config({ path: [".env.local", ".env"] });
 
 // Las imágenes se sirven de forma estática desde el backend (server.js -> /img).
 // La base se deriva del PORT del backend para que las URLs siempre coincidan.
