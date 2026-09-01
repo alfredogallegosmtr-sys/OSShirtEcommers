@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Breadcrumb from "../../layout/Breadcrumb/Breadcrumb";
 import { getProductsByCategoryAndChildren } from "../../services/categoryService";
 import ProductCard from "../ProductCard/ProductCard";
+import Button from "../common/Button";
 import ErrorMessage from "../common/ErrorMessage/ErrorMessage";
 import Loading from "../common/Loading/Loading";
 import useFetch from "../../hooks/useFetch";
@@ -23,7 +24,7 @@ export default function CategoryProducts({ categoryId }) {
     );
   }
 
-  if (error || !category) {
+  if (error === "NOT_FOUND") {
     return (
       <div className="category-products-root">
         <ErrorMessage>
@@ -32,6 +33,24 @@ export default function CategoryProducts({ categoryId }) {
             Vuelve al <Link to="/">inicio</Link> o explora nuestras categorías
             destacadas.
           </p>
+        </ErrorMessage>
+      </div>
+    );
+  }
+
+  if (error || !category) {
+    return (
+      <div className="category-products-root">
+        <ErrorMessage>
+          <h3>No pudimos cargar esta categoría</h3>
+          <p className="category-products-muted">
+            Puede ser tu conexión a internet o que nuestro servidor no esté
+            respondiendo en este momento. Tu carrito y tu sesión no se
+            vieron afectados.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </ErrorMessage>
       </div>
     );

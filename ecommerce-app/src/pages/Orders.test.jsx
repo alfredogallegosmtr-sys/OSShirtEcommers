@@ -82,7 +82,7 @@ test('negativo: sin pedidos -> "No tienes pedidos todavía" + "Descubrir product
   expect(screen.getByRole("link", { name: /descubrir productos/i })).toBeInTheDocument();
 });
 
-test('negativo: error de carga (500) -> "No pudimos cargar tus pedidos" / "No se pudieron cargar tus pedidos."', async () => {
+test('negativo: error de carga (500) -> mensaje honesto, contexto de impacto y retry', async () => {
   server.use(
     rest.get("http://localhost:4001/api/orders", (req, res, ctx) => res(ctx.status(500))),
   );
@@ -90,7 +90,9 @@ test('negativo: error de carga (500) -> "No pudimos cargar tus pedidos" / "No se
   renderOrders();
 
   expect(await screen.findByText("No pudimos cargar tus pedidos")).toBeInTheDocument();
-  expect(screen.getByText("No se pudieron cargar tus pedidos.")).toBeInTheDocument();
+  expect(screen.getByText(/No se pudieron cargar tus pedidos\./)).toBeInTheDocument();
+  expect(screen.getByText(/Tu carrito no se vio afectado/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Intentar de nuevo" })).toBeInTheDocument();
 });
 
 test('negativo: orden sin dirección -> "Sin dirección registrada."', async () => {

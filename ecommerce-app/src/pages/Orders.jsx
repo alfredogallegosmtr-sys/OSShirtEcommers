@@ -62,7 +62,10 @@ export default function Orders() {
       <div className="orders-page orders-empty">
         <Icon name="package" size={48} />
         <h1>No pudimos cargar tus pedidos</h1>
-        <p>{error}</p>
+        <p>{error} Tu carrito no se vio afectado.</p>
+        <Button onClick={() => window.location.reload()}>
+          Intentar de nuevo
+        </Button>
       </div>
     );
   }

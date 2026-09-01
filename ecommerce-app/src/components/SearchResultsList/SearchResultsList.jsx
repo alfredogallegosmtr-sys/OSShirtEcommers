@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { searchProducts } from "../../services/productsService";
 import List from "../List/List";
+import Button from "../common/Button";
 import useFetch from "../../hooks/useFetch";
 import "./SearchResultsList.css";
 
@@ -63,19 +64,39 @@ export default function SearchResultsList() {
       )}
       {!loading && error === "NETWORK" && (
         <div className="search-results-message">
-          <h3>No pudimos conectar con el servidor</h3>
-          <p>Revisa tu conexión a internet</p>
+          <h3>No pudimos cargar los resultados</h3>
+          <p>
+            Puede ser tu conexión a internet o que nuestro servidor no esté
+            respondiendo en este momento. Tu carrito y tu sesión no se
+            vieron afectados.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </div>
       )}
       {!loading && error === "SERVER_ERROR" && (
         <div className="search-results-message">
-          <h3>Algo salió mal de nuestro lado</h3>
-          <p>Intenta de nuevo más tarde</p>
+          <h3>No pudimos cargar los resultados</h3>
+          <p>
+            Algo salió mal de nuestro lado. Tu carrito y tu sesión no se
+            vieron afectados — intenta de nuevo en unos minutos.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </div>
       )}
       {!loading && error && error !== "NETWORK" && error !== "SERVER_ERROR" && (
         <div className="search-results-message">
-          <h3>Ocurrió un error inesperado</h3>
+          <h3>No pudimos cargar los resultados</h3>
+          <p>
+            Ocurrió un error inesperado. Tu carrito y tu sesión no se vieron
+            afectados — intenta de nuevo.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </div>
       )}
       {!loading && !error && showNoResults && (

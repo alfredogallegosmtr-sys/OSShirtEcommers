@@ -13,11 +13,10 @@ export default function WishList() {
   const { data, loading, error: fetchError, setData } = useFetch(() => getWishlist(), []);
   const [removeError, setRemoveError] = useState(null);
   const products = data?.products ?? [];
-  const error = fetchError
-    ? "No se pudo cargar tu lista de favoritos."
-    : removeError;
+  const error = fetchError ? "No se pudo cargar tu lista de favoritos." : null;
 
   const handleRemove = async (productId) => {
+    setRemoveError(null);
     try {
       const wishlist = await removeFromWishlist(productId);
       setData(wishlist);
@@ -37,7 +36,13 @@ export default function WishList() {
   if (error) {
     return (
       <div className="wishlist-page">
-        <ErrorMessage>{error}</ErrorMessage>
+        <ErrorMessage>
+          <h3>{error}</h3>
+          <p>Tu carrito no se vio afectado.</p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
+        </ErrorMessage>
       </div>
     );
   }
@@ -69,6 +74,13 @@ export default function WishList() {
             : `Tienes ${products.length} productos guardados`}
         </p>
       </div>
+      {removeError && (
+        <div className="wishlist-remove-error">
+          <ErrorMessage>
+            <p>{removeError}</p>
+          </ErrorMessage>
+        </div>
+      )}
       <div className="wishlist-grid">
         {products.map((product) => (
           <div key={product._id} className="wishlist-item">

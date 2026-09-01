@@ -106,34 +106,41 @@ test('negativo: sin coincidencias -> No encontramos coincidencias para "..." + e
   expect(screen.getByRole("link", { name: /ofertas destacadas/i })).toBeInTheDocument();
 });
 
-test('negativo: error de red -> "No pudimos conectar con el servidor"', async () => {
+test('negativo: error de red -> título honesto, sin culpar la conexión del usuario, con retry', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products/search", (req, res) => res.networkError("fail")),
   );
 
   renderSearch("/search?q=naruto");
 
-  expect(await screen.findByText("No pudimos conectar con el servidor")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar los resultados")).toBeInTheDocument();
+  expect(
+    screen.getByText(/Tu carrito y tu sesión no se vieron afectados/),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Intentar de nuevo" })).toBeInTheDocument();
 });
 
-test('negativo: 500 -> "Algo salió mal de nuestro lado"', async () => {
+test('negativo: 500 -> título honesto de fallo del servidor', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products/search", (req, res, ctx) => res(ctx.status(500))),
   );
 
   renderSearch("/search?q=naruto");
 
-  expect(await screen.findByText("Algo salió mal de nuestro lado")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar los resultados")).toBeInTheDocument();
+  expect(screen.getByText(/Algo salió mal de nuestro lado/)).toBeInTheDocument();
 });
 
-test('negativo: otro error (403) -> "Ocurrió un error inesperado"', async () => {
+test('negativo: otro error (403) -> mensaje genérico, sin filtrar el kind', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products/search", (req, res, ctx) => res(ctx.status(403))),
   );
 
   renderSearch("/search?q=naruto");
 
-  expect(await screen.findByText("Ocurrió un error inesperado")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar los resultados")).toBeInTheDocument();
+  expect(screen.getByText(/Ocurrió un error inesperado/)).toBeInTheDocument();
+  expect(screen.queryByText(/FORBIDDEN/)).not.toBeInTheDocument();
 });
 
 test('happy loading: durante la búsqueda se ve "Buscando productos..."', async () => {

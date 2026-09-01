@@ -1,5 +1,6 @@
 import BannerCarousel from "../components/BannerCarousel";
 import List from "../components/List/List";
+import Button from "../components/common/Button";
 import ErrorMessage from "../components/common/ErrorMessage/ErrorMessage";
 import Loading from "../components/common/Loading/Loading";
 import homeImages from "../data/homeImages.json";
@@ -16,14 +17,40 @@ export default function Home() {
       {loading && <Loading>Cargando productos...</Loading>}
       {!loading && error && error === "NETWORK" && (
         <ErrorMessage>
-          No pudimos conectar. Revisa tu conexión a internet
+          <h3>No pudimos cargar el catálogo</h3>
+          <p>
+            Puede ser tu conexión a internet o que nuestro servidor no esté
+            respondiendo en este momento. Tu carrito y tu sesión no se
+            vieron afectados.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </ErrorMessage>
       )}
       {!loading && error && error === "SERVER_ERROR" && (
-        <ErrorMessage>Algo salió mal. Intenta mas tarde.</ErrorMessage>
+        <ErrorMessage>
+          <h3>No pudimos cargar el catálogo</h3>
+          <p>
+            Algo salió mal de nuestro lado. Tu carrito y tu sesión no se
+            vieron afectados — intenta de nuevo en unos minutos.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
+        </ErrorMessage>
       )}
       {!loading && error && error !== "NETWORK" && error !== "SERVER_ERROR" && (
-        <ErrorMessage>Ocurrió un error inesperado.{error}</ErrorMessage>
+        <ErrorMessage>
+          <h3>No pudimos cargar el catálogo</h3>
+          <p>
+            Ocurrió un error inesperado. Tu carrito y tu sesión no se vieron
+            afectados — intenta de nuevo.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
+        </ErrorMessage>
       )}
       {!loading && !error && products.length === 0 && (
         <ErrorMessage>No hay productos en el catálogo.</ErrorMessage>

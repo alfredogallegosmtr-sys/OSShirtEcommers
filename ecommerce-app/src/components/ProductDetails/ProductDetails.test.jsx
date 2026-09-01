@@ -94,35 +94,41 @@ test('negativo: 404 -> "Producto no encontrado" + enlace "Volver al catálogo"',
   expect(screen.getByRole("link", { name: /volver al catálogo/i })).toBeInTheDocument();
 });
 
-test('negativo: error de red -> "No pudimos conectar con el servidor." + botón "Reintentar"', async () => {
+test('negativo: error de red -> título honesto, sin culpar la conexión del usuario, con botón de retry', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products/p1", (req, res) => res.networkError("fail")),
   );
 
   renderDetails();
 
-  expect(await screen.findByText("No pudimos conectar con el servidor.")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /reintentar/i })).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar este producto")).toBeInTheDocument();
+  expect(
+    screen.getByText(/Tu carrito y tu sesión no se vieron afectados/),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Intentar de nuevo" })).toBeInTheDocument();
 });
 
-test('negativo: 500 -> "Algo salió mal de nuestro lado."', async () => {
+test('negativo: 500 -> título honesto de fallo del servidor', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products/p1", (req, res, ctx) => res(ctx.status(500))),
   );
 
   renderDetails();
 
-  expect(await screen.findByText("Algo salió mal de nuestro lado.")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar este producto")).toBeInTheDocument();
+  expect(screen.getByText(/Algo salió mal de nuestro lado/)).toBeInTheDocument();
 });
 
-test('negativo: error no clasificado (403 -> FORBIDDEN) -> "Ocurrió un error inesperado."', async () => {
+test('negativo: error no clasificado (403 -> FORBIDDEN) -> mensaje genérico, sin filtrar el kind', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products/p1", (req, res, ctx) => res(ctx.status(403))),
   );
 
   renderDetails();
 
-  expect(await screen.findByText("Ocurrió un error inesperado.")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar este producto")).toBeInTheDocument();
+  expect(screen.getByText(/Ocurrió un error inesperado/)).toBeInTheDocument();
+  expect(screen.queryByText(/FORBIDDEN/)).not.toBeInTheDocument();
 });
 
 test("negativo: invitado -> no aparece el botón de favoritos y no se llama a /api/wishlist", async () => {
@@ -212,7 +218,7 @@ test("regresión B-09: los mensajes de error se ven en pantalla como children de
   renderDetails();
 
   const heading = await screen.findByRole("heading", {
-    name: "Algo salió mal de nuestro lado.",
+    name: "No pudimos cargar este producto",
   });
   expect(heading).toBeVisible();
 });
