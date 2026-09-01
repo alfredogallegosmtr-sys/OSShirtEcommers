@@ -88,11 +88,15 @@ export default function ProductDetails({ productId }) {
     return (
       <div className="product-details-container">
         <ErrorMessage>
-          <h2>No pudimos conectar con el servidor.</h2>
+          <h3>No pudimos cargar este producto</h3>
           <p className="muted">
-            Revisa tu conexión a internet.
-            <button onClick={() => window.location.reload()}>Reintentar</button>
+            Puede ser tu conexión a internet o que nuestro servidor no esté
+            respondiendo en este momento. Tu carrito y tu sesión no se
+            vieron afectados.
           </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </ErrorMessage>
       </div>
     );
@@ -102,10 +106,14 @@ export default function ProductDetails({ productId }) {
     return (
       <div className="product-details-container">
         <ErrorMessage>
-          <h2>Algo salió mal de nuestro lado.</h2>
+          <h3>No pudimos cargar este producto</h3>
           <p className="muted">
-            Estamos trabajando en ello. Intenta en unos minutos.
+            Algo salió mal de nuestro lado. Tu carrito y tu sesión no se
+            vieron afectados — intenta de nuevo en unos minutos.
           </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </ErrorMessage>
       </div>
     );
@@ -115,7 +123,14 @@ export default function ProductDetails({ productId }) {
     return (
       <div className="product-details-container">
         <ErrorMessage>
-          <p className="muted">Ocurrió un error inesperado.</p>
+          <h3>No pudimos cargar este producto</h3>
+          <p className="muted">
+            Ocurrió un error inesperado. Tu carrito y tu sesión no se vieron
+            afectados — intenta de nuevo.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
         </ErrorMessage>
       </div>
     );

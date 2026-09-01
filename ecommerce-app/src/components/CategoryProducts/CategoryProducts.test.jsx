@@ -74,9 +74,9 @@ test('happy título anidado: categoría con parentCategory poblada -> "Padre: Hi
   expect(await screen.findByRole("heading", { name: "Ropa: Naruto" })).toBeInTheDocument();
 });
 
-test('negativo: error de carga (500) -> "Categoría no encontrada" + enlace al inicio', async () => {
+test('negativo: categoría inexistente (404) -> "Categoría no encontrada" + enlace al inicio', async () => {
   server.use(
-    rest.get("http://localhost:4001/api/categories/c1/products", (req, res, ctx) => res(ctx.status(500))),
+    rest.get("http://localhost:4001/api/categories/c1/products", (req, res, ctx) => res(ctx.status(404))),
   );
 
   renderCategory();
@@ -85,7 +85,19 @@ test('negativo: error de carga (500) -> "Categoría no encontrada" + enlace al i
   expect(screen.getByRole("link", { name: /inicio/i })).toBeInTheDocument();
 });
 
-test('negativo: 200 con category null -> "Categoría no encontrada" (no renderiza el grid vacío)', async () => {
+test('negativo: fallo real del servidor (500) -> mensaje honesto de fallo temporal, no "Categoría no encontrada"', async () => {
+  server.use(
+    rest.get("http://localhost:4001/api/categories/c1/products", (req, res, ctx) => res(ctx.status(500))),
+  );
+
+  renderCategory();
+
+  expect(await screen.findByText("No pudimos cargar esta categoría")).toBeInTheDocument();
+  expect(screen.queryByText("Categoría no encontrada")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Intentar de nuevo" })).toBeInTheDocument();
+});
+
+test('negativo: 200 con category null -> mensaje honesto de fallo temporal (no renderiza el grid vacío)', async () => {
   server.use(
     rest.get("http://localhost:4001/api/categories/c1/products", (req, res, ctx) =>
       res(ctx.status(200), ctx.json({ category: null, products: [] })),
@@ -94,7 +106,7 @@ test('negativo: 200 con category null -> "Categoría no encontrada" (no renderiz
 
   renderCategory();
 
-  expect(await screen.findByText("Categoría no encontrada")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar esta categoría")).toBeInTheDocument();
 });
 
 test('negativo: categoría sin productos -> "No se encontraron productos" / "No hay productos disponibles..."', async () => {

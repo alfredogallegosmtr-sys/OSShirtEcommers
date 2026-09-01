@@ -7,6 +7,14 @@
   gap: clamp(16px, 3vw, 24px);
 }
 
+/* Error al quitar un producto: inline junto a la grilla, que sigue visible
+   -- no reemplaza toda la página como el ErrorMessage de carga inicial. */
+.wishlist-remove-error .error-message {
+  text-align: left;
+  padding: 12px 14px;
+  font-weight: 500;
+}
+
 .wishlist-header .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.2em;

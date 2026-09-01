@@ -7,6 +7,17 @@
   margin: 0 auto;
 }
 
+/* Errores de acciones (crear orden, guardar/eliminar dirección o pago): se
+   muestran inline junto al contenido que sigue disponible, no reemplazan
+   toda la página como el ErrorMessage de carga inicial (renderizado fuera
+   de .checkout-container). */
+.checkout-container .error-message {
+  text-align: left;
+  padding: 12px 14px;
+  margin-bottom: var(--gap);
+  font-weight: 500;
+}
+
 .checkout-left {
   flex: 1 1 0;
   display: flex;

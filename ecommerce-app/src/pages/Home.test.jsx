@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { rest } from "msw";
 import { server } from "../mocks/server";
@@ -60,36 +61,55 @@ test('negativo: catálogo vacío -> "No hay productos en el catálogo." y ningun
   expect(screen.queryByRole("heading", { name: "Productos recomendados" })).not.toBeInTheDocument();
 });
 
-test('negativo: error de red -> "No pudimos conectar. Revisa tu conexión a internet"', async () => {
+test('negativo: error de red -> título honesto, sin culpar la conexión del usuario', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products", (req, res) => res.networkError("fail")),
   );
 
   renderHome();
 
+  expect(await screen.findByText("No pudimos cargar el catálogo")).toBeInTheDocument();
   expect(
-    await screen.findByText("No pudimos conectar. Revisa tu conexión a internet"),
+    screen.getByText(/Tu carrito y tu sesión no se vieron afectados/),
   ).toBeInTheDocument();
 });
 
-test('negativo: 500 -> "Algo salió mal. Intenta mas tarde."', async () => {
+test('negativo: 500 -> título honesto de fallo del servidor', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products", (req, res, ctx) => res(ctx.status(500))),
   );
 
   renderHome();
 
-  expect(await screen.findByText("Algo salió mal. Intenta mas tarde.")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar el catálogo")).toBeInTheDocument();
+  expect(screen.getByText(/Algo salió mal de nuestro lado/)).toBeInTheDocument();
 });
 
-test('negativo: otro error (403) -> "Ocurrió un error inesperado." con el kind concatenado', async () => {
+test('negativo: otro error (403) -> mensaje genérico, sin filtrar el kind interno', async () => {
   server.use(
     rest.get("http://localhost:4001/api/products", (req, res, ctx) => res(ctx.status(403))),
   );
 
   renderHome();
 
-  expect(await screen.findByText("Ocurrió un error inesperado.FORBIDDEN")).toBeInTheDocument();
+  expect(await screen.findByText("No pudimos cargar el catálogo")).toBeInTheDocument();
+  expect(screen.getByText(/Ocurrió un error inesperado/)).toBeInTheDocument();
+  expect(screen.queryByText(/FORBIDDEN/)).not.toBeInTheDocument();
+});
+
+test('negativo: botón "Intentar de nuevo" recarga la página', async () => {
+  const reload = jest.fn();
+  Object.defineProperty(window, "location", { value: { reload }, writable: true });
+  server.use(
+    rest.get("http://localhost:4001/api/products", (req, res, ctx) => res(ctx.status(500))),
+  );
+
+  renderHome();
+
+  const retryButton = await screen.findByRole("button", { name: "Intentar de nuevo" });
+  await userEvent.click(retryButton);
+
+  expect(reload).toHaveBeenCalled();
 });
 
 test('happy loading: mientras responde el handler se ve "Cargando productos..."', async () => {

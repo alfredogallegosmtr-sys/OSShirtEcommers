@@ -87,7 +87,7 @@ test('negativo: error de carga (500) -> "No se pudo cargar tu lista de favoritos
   expect(await screen.findByText("No se pudo cargar tu lista de favoritos.")).toBeInTheDocument();
 });
 
-test('negativo: error al quitar (DELETE 500) -> "No se pudo quitar el producto de favoritos."', async () => {
+test('negativo: error al quitar (DELETE 500) -> mensaje inline, la grilla de favoritos sigue visible', async () => {
   server.use(
     rest.get("http://localhost:4001/api/wishlist", (req, res, ctx) =>
       res(ctx.status(200), ctx.json({ products: [product()] })),
@@ -103,6 +103,9 @@ test('negativo: error al quitar (DELETE 500) -> "No se pudo quitar el producto d
   expect(
     await screen.findByText("No se pudo quitar el producto de favoritos."),
   ).toBeInTheDocument();
+  // La grilla no se reemplaza por el error: el producto sigue visible.
+  expect(screen.getByText("Camiseta Naruto")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /quitar de favoritos/i })).toBeInTheDocument();
 });
 
 test('negativo: singular - un solo producto -> "Tienes 1 producto guardado"', async () => {

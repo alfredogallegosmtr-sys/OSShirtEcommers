@@ -74,6 +74,12 @@ export default function Checkout() {
   const [loadingLocal, setLoadingLocal] = useState(true);
   const [localError, setLocalError] = useState(null);
 
+  // Errores de acciones posteriores a la carga inicial: no deben tumbar todo
+  // el checkout, cada uno se renderiza inline en la sección donde ocurrió.
+  const [orderError, setOrderError] = useState(null);
+  const [addressActionError, setAddressActionError] = useState(null);
+  const [paymentActionError, setPaymentActionError] = useState(null);
+
   // Control de visibilidad de formularios (Modo Edición/Creación)
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -181,6 +187,7 @@ export default function Checkout() {
    * Si la dirección eliminada estaba seleccionada, intenta seleccionar otra.
    */
   const handleAddressDelete = async (address) => {
+    setAddressActionError(null);
     try {
       await deleteAddress(address._id);
       const updatedAddresses = addresses.filter((add) => add._id !== address._id);
@@ -189,7 +196,7 @@ export default function Checkout() {
       }
       setAddresses(updatedAddresses);
     } catch (err) {
-      setLocalError("No se pudo eliminar la dirección.");
+      setAddressActionError("No se pudo eliminar la dirección. Puedes intentarlo de nuevo.");
     }
   };
 
@@ -200,6 +207,7 @@ export default function Checkout() {
    * lógica a mano en el cliente divergiría de la fuente de verdad real.
    */
   const handleAddressSubmit = async (formData) => {
+    setAddressActionError(null);
     try {
       const saved = editingAddress
         ? await updateAddress(editingAddress._id, formData)
@@ -214,7 +222,7 @@ export default function Checkout() {
       setEditingAddress(null);
       setAddressSectionOpen(false);
     } catch (err) {
-      setLocalError("No se pudo guardar la dirección.");
+      setAddressActionError("No se pudo guardar la dirección. Puedes intentarlo de nuevo.");
     }
   };
 
@@ -278,6 +286,7 @@ export default function Checkout() {
    * @param {Object} payment - El método de pago a eliminar.
    */
   const handlePaymentDelete = async (payment) => {
+    setPaymentActionError(null);
     try {
       await deletePaymentMethod(payment._id);
       const updatedPayments = payments.filter((pay) => pay._id !== payment._id);
@@ -286,7 +295,7 @@ export default function Checkout() {
       }
       setPayments(updatedPayments);
     } catch (err) {
-      setLocalError("No se pudo eliminar el método de pago.");
+      setPaymentActionError("No se pudo eliminar el método de pago. Puedes intentarlo de nuevo.");
     }
   };
 
@@ -297,6 +306,7 @@ export default function Checkout() {
    * @param {Object} formData - Datos del formulario de pago (ya sin número completo ni cvv).
    */
   const handlePaymentSubmit = async (formData) => {
+    setPaymentActionError(null);
     try {
       const saved = editingPayment
         ? await updatePaymentMethod(editingPayment._id, formData)
@@ -311,7 +321,7 @@ export default function Checkout() {
       setEditingPayment(null);
       setPaymentSectionOpen(false);
     } catch (err) {
-      setLocalError("No se pudo guardar el método de pago.");
+      setPaymentActionError("No se pudo guardar el método de pago. Puedes intentarlo de nuevo.");
     }
   };
 
@@ -349,6 +359,7 @@ export default function Checkout() {
     }
 
     setIsSubmittingOrder(true);
+    setOrderError(null);
     try {
       const order = await createOrder({
         addressId: selectedAddress._id,
@@ -358,7 +369,7 @@ export default function Checkout() {
       navigate("/order-confirmation", { state: { order } });
       clearCart();
     } catch (err) {
-      setLocalError("No se pudo completar la orden.");
+      setOrderError(true);
       setIsSubmittingOrder(false);
     }
   };
@@ -389,6 +400,11 @@ export default function Checkout() {
             }
             onToggle={handleAddressToggle}
           >
+            {addressActionError && (
+              <ErrorMessage>
+                <p>{addressActionError}</p>
+              </ErrorMessage>
+            )}
             {!showAddressForm && !editingAddress ? (
               <AddressList
                 addresses={addresses}
@@ -428,6 +444,11 @@ export default function Checkout() {
             }
             onToggle={handlePaymentToggle}
           >
+            {paymentActionError && (
+              <ErrorMessage>
+                <p>{paymentActionError}</p>
+              </ErrorMessage>
+            )}
             {!showPaymentForm && !editingPayment ? (
               <PaymentList
                 payments={payments}
@@ -492,6 +513,17 @@ export default function Checkout() {
                 ).toLocaleDateString()}
               </p>
             </div>
+            {orderError && (
+              <ErrorMessage>
+                <h3>No se pudo confirmar tu pedido</h3>
+                <p>
+                  No se realizó ningún cargo. Tu dirección, método de pago y
+                  carrito siguen intactos — puedes intentar de nuevo con el
+                  botón de abajo. Si el problema persiste, escríbenos a{" "}
+                  <a href="mailto:hola@osshirts.com">hola@osshirts.com</a>.
+                </p>
+              </ErrorMessage>
+            )}
             <Button
               className="pay-button"
               disabled={

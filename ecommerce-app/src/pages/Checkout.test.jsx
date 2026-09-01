@@ -213,7 +213,7 @@ test('negativo: sin método de pago (lista vacía) -> Confirmar y Pagar deshabil
   expect(screen.getByRole("button", { name: /agregar nueva tarjeta/i })).toBeInTheDocument();
 });
 
-test('negativo: fallo al crear la orden (POST 500) -> "No se pudo completar la orden." y el carrito permanece intacto', async () => {
+test('negativo: fallo al crear la orden (POST 500) -> mensaje honesto inline, checkout sigue visible y usable, carrito intacto', async () => {
   seedCart([cartItem()]);
   mockDataOk();
   server.use(
@@ -225,7 +225,11 @@ test('negativo: fallo al crear la orden (POST 500) -> "No se pudo completar la o
   await waitFor(() => expect(payButton).toBeEnabled());
   await userEvent.click(payButton);
 
-  expect(await screen.findByText("No se pudo completar la orden.")).toBeInTheDocument();
+  expect(await screen.findByText("No se pudo confirmar tu pedido")).toBeInTheDocument();
+  expect(screen.getByText(/No se realizó ningún cargo/)).toBeInTheDocument();
+  // El checkout NO se reemplaza por el error: sigue visible y usable.
+  expect(screen.getByRole("heading", { name: "Resumen de la Orden" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /confirmar y pagar/i })).toBeEnabled();
   expect(JSON.parse(localStorage.getItem("cart"))).toHaveLength(1);
 });
 
@@ -253,7 +257,10 @@ test('negativo: fallo al guardar dirección (POST /api/addresses 500) -> "No se 
   await userEvent.type(screen.getByLabelText("Teléfono"), "3333333333");
   await userEvent.click(screen.getByRole("button", { name: /agregar dirección/i }));
 
-  expect(await screen.findByText("No se pudo guardar la dirección.")).toBeInTheDocument();
+  expect(
+    await screen.findByText("No se pudo guardar la dirección. Puedes intentarlo de nuevo."),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Resumen de la Orden" })).toBeInTheDocument();
 });
 
 test('negativo: fallo al eliminar dirección (DELETE /api/addresses/:id 500) -> "No se pudo eliminar la dirección."', async () => {
@@ -269,7 +276,10 @@ test('negativo: fallo al eliminar dirección (DELETE /api/addresses/:id 500) -> 
   await userEvent.click(screen.getAllByRole("button", { name: "Cambiar" })[0]);
   await userEvent.click(screen.getByRole("button", { name: /^eliminar$/i }));
 
-  expect(await screen.findByText("No se pudo eliminar la dirección.")).toBeInTheDocument();
+  expect(
+    await screen.findByText("No se pudo eliminar la dirección. Puedes intentarlo de nuevo."),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Resumen de la Orden" })).toBeInTheDocument();
 });
 
 test('negativo: fallo al guardar pago (POST /api/payment-methods 500) -> "No se pudo guardar el método de pago."', async () => {
@@ -294,8 +304,9 @@ test('negativo: fallo al guardar pago (POST /api/payment-methods 500) -> "No se 
   await userEvent.click(screen.getByRole("button", { name: /agregar método de pago/i }));
 
   expect(
-    await screen.findByText("No se pudo guardar el método de pago."),
+    await screen.findByText("No se pudo guardar el método de pago. Puedes intentarlo de nuevo."),
   ).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Resumen de la Orden" })).toBeInTheDocument();
 });
 
 test('negativo: fallo al eliminar pago (DELETE /api/payment-methods/:id 500) -> "No se pudo eliminar el método de pago."', async () => {
@@ -315,8 +326,9 @@ test('negativo: fallo al eliminar pago (DELETE /api/payment-methods/:id 500) -> 
   await userEvent.click(screen.getByRole("button", { name: /^eliminar$/i }));
 
   expect(
-    await screen.findByText("No se pudo eliminar el método de pago."),
+    await screen.findByText("No se pudo eliminar el método de pago. Puedes intentarlo de nuevo."),
   ).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Resumen de la Orden" })).toBeInTheDocument();
 });
 
 test('happy envío gratis: subtotal >= 1000 -> la línea de envío dice "Gratis" y el total = subtotal + IVA', async () => {
