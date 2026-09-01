@@ -1,46 +1,19 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Breadcrumb from "../../layout/Breadcrumb/Breadcrumb";
 import { getProductsByCategoryAndChildren } from "../../services/categoryService";
 import ProductCard from "../ProductCard/ProductCard";
 import ErrorMessage from "../common/ErrorMessage/ErrorMessage";
 import Loading from "../common/Loading/Loading";
+import useFetch from "../../hooks/useFetch";
 import "./CategoryProducts.css";
 
 export default function CategoryProducts({ categoryId }) {
-  const [category, setCategory] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const data = await getProductsByCategoryAndChildren(categoryId, {
-          limit: 50,
-        });
-        if (cancelled) return true;
-
-        setCategory(data.category);
-        setProducts(data.products);
-      } catch (error) {
-        if (!cancelled) setError(error.kind || "UNKNOWN");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId]);
+  const { data, loading, error } = useFetch(
+    () => getProductsByCategoryAndChildren(categoryId, { limit: 50 }),
+    [categoryId]
+  );
+  const category = data?.category ?? null;
+  const products = data?.products ?? [];
 
   if (loading) {
     return (

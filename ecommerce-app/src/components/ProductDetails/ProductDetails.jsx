@@ -13,14 +13,12 @@ import Badge from "../common/Badge";
 import Button from "../common/Button";
 import ErrorMessage from "../common/ErrorMessage/ErrorMessage";
 // import Loading from "../common/Loading/Loading";
+import useFetch from "../../hooks/useFetch";
 import "./ProductDetails.css";
 
 export default function ProductDetails({ productId }) {
   const { addItem } = useCart();
   const { isAuthenticated } = useAuth();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
 
@@ -61,27 +59,10 @@ export default function ProductDetails({ productId }) {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getProductById(productId);
-        if (!cancelled) return setProduct(data);
-      } catch (error) {
-        if (cancelled) return;
-        setError(error.kind || "UNKNOWN");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [productId]);
+  const { data: product, loading, error } = useFetch(
+    () => getProductById(productId),
+    [productId]
+  );
 
   const handleAddToCart = () => {
     if (product) addItem(product, 1);

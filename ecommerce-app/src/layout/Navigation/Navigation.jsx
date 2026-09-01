@@ -5,6 +5,7 @@ import ErrorMessage from "../../components/common/ErrorMessage/ErrorMessage";
 import Loading from "../../components/common/Loading/Loading";
 import { useAuth } from "../../context/AuthContext";
 import { getAllCategories } from "../../services/categoryService";
+import useFetch from "../../hooks/useFetch";
 import "./Navigation.css";
 
 // Mismo criterio de iniciales que usa Header.jsx (para que el avatar del
@@ -29,9 +30,8 @@ const getFirstName = (userData) => {
 
 const Navigation = ({ isMobile = false, onLinkClick }) => {
   const { user, isAuthenticated } = useAuth();
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { data, loading, error } = useFetch(() => getAllCategories(), []);
+  const categories = data ?? [];
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [expandedCategoryIds, setExpandedCategoryIds] = useState(() => new Set());
@@ -49,29 +49,6 @@ const Navigation = ({ isMobile = false, onLinkClick }) => {
       return next;
     });
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadCategories = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getAllCategories();
-        if (cancelled) return;
-        setCategories(data);
-      } catch (err) {
-        if (!cancelled) setError(err.kind || "UNKNOWN");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    loadCategories();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Cierra el panel transitorio con Escape y bloquea el scroll del body
   // mientras está abierto.

@@ -1,46 +1,23 @@
-import { useEffect,  useState } from "react"; //useMemo,
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { searchProducts } from "../../services/productsService";
 import List from "../List/List";
+import useFetch from "../../hooks/useFetch";
 import "./SearchResultsList.css";
 
 export default function SearchResultsList() {
   const [searchParams] = useSearchParams();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState(null);
-  const [error, setError] = useState(null);
   const [sort, setSort] = useState("createdAt");
   const [order, setOrder] = useState("desc");
 
   const query = (searchParams.get("q") || "").trim();
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadProducts = async () => {
-      try {
-        setLoading(true);
-        const data = await searchProducts({
-          q: query || undefined,
-          sort,
-          order,
-          limit: 30,
-        });
-        if (isMounted) {
-          setProducts(data.products);
-          setPagination(data.pagination);
-        }
-      } catch (error) {
-        if (isMounted) setError(error.kind || "UNKNOWN");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    loadProducts();
-    return () => {
-      isMounted = false;
-    };
-  }, [query, sort, order]);
+  const { data, loading, error } = useFetch(
+    () => searchProducts({ q: query || undefined, sort, order, limit: 30 }),
+    [query, sort, order]
+  );
+  const products = data?.products ?? [];
+  const pagination = data?.pagination ?? null;
 
   const hasQuery = query.length > 0;
   const showNoResults = hasQuery && !loading && products.length === 0;
