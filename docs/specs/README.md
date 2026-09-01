@@ -22,15 +22,23 @@ Infraestructura preparada:
   `feature/`/`bugfix/`/etc. futura, siguiendo FASE 4 de SSDLC.
 - `.github/workflows/ci-cd.yml` dispara también en push/PR contra `develop`, no solo `main`.
 
-Cuando arranquen `E9` (Artillery/carga) o `E10` (despliegue a Render) — con confirmación
-explícita del usuario, ver `docs/backlog.md` — cada pendiente formal de esas épicas sigue el
-flujo completo: spec en esta carpeta antes de implementar, rama desde `develop`, PR, quality
-gates, cierre con `## Resultados` y `## Matriz de cierre` completos.
-
-Un primer spec de `E10` ya está redactado (FASE 2/3 de SSDLC) como preparación, a la espera de
-esa confirmación — no tiene FASE 4 (rama) ni implementación todavía, así que su estado real es
-`DRAFT`, no reconstruido: se escribió antes de tocar código, como exige la plantilla.
+Un primer spec de `E10` se redactó (FASE 2/3 de SSDLC) como preparación — sigue en `DRAFT`, sin
+FASE 4 (rama) ni implementación formal atada a él, porque `E10` (`DEP-01`/`DEP-02`/`DEP-03`) se
+terminó implementando directo, igual que `E1`–`E8`.
 
 | Spec | Épica | Prioridad | Estado |
 |---|---|---|---|
-| [2026-08-27-infra-env-vars-render.md](2026-08-27-infra-env-vars-render.md) | E10 | S (complejidad) | DRAFT |
+| [2026-08-27-infra-env-vars-render.md](2026-08-27-infra-env-vars-render.md) | E10 | S (complejidad) | DRAFT (sin seguimiento — ver cierre de `DOC-01`) |
+
+## Cierre de `DOC-01` (2026-09-01)
+
+El proceso spec-first quedó preparado en la infraestructura (`develop`, CI extendido) pero
+**nunca se adoptó en la práctica** para ninguna épica posterior, incluidas `E9` a `E14`
+(Artillery, Render, Swagger, auditoría OWASP, performance, hooks) — todas se implementaron con
+el mismo patrón real de este proyecto: 1 pendiente → 1 rama → 1 PR, verificado en vivo
+(curl/tests/Playwright según el caso) antes de mergear, documentado después en
+[backlog.md](../backlog.md), sin spec previo. Ese patrón demostró funcionar de forma consistente
+en las 14 épicas del backlog, así que `DOC-01` se cierra como decisión consciente de no adoptar
+el flujo SSDLC completo — no como pendiente olvidado. El spec de `E10` queda como el único
+ejemplo real de FASE 2/3, sin reconstruir specs retroactivos para el resto (sería documentación
+de teatro, no una fuente de verdad, como ya advertía este documento).
