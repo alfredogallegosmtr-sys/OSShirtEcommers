@@ -17,9 +17,16 @@ const signTokens = (user) => {
 };
 
 export const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password } = req.body || {};
 
-  if (!name || !email || !password) {
+  if (
+    typeof name !== "string" ||
+    typeof email !== "string" ||
+    typeof password !== "string" ||
+    !name ||
+    !email ||
+    !password
+  ) {
     return res
       .status(422)
       .json({ message: "Nombre, email y password son requeridos" });
@@ -55,9 +62,14 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
-  if (!email || !password) {
+  if (
+    typeof email !== "string" ||
+    typeof password !== "string" ||
+    !email ||
+    !password
+  ) {
     return res
       .status(422)
       .json({ message: "Email y password son requeridos" });

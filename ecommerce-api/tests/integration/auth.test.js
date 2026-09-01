@@ -71,6 +71,19 @@ describe("Auth integration (/api/auth)", () => {
       });
     });
 
+    it("[negativo] email como objeto (intento de inyección NoSQL) → 422, no 500", async () => {
+      const res = await request(app).post("/api/auth/register").send({
+        name: "Ana",
+        email: { $gt: "" },
+        password: "Secret123!",
+      });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({
+        message: "Nombre, email y password son requeridos",
+      });
+    });
+
     it("[negativo] password de menos de 6 caracteres (S-06) → 422, y no crea el usuario", async () => {
       const res = await request(app).post("/api/auth/register").send({
         name: "Ana",
@@ -141,6 +154,26 @@ describe("Auth integration (/api/auth)", () => {
       const res = await request(app).post("/api/auth/login").send({
         email: "sinpass-login@test.com",
       });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({ message: "Email y password son requeridos" });
+    });
+
+    it("[negativo] email/password como operadores Mongo (intento de inyección NoSQL) → 422, no 500", async () => {
+      const res = await request(app).post("/api/auth/login").send({
+        email: { $gt: "" },
+        password: { $gt: "" },
+      });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({ message: "Email y password son requeridos" });
+    });
+
+    it("[negativo] Content-Type inesperado (body no parseado por express.json) → 422, no 500", async () => {
+      const res = await request(app)
+        .post("/api/auth/login")
+        .set("Content-Type", "application/x-www-form-urlencoded")
+        .send("email=login@test.com&password=Secret123!");
 
       expect(res.status).toBe(422);
       expect(res.body).toEqual({ message: "Email y password son requeridos" });
