@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 
 // Variables de entorno de JWT necesarias por auth.controller.js / auth.middleware.js.
 // app.js no llama a dotenv.config() (sin efectos secundarios), así que las fijamos
@@ -13,7 +13,10 @@ process.env.JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 let mongoServer;
 
 export const connectTestDB = async () => {
-  mongoServer = await MongoMemoryServer.create();
+  // Replica set de 1 nodo, no standalone: order.controller.js usa transacciones
+  // (session.withTransaction) en createOrder, y un MongoMemoryServer standalone
+  // las rechaza ("Transaction numbers are only allowed on a replica set member").
+  mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 };

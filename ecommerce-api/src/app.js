@@ -95,6 +95,9 @@ app.use((err, req, res, _next) => {
         : 'Valor duplicado',
     });
   }
+  if (err.name === 'InsufficientStockError') {
+    return res.status(422).json({ message: err.message });
+  }
   res.status(500).json({ message: 'Error interno del servidor' });
 });
 
