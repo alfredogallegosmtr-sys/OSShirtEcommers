@@ -82,6 +82,13 @@ Notas:
 - `REACT_APP_API_URL` **incluye el sufijo `/api`**.
 - Las variables `REACT_APP_*` se **incrustan durante el build**. Si cambia la URL del backend hay
   que **reconstruir y redeployar** el frontend.
+- **`ecommerce-app/public/_redirects`** (`/*    /index.html   200`) es necesario para que las
+  rutas de `react-router-dom` funcionen al recargar la página o entrar por link directo — un
+  Static Site sirve archivos reales por default, así que sin este rewrite, `GET /product/123`
+  (recarga o link directo) da 404 en vez de dejar que `BrowserRouter` la resuelva del lado del
+  cliente; solo `/` funciona porque coincide con `index.html` literal. Render soporta el mismo
+  formato `_redirects` que Netlify — CRA copia cualquier archivo de `public/` tal cual a `build/`,
+  así que no requiere configuración manual en el dashboard.
 
 ## Orden de despliegue sugerido
 
