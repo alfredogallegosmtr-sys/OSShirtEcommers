@@ -29,7 +29,9 @@ const formatDate = (isoString) => {
 export default function Orders() {
   const { data: fetchedOrders, loading, error: fetchError } = useFetch(() => getOrders(), []);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
-  const orders = fetchedOrders || [];
+  // useMemo (no solo "|| []"): un array literal nuevo en cada render invalidaría la memo de
+  // abajo mientras fetchedOrders es null/undefined (loading o error).
+  const orders = useMemo(() => fetchedOrders || [], [fetchedOrders]);
   const error = fetchError ? "No se pudieron cargar tus pedidos." : null;
 
   // Selección por defecto (la más reciente) calculada en el render, no en un efecto: así no
