@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { rest } from "msw";
 import { server } from "../mocks/server";
-import Settings from "./Setttings";
+import Settings from "./Settings";
 
 function mockGetMe(user = { name: "Ana", email: "ana@mail.com" }) {
   server.use(
