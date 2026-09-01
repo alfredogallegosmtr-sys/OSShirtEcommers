@@ -1,0 +1,29 @@
+config:
+  target: "https://osshirtecommerceproject.onrender.com"
+  phases:
+    - duration: 20
+      arrivalRate: 2
+      name: "Prueba ligera de producción"
+  plugins:
+    publish-metrics:
+      - type: prometheus
+        pushgateway: "http://localhost:9091"
+        prefix: "artillery_prod_"
+
+# A diferencia de loadtest/catalog.yml (local), esta corre contra la API real en Render, que
+# usa MongoDB Atlas en su capa gratuita (M0 -- límite bajo de conexiones concurrentes). Por eso:
+# - Solo 2 arrivals/seg durante 20s (~40 VUs, ~120 requests totales) en vez de hasta 20/seg.
+# - Solo endpoints públicos de solo lectura (catálogo) -- nada de login/carrito, para no gastar
+#   el cupo de auth (S-05: 10 intentos/15min por IP) ni escribir datos reales de producción.
+scenarios:
+  - name: "Explorar catálogo (público, sin auth)"
+    weight: 100
+    flow:
+      - get:
+          url: "/api/products"
+      - get:
+          url: "/api/products/search"
+          qs:
+            q: "camiseta"
+      - get:
+          url: "/api/categories"

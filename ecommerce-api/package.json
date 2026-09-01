@@ -13,6 +13,7 @@
     "test:watch": "vitest tests/",
     "test:coverage": "vitest run tests/ --coverage",
     "test:load": "artillery run loadtest/catalog.yml",
+    "test:load:prod": "artillery run loadtest/catalog.prod.yml",
     "lint": "eslint src tests server.js"
   },
   "keywords": [],
