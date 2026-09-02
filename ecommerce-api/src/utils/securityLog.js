@@ -1,10 +1,5 @@
-import { mkdir, appendFile } from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOG_DIR = path.join(__dirname, "..", "..", "logs");
-const LOG_FILE = path.join(LOG_DIR, "security.log");
+import { appendLogEvent, LOG_DIR } from "./fileLog.js";
 
 // S-07: antes no se registraba ningún evento de seguridad (401 de requireAuth, 403 de
 // requireAdmin, login fallido) — un ataque pasaba invisible. Log a archivo plano, sin
@@ -14,20 +9,9 @@ const LOG_FILE = path.join(LOG_DIR, "security.log");
 //
 // Los callers reales (requireAuth/requireAdmin/login) sí la esperan (await) antes de
 // responder, para no correr una carrera entre "ya respondí" y "ya quedó escrito el
-// evento" -- pero un fallo al escribir el log (ej. permisos de disco) nunca lanza,
-// solo se reporta a console.error, para no romper la respuesta HTTP real.
-export const logSecurityEvent = (event, details = {}) => {
-  const line = `${JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event,
-    ...details,
-  })}\n`;
+// evento" -- el escritor real (appendLogEvent, en fileLog.js) nunca lanza.
+const LOG_FILE = path.join(LOG_DIR, "security.log");
 
-  return mkdir(LOG_DIR, { recursive: true })
-    .then(() => appendFile(LOG_FILE, line))
-    .catch((err) => {
-      console.error("No se pudo escribir el log de seguridad", err);
-    });
-};
+export const logSecurityEvent = (event, details = {}) => appendLogEvent(LOG_FILE, event, details);
 
 export const SECURITY_LOG_FILE = LOG_FILE;
