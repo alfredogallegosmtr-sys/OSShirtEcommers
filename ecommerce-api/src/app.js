@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import mongoose from 'mongoose';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import productRoutes from './routes/product.routes.js';
@@ -14,6 +15,7 @@ import paymentMethodRoutes from './routes/paymentMethod.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import wishlistRoutes from './routes/wishlist.routes.js';
 import userRoutes from './routes/user.routes.js';
+import logRoutes from './routes/log.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,6 +52,20 @@ app.get('/', (req, res) => {
   }
 );
 
+// Refleja conectividad real a Mongo, no solo que el proceso esté vivo -- el fallo más
+// ensayado de este proyecto (2 simulacros reales contra Atlas) es justo la caída de la
+// base de datos, no la caída del propio servidor Node.
+app.get('/api/health', (req, res) => {
+  const readyState = mongoose.connection.readyState; // 1 = connected
+  const dbStatus = readyState === 1 ? 'up' : 'down';
+  res.status(dbStatus === 'up' ? 200 : 503).json({
+    status: dbStatus === 'up' ? 'ok' : 'degraded',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    db: { status: dbStatus, readyState },
+  });
+});
+
 // Swagger UI nunca se expone abierto en producción salvo que se habilite a propósito
 // (ENABLE_DOCS=true) — evita filtrar la forma de la API a cualquiera en un despliegue real.
 const docsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_DOCS === 'true';
@@ -78,6 +94,7 @@ app.use('/api/payment-methods', paymentMethodRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/logs', logRoutes);
 
 // Express solo reconoce un error handler por su arity de 4 parámetros;
 // "_next" debe existir aunque nunca se llame.
